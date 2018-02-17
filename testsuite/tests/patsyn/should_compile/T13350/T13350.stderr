@@ -118,13 +118,3 @@ WARNING: file compiler/utils/ListSetOps.hs, line 58
    Text.PrettyPrint.Annotated.HughesPJ, Text.PrettyPrint.HughesPJ,
    Data.Text, Data.Text.Lazy]
   []
-
-q/H.hsig:2:1: error:
-    • Identifier ‘x’ has conflicting definitions in the module
-      and its hsig file
-      Main module: x :: Int
-      Hsig file:  x :: Bool
-      The two types are different
-    • while merging the signatures from:
-        • bkpcabal01-0.1.0.0:p[H=<H>]:H
-        • ...and the local signature for H

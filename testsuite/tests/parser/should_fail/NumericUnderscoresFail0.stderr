@@ -1,4 +1,15 @@
-NumericUnderscoresFail0.hs:9:5: error:
-NumericUnderscoresFail0.hs:11:13: error:
-NumericUnderscoresFail0.hs:11:20: error:
-NumericUnderscoresFail0.hs:12:13: error:
+ghc-stage2: panic! (the 'impossible' happened)
+  (GHC version 8.5.20180216 for x86_64-unknown-linux):
+	ASSERT failed!
+  2
+  1
+  t_a4cL[tau:1]
+  a_a4cM[tau:2] -> Either a_a4cM[tau:2] b_a4cN[tau:2]
+  Call stack:
+      CallStack (from HasCallStack):
+        callStackDoc, called at compiler/utils/Outputable.hs:1150:37 in ghc:Outputable
+        pprPanic, called at compiler/utils/Outputable.hs:1206:5 in ghc:Outputable
+        assertPprPanic, called at compiler/typecheck/TcMType.hs:720:54 in ghc:TcMType
+
+Please report this as a GHC bug:  http://www.haskell.org/ghc/reportabug
+

@@ -1,35 +1,14 @@
+ghc-stage2: panic! (the 'impossible' happened)
+  (GHC version 8.5.20180216 for x86_64-unknown-linux):
+	ASSERT failed!
+  [a_a1WO]
+  [a_a1WP]
+  [@a_a1WP]
+  Call stack:
+      CallStack (from HasCallStack):
+        callStackDoc, called at compiler/utils/Outputable.hs:1150:37 in ghc:Outputable
+        pprPanic, called at compiler/utils/Outputable.hs:1206:5 in ghc:Outputable
+        assertPprPanic, called at compiler/basicTypes/DataCon.hs:896:70 in ghc:DataCon
 
-T12087.hs:6:3: error:
-    • GADT constructor type signature cannot contain nested ‘forall’s or contexts
-      Suggestion: instead use this type signature:
-        MkF1 :: forall a. (Ord a, Eq a) => a -> F1 a
-    • In the definition of data constructor ‘MkF1’
-      In the data type declaration for ‘F1’
+Please report this as a GHC bug:  http://www.haskell.org/ghc/reportabug
 
-T12087.hs:9:3: error:
-    • GADT constructor type signature cannot contain nested ‘forall’s or contexts
-      Suggestion: instead use this type signature:
-        MkF2 :: forall a. (Ord a, Eq a) => F2 a
-    • In the definition of data constructor ‘MkF2’
-      In the data type declaration for ‘F2’
-
-T12087.hs:12:3: error:
-    • GADT constructor type signature cannot contain nested ‘forall’s or contexts
-      Suggestion: instead use this type signature:
-        MkF3 :: forall a b. (Eq a, Eq b) => b -> F3 a
-    • In the definition of data constructor ‘MkF3’
-      In the data type declaration for ‘F3’
-
-T12087.hs:15:3: error:
-    • GADT constructor type signature cannot contain nested ‘forall’s or contexts
-      Suggestion: instead use this type signature:
-        MkF4 :: forall a b. (Eq a, Eq b) => b -> F4 a
-    • In the definition of data constructor ‘MkF4’
-      In the data type declaration for ‘F4’
-
-T12087.hs:18:3: error:
-    • GADT constructor type signature cannot contain nested ‘forall’s or contexts
-      Suggestion: instead use this type signature:
-        MkF5 :: forall a b. a -> Int -> Int -> b -> F5 a
-    • In the definition of data constructor ‘MkF5’
-      In the data type declaration for ‘F5’

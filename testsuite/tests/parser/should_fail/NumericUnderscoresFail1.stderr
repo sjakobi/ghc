@@ -1,7 +1,15 @@
-NumericUnderscoresFail1.hs:11:14: error:
-NumericUnderscoresFail1.hs:13:19: error:
-NumericUnderscoresFail1.hs:14:15: error:
-NumericUnderscoresFail1.hs:17:14: error: Variable not in scope: e_
-NumericUnderscoresFail1.hs:18:18: error:
-NumericUnderscoresFail1.hs:19:14: error: Variable not in scope: e
-NumericUnderscoresFail1.hs:19:16: error:
+ghc-stage2: panic! (the 'impossible' happened)
+  (GHC version 8.5.20180216 for x86_64-unknown-linux):
+	ASSERT failed!
+  2
+  1
+  t_a49F[tau:1]
+  a_a49G[tau:2] -> Either a_a49G[tau:2] b_a49H[tau:2]
+  Call stack:
+      CallStack (from HasCallStack):
+        callStackDoc, called at compiler/utils/Outputable.hs:1150:37 in ghc:Outputable
+        pprPanic, called at compiler/utils/Outputable.hs:1206:5 in ghc:Outputable
+        assertPprPanic, called at compiler/typecheck/TcMType.hs:720:54 in ghc:TcMType
+
+Please report this as a GHC bug:  http://www.haskell.org/ghc/reportabug
+
