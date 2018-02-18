@@ -817,18 +817,21 @@ combineIdenticalAlts imposs_deflt_cons alts@((DEFAULT, [], rhs1) : rest_alts)
     tickss = map (stripTicksT tickishFloatable . thdOf3) elim_rest
 
 combineIdenticalAlts imposs_deflt_cons alts
-  = case most_freq_rhs of
-      (_con, _bndrs, rhs1) : _ : _ -> (True, imposs_deflt_cons', alts')
+  = case altsWithMostCommonRhs alts of
+      most_cmmn_alts@((_con, _bndrs, rhs1) : _ : _) -> (True, imposs_deflt_cons', alts')
         where
-          imposs_deflt_cons' = imposs_deflt_cons `minusList` map fstOf3 most_freq_rhs
+          imposs_deflt_cons' = imposs_deflt_cons `minusList` map fstOf3 most_cmmn_alts
           alts' = deflt_alt : filter (not . cheapEqExpr' tickishFloatable rhs1 . thdOf3) alts
           deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
-          tickss = map (stripTicksT tickishFloatable . thdOf3) (tail most_freq_rhs)
+          tickss = map (stripTicksT tickishFloatable . thdOf3) (tail most_cmmn_alts)
       _ -> (False, imposs_deflt_cons, alts)
-  where
-    most_freq_rhs :: [CoreAlt]
-    most_freq_rhs = foldCoreMap longest [] core_map
 
+altsWithMostCommonRhs :: [CoreAlt] -> [CoreAlt]
+altsWithMostCommonRhs
+  = foldCoreMap longest []
+  . foldr updateCM emptyCoreMap
+  . filter (all isDeadBinder . sndOf3)
+  where
     longest :: [a] -> [a] -> [a]
     longest xs ys = go xs ys
       where
@@ -836,15 +839,12 @@ combineIdenticalAlts imposs_deflt_cons alts
         go []      _       = ys
         go (_:xs') (_:ys') = go xs' ys'
 
-    core_map = foldr updateCM emptyCoreMap dead_bindr_alts
-
     updateCM :: CoreAlt -> CoreMap [CoreAlt] -> CoreMap [CoreAlt]
     updateCM ca@(_, _, rhs) cm = alterTM (stripTicksE tickishFloatable rhs) (prepend ca) cm
 
     prepend x (Just xs) = Just (x : xs)
     prepend x Nothing   = Just [x]
 
-    dead_bindr_alts = filter (all isDeadBinder . sndOf3) alts
 
 {- *********************************************************************
 *                                                                      *
