@@ -61,6 +61,7 @@ module CoreUtils (
 import GhcPrelude
 
 import CoreSyn
+import TrieMap
 import PrelNames ( makeStaticName )
 import PprCore
 import CoreFVs( exprFreeVars )
@@ -778,6 +779,7 @@ combineIdenticalAlts :: [AltCon]    -- Constructors that cannot match DEFAULT
                          [CoreAlt]) -- New alternatives
 -- See Note [Combine identical alternatives]
 -- True <=> we did some combining, result is a single DEFAULT alternative
+{-
 combineIdenticalAlts imposs_deflt_cons ((con1,bndrs1,rhs1) : rest_alts)
   | all isDeadBinder bndrs1    -- Remember the default
   , not (null elim_rest) -- alternative comes first
@@ -797,9 +799,32 @@ combineIdenticalAlts imposs_deflt_cons ((con1,bndrs1,rhs1) : rest_alts)
     identical_to_alt1 (_con,bndrs,rhs)
       = all isDeadBinder bndrs && rhs `cheapEqTicked` rhs1
     tickss = map (stripTicksT tickishFloatable . thdOf3) elim_rest
+-}
 
 combineIdenticalAlts imposs_cons alts
-  = (False, imposs_cons, alts)
+  = case most_freq_rhs of
+      alts'@((_con, _bndrs, rhs) : _) -> (True, undefined, undefined)
+      _ -> (False, imposs_cons, alts)
+  where
+    most_freq_rhs :: [CoreAlt]
+    most_freq_rhs = foldCoreMap longest [] core_map
+
+    longest :: [a] -> [a] -> [a]
+    longest xs ys = go xs ys
+      where
+        go _       []      = xs
+        go []      _       = ys
+        go (_:xs') (_:ys') = go xs' ys'
+
+    core_map = foldr updateCM emptyCoreMap dead_bindr_alts
+
+    updateCM :: CoreAlt -> CoreMap [CoreAlt] -> CoreMap [CoreAlt]
+    updateCM ca@(_, _, rhs) cm = alterTM (stripTicksE tickishFloatable rhs) (prepend ca) cm
+
+    prepend x (Just xs) = Just (x : xs)
+    prepend x Nothing   = Just [x]
+
+    dead_bindr_alts = filter (all isDeadBinder . sndOf3) alts
 
 {- *********************************************************************
 *                                                                      *
