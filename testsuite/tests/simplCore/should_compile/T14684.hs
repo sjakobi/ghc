@@ -1,7 +1,6 @@
--- This function currently doesn't simplify using the
--- combine-identical-alternatives optimisation.
--- After the fix, Foo3 {}, Foo5 and Foo6 should be combined
--- to a single DEFAULT alternative.
+-- This is a test for the combine-identical-alternatives optimisation.
+-- The alternatives with the most common RHS are combined into
+-- a single DEFAULT alternative.
 
 
 module T14684 where
