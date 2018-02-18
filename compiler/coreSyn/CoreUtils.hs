@@ -801,17 +801,30 @@ combineIdenticalAlts imposs_deflt_cons ((con1,bndrs1,rhs1) : rest_alts)
     tickss = map (stripTicksT tickishFloatable . thdOf3) elim_rest
 -}
 
--- FIXME: Make sure we do the right thing when alts already contains
--- DEFAULT but it doesn't have the most frequent rhs
-combineIdenticalAlts imposs_cons alts
+combineIdenticalAlts imposs_deflt_cons alts@((DEFAULT, [], rhs1) : rest_alts)
+  | null elim_rest
+  = (False, imposs_deflt_cons, alts)
+  | otherwise
+  = (True, imposs_deflt_cons', deflt_alt : filtered_rest)
+  where
+    (elim_rest, filtered_rest) = partition identical_to_alt1 rest_alts
+    imposs_deflt_cons' = imposs_deflt_cons `minusList` elim_cons
+    elim_cons = map fstOf3 elim_rest
+    deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
+    identical_to_alt1 (_con,bndrs,rhs)
+      = all isDeadBinder bndrs && rhs `cheapEqTicked` rhs1
+    cheapEqTicked e1 e2 = cheapEqExpr' tickishFloatable e1 e2
+    tickss = map (stripTicksT tickishFloatable . thdOf3) elim_rest
+
+combineIdenticalAlts imposs_deflt_cons alts
   = case most_freq_rhs of
-      (_con, _bndrs, rhs1) : _ : _ -> (True, imposs_cons', alts')
+      (_con, _bndrs, rhs1) : _ : _ -> (True, imposs_deflt_cons', alts')
         where
-          imposs_cons' = imposs_cons `minusList` map fstOf3 most_freq_rhs
+          imposs_deflt_cons' = imposs_deflt_cons `minusList` map fstOf3 most_freq_rhs
           alts' = deflt_alt : filter (not . cheapEqExpr' tickishFloatable rhs1 . thdOf3) alts
           deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
           tickss = map (stripTicksT tickishFloatable . thdOf3) (tail most_freq_rhs)
-      _ -> (False, imposs_cons, alts)
+      _ -> (False, imposs_deflt_cons, alts)
   where
     most_freq_rhs :: [CoreAlt]
     most_freq_rhs = foldCoreMap longest [] core_map
