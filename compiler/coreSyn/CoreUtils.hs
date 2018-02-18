@@ -774,77 +774,45 @@ missed the first one.)
 
 combineIdenticalAlts :: [AltCon]    -- Constructors that cannot match DEFAULT
                      -> [CoreAlt]
-                     -> (Bool,      -- True <=> something happened
+                     -> (Bool,      -- True <=> we combined several alts into a DEFAULT
                          [AltCon],  -- New constructors that cannot match DEFAULT
                          [CoreAlt]) -- New alternatives
 -- See Note [Combine identical alternatives]
--- True <=> we did some combining, result is a single DEFAULT alternative
-{-
-combineIdenticalAlts imposs_deflt_cons ((con1,bndrs1,rhs1) : rest_alts)
-  | all isDeadBinder bndrs1    -- Remember the default
-  , not (null elim_rest) -- alternative comes first
-  = (True, imposs_deflt_cons', deflt_alt : filtered_rest)
-  where
-    (elim_rest, filtered_rest) = partition identical_to_alt1 rest_alts
-    deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
-
-     -- See Note [Care with impossible-constructors when combining alternatives]
-    imposs_deflt_cons' = imposs_deflt_cons `minusList` elim_cons
-    elim_cons = elim_con1 ++ map fstOf3 elim_rest
-    elim_con1 = case con1 of     -- Don't forget con1!
-                  DEFAULT -> []  -- See Note [
-                  _       -> [con1]
-
-    cheapEqTicked e1 e2 = cheapEqExpr' tickishFloatable e1 e2
-    identical_to_alt1 (_con,bndrs,rhs)
-      = all isDeadBinder bndrs && rhs `cheapEqTicked` rhs1
-    tickss = map (stripTicksT tickishFloatable . thdOf3) elim_rest
--}
-
-combineIdenticalAlts imposs_deflt_cons alts@((DEFAULT, [], rhs1) : rest_alts)
-  | null elim_rest
-  = (False, imposs_deflt_cons, alts)
-  | otherwise
-  = (True, imposs_deflt_cons', deflt_alt : filtered_rest)
-  where
-    (elim_rest, filtered_rest) = partition identical_to_alt1 rest_alts
-    imposs_deflt_cons' = imposs_deflt_cons `minusList` elim_cons
-    elim_cons = map fstOf3 elim_rest
-    deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
-    identical_to_alt1 (_con,bndrs,rhs)
-      = all isDeadBinder bndrs && rhs `cheapEqTicked` rhs1
-    cheapEqTicked e1 e2 = cheapEqExpr' tickishFloatable e1 e2
-    tickss = map (stripTicksT tickishFloatable . thdOf3) elim_rest
-
 combineIdenticalAlts imposs_deflt_cons alts
-  = case altsWithMostCommonRhs alts of
-      most_cmmn_alts@((_con, _bndrs, rhs1) : _ : _) -> (True, imposs_deflt_cons', alts')
+  = case identical_alts of
+      (_con, _bndrs, rhs1) : _ : _
+        -> (True, imposs_deflt_cons', alts')
         where
-          imposs_deflt_cons' = imposs_deflt_cons `minusList` map fstOf3 most_cmmn_alts
-          alts' = deflt_alt : filter (not . cheapEqExpr' tickishFloatable rhs1 . thdOf3) alts
+          imposs_deflt_cons' = imposs_deflt_cons `minusList` map fstOf3 identical_alts
+          alts' = deflt_alt : filter (not . cheapEqTicked rhs1 . thdOf3) alts
           deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
-          tickss = map (stripTicksT tickishFloatable . thdOf3) (tail most_cmmn_alts)
+          tickss = map (stripTicksT tickishFloatable . thdOf3) (tail identical_alts)
       _ -> (False, imposs_deflt_cons, alts)
-
-altsWithMostCommonRhs :: [CoreAlt] -> [CoreAlt]
-altsWithMostCommonRhs
-  = foldCoreMap longest []
-  . foldr updateCM emptyCoreMap
-  . filter (all isDeadBinder . sndOf3)
   where
-    longest :: [a] -> [a] -> [a]
-    longest xs ys = go xs ys
+    identical_alts
+      = case alts of
+          alt1@(DEFAULT, [], rhs1) : _
+            -> alt1 : filter (cheapEqTicked rhs1 . thdOf3) (tail dead_bindr_alts)
+          _ -> most_common_alts
+    dead_bindr_alts = filter (all isDeadBinder . sndOf3) alts
+    cheapEqTicked e1 e2 = cheapEqExpr' tickishFloatable e1 e2
+    most_common_alts = foldCoreMap longest [] core_map
       where
-        go _       []      = xs
-        go []      _       = ys
-        go (_:xs') (_:ys') = go xs' ys'
+        core_map = foldr updateCM emptyCoreMap dead_bindr_alts
 
-    updateCM :: CoreAlt -> CoreMap [CoreAlt] -> CoreMap [CoreAlt]
-    updateCM ca@(_, _, rhs) cm = alterTM (stripTicksE tickishFloatable rhs) (prepend ca) cm
+        updateCM :: CoreAlt -> CoreMap [CoreAlt] -> CoreMap [CoreAlt]
+        updateCM ca@(_, _, rhs) cm
+          = alterTM (stripTicksE tickishFloatable rhs) (prepend ca) cm
 
-    prepend x (Just xs) = Just (x : xs)
-    prepend x Nothing   = Just [x]
+        prepend x (Just xs) = Just (x : xs)
+        prepend x Nothing   = Just [x]
 
+        longest :: [a] -> [a] -> [a]
+        longest xs ys = go xs ys
+          where
+            go _       []      = xs
+            go []      _       = ys
+            go (_:xs') (_:ys') = go xs' ys'
 
 {- *********************************************************************
 *                                                                      *
