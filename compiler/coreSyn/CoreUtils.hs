@@ -783,6 +783,7 @@ combineIdenticalAlts imposs_deflt_cons alts
       (_con, _bndrs, rhs1) : elim_rest@(_ : _)
         -> (True, imposs_deflt_cons', alts')
         where
+          -- See Note [Care with impossible-constructors when combining alternatives]
           imposs_deflt_cons' = imposs_deflt_cons `minusList` map fstOf3 identical_alts
           alts' = deflt_alt : filter (not . cheapEqTicked rhs1 . thdOf3) alts
           deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
