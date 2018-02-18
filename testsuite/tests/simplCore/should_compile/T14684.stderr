@@ -1,0 +1,311 @@
+
+==================== Tidy Core ====================
+Result size of Tidy Core
+  = {terms: 133, types: 42, coercions: 0, joins: 0/0}
+
+-- RHS size: {terms: 6, types: 3, coercions: 0, joins: 0/0}
+T14684.$WFoo3 [InlPrag=INLINE[2]] :: Int -> Foo
+[GblId[DataConWrapper],
+ Arity=1,
+ Caf=NoCafRefs,
+ Str=<S,U>m3,
+ Unf=Unf{Src=InlineStable, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True,
+         Guidance=ALWAYS_IF(arity=1,unsat_ok=True,boring_ok=False)
+         Tmpl= \ (dt [Occ=Once!] :: Int) ->
+                 case dt of { GHC.Types.I# dt [Occ=Once] -> T14684.Foo3 dt }}]
+T14684.$WFoo3
+  = \ (dt [Occ=Once!] :: Int) ->
+      case dt of { GHC.Types.I# dt [Occ=Once] -> T14684.Foo3 dt }
+
+-- RHS size: {terms: 13, types: 3, coercions: 0, joins: 0/0}
+T14684.$wfun1 [InlPrag=NOINLINE] :: Foo -> GHC.Prim.Int#
+[GblId, Arity=1, Caf=NoCafRefs, Str=<S,1*U>, Unf=OtherCon []]
+T14684.$wfun1
+  = \ (w :: Foo) ->
+      case w of {
+        Foo1 -> 0#;
+        Foo2 -> 1#;
+        Foo3 dt -> 1#;
+        Foo4 -> 2#;
+        Foo5 -> 2#
+      }
+
+-- RHS size: {terms: 7, types: 2, coercions: 0, joins: 0/0}
+fun1 [InlPrag=NOUSERINLINE[0]] :: Foo -> Int
+[GblId,
+ Arity=1,
+ Caf=NoCafRefs,
+ Str=<S,1*U>m,
+ Unf=Unf{Src=InlineStable, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True,
+         Guidance=ALWAYS_IF(arity=1,unsat_ok=True,boring_ok=False)
+         Tmpl= \ (w [Occ=Once] :: Foo) ->
+                 case T14684.$wfun1 w of ww { __DEFAULT -> GHC.Types.I# ww }}]
+fun1
+  = \ (w :: Foo) ->
+      case T14684.$wfun1 w of ww { __DEFAULT -> GHC.Types.I# ww }
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+T14684.$trModule4 :: GHC.Prim.Addr#
+[GblId,
+ Caf=NoCafRefs,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 20 0}]
+T14684.$trModule4 = "main"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+T14684.$trModule3 :: GHC.Types.TrName
+[GblId,
+ Caf=NoCafRefs,
+ Str=m1,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 20}]
+T14684.$trModule3 = GHC.Types.TrNameS T14684.$trModule4
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+T14684.$trModule2 :: GHC.Prim.Addr#
+[GblId,
+ Caf=NoCafRefs,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 30 0}]
+T14684.$trModule2 = "T14684"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+T14684.$trModule1 :: GHC.Types.TrName
+[GblId,
+ Caf=NoCafRefs,
+ Str=m1,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 20}]
+T14684.$trModule1 = GHC.Types.TrNameS T14684.$trModule2
+
+-- RHS size: {terms: 3, types: 0, coercions: 0, joins: 0/0}
+T14684.$trModule :: GHC.Types.Module
+[GblId,
+ Caf=NoCafRefs,
+ Str=m,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 30}]
+T14684.$trModule
+  = GHC.Types.Module T14684.$trModule3 T14684.$trModule1
+
+-- RHS size: {terms: 3, types: 1, coercions: 0, joins: 0/0}
+$krep :: GHC.Types.KindRep
+[GblId, Caf=NoCafRefs, Str=m1, Unf=OtherCon []]
+$krep
+  = GHC.Types.KindRepTyConApp
+      GHC.Types.$tcInt (GHC.Types.[] @ GHC.Types.KindRep)
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+T14684.$tcFoo2 :: GHC.Prim.Addr#
+[GblId,
+ Caf=NoCafRefs,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 20 0}]
+T14684.$tcFoo2 = "Foo"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+T14684.$tcFoo1 :: GHC.Types.TrName
+[GblId,
+ Caf=NoCafRefs,
+ Str=m1,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 20}]
+T14684.$tcFoo1 = GHC.Types.TrNameS T14684.$tcFoo2
+
+-- RHS size: {terms: 7, types: 0, coercions: 0, joins: 0/0}
+T14684.$tcFoo :: GHC.Types.TyCon
+[GblId,
+ Caf=NoCafRefs,
+ Str=m,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 70}]
+T14684.$tcFoo
+  = GHC.Types.TyCon
+      4349991048299655134##
+      17172759762202856641##
+      T14684.$trModule
+      T14684.$tcFoo1
+      0#
+      GHC.Types.krep$*
+
+-- RHS size: {terms: 3, types: 1, coercions: 0, joins: 0/0}
+T14684.$tc'Foo7 [InlPrag=NOUSERINLINE[~]] :: GHC.Types.KindRep
+[GblId, Caf=NoCafRefs, Str=m1, Unf=OtherCon []]
+T14684.$tc'Foo7
+  = GHC.Types.KindRepTyConApp
+      T14684.$tcFoo (GHC.Types.[] @ GHC.Types.KindRep)
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo9 :: GHC.Prim.Addr#
+[GblId,
+ Caf=NoCafRefs,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 30 0}]
+T14684.$tc'Foo9 = "'Foo1"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo8 :: GHC.Types.TrName
+[GblId,
+ Caf=NoCafRefs,
+ Str=m1,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 20}]
+T14684.$tc'Foo8 = GHC.Types.TrNameS T14684.$tc'Foo9
+
+-- RHS size: {terms: 7, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo1 :: GHC.Types.TyCon
+[GblId,
+ Caf=NoCafRefs,
+ Str=m,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 70}]
+T14684.$tc'Foo1
+  = GHC.Types.TyCon
+      18037740342636342972##
+      18245680189990210428##
+      T14684.$trModule
+      T14684.$tc'Foo8
+      0#
+      T14684.$tc'Foo7
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo11 :: GHC.Prim.Addr#
+[GblId,
+ Caf=NoCafRefs,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 30 0}]
+T14684.$tc'Foo11 = "'Foo2"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo10 :: GHC.Types.TrName
+[GblId,
+ Caf=NoCafRefs,
+ Str=m1,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 20}]
+T14684.$tc'Foo10 = GHC.Types.TrNameS T14684.$tc'Foo11
+
+-- RHS size: {terms: 7, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo2 :: GHC.Types.TyCon
+[GblId,
+ Caf=NoCafRefs,
+ Str=m,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 70}]
+T14684.$tc'Foo2
+  = GHC.Types.TyCon
+      223142009905058302##
+      5965457131298327565##
+      T14684.$trModule
+      T14684.$tc'Foo10
+      0#
+      T14684.$tc'Foo7
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo16 :: GHC.Prim.Addr#
+[GblId,
+ Caf=NoCafRefs,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 30 0}]
+T14684.$tc'Foo16 = "'Foo4"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo15 :: GHC.Types.TrName
+[GblId,
+ Caf=NoCafRefs,
+ Str=m1,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 20}]
+T14684.$tc'Foo15 = GHC.Types.TrNameS T14684.$tc'Foo16
+
+-- RHS size: {terms: 7, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo4 :: GHC.Types.TyCon
+[GblId,
+ Caf=NoCafRefs,
+ Str=m,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 70}]
+T14684.$tc'Foo4
+  = GHC.Types.TyCon
+      14290480538294916986##
+      7341715822248695073##
+      T14684.$trModule
+      T14684.$tc'Foo15
+      0#
+      T14684.$tc'Foo7
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo18 :: GHC.Prim.Addr#
+[GblId,
+ Caf=NoCafRefs,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 30 0}]
+T14684.$tc'Foo18 = "'Foo5"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo17 :: GHC.Types.TrName
+[GblId,
+ Caf=NoCafRefs,
+ Str=m1,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 20}]
+T14684.$tc'Foo17 = GHC.Types.TrNameS T14684.$tc'Foo18
+
+-- RHS size: {terms: 7, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo5 :: GHC.Types.TyCon
+[GblId,
+ Caf=NoCafRefs,
+ Str=m,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 70}]
+T14684.$tc'Foo5
+  = GHC.Types.TyCon
+      12748281786836852828##
+      1189010889434854244##
+      T14684.$trModule
+      T14684.$tc'Foo17
+      0#
+      T14684.$tc'Foo7
+
+-- RHS size: {terms: 3, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo12 [InlPrag=NOUSERINLINE[~]] :: GHC.Types.KindRep
+[GblId, Caf=NoCafRefs, Str=m4, Unf=OtherCon []]
+T14684.$tc'Foo12 = GHC.Types.KindRepFun $krep T14684.$tc'Foo7
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo14 :: GHC.Prim.Addr#
+[GblId,
+ Caf=NoCafRefs,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 30 0}]
+T14684.$tc'Foo14 = "'Foo3"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo13 :: GHC.Types.TrName
+[GblId,
+ Caf=NoCafRefs,
+ Str=m1,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 20}]
+T14684.$tc'Foo13 = GHC.Types.TrNameS T14684.$tc'Foo14
+
+-- RHS size: {terms: 7, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo3 :: GHC.Types.TyCon
+[GblId,
+ Caf=NoCafRefs,
+ Str=m,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 70}]
+T14684.$tc'Foo3
+  = GHC.Types.TyCon
+      9523958428946570902##
+      14404434600827903386##
+      T14684.$trModule
+      T14684.$tc'Foo13
+      0#
+      T14684.$tc'Foo12
+
+
+
