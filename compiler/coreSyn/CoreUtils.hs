@@ -780,19 +780,19 @@ combineIdenticalAlts :: [AltCon]    -- Constructors that cannot match DEFAULT
 -- See Note [Combine identical alternatives]
 combineIdenticalAlts imposs_deflt_cons alts
   = case identical_alts of
-      (_con, _bndrs, rhs1) : _ : _
+      (_con, _bndrs, rhs1) : elim_rest@(_ : _)
         -> (True, imposs_deflt_cons', alts')
         where
           imposs_deflt_cons' = imposs_deflt_cons `minusList` map fstOf3 identical_alts
           alts' = deflt_alt : filter (not . cheapEqTicked rhs1 . thdOf3) alts
           deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
-          tickss = map (stripTicksT tickishFloatable . thdOf3) (tail identical_alts)
+          tickss = map (stripTicksT tickishFloatable . thdOf3) elim_rest
       _ -> (False, imposs_deflt_cons, alts)
   where
     identical_alts
       = case alts of
-          alt1@(DEFAULT, [], rhs1) : _
-            -> alt1 : filter (cheapEqTicked rhs1 . thdOf3) (tail dead_bindr_alts)
+          (DEFAULT, [], rhs1) : _
+            -> filter (cheapEqTicked rhs1 . thdOf3) dead_bindr_alts
           _ -> most_common_alts
     dead_bindr_alts = filter (all isDeadBinder . sndOf3) alts
     cheapEqTicked e1 e2 = cheapEqExpr' tickishFloatable e1 e2
