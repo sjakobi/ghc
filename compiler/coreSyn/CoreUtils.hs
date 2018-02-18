@@ -805,7 +805,12 @@ combineIdenticalAlts imposs_deflt_cons ((con1,bndrs1,rhs1) : rest_alts)
 -- DEFAULT but it doesn't have the most frequent rhs
 combineIdenticalAlts imposs_cons alts
   = case most_freq_rhs of
-      alts'@((_con, _bndrs, rhs) : _ : _) -> (True, undefined, undefined)
+      (_con, _bndrs, rhs1) : _ : _ -> (True, imposs_cons', alts')
+        where
+          imposs_cons' = imposs_cons `minusList` map fstOf3 most_freq_rhs
+          alts' = deflt_alt : filter (not . cheapEqExpr' tickishFloatable rhs1 . thdOf3) alts
+          deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
+          tickss = map (stripTicksT tickishFloatable . thdOf3) (tail most_freq_rhs)
       _ -> (False, imposs_cons, alts)
   where
     most_freq_rhs :: [CoreAlt]
