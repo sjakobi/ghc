@@ -801,9 +801,11 @@ combineIdenticalAlts imposs_deflt_cons ((con1,bndrs1,rhs1) : rest_alts)
     tickss = map (stripTicksT tickishFloatable . thdOf3) elim_rest
 -}
 
+-- FIXME: Make sure we do the right thing when alts already contains
+-- DEFAULT but it doesn't have the most frequent rhs
 combineIdenticalAlts imposs_cons alts
   = case most_freq_rhs of
-      alts'@((_con, _bndrs, rhs) : _) -> (True, undefined, undefined)
+      alts'@((_con, _bndrs, rhs) : _ : _) -> (True, undefined, undefined)
       _ -> (False, imposs_cons, alts)
   where
     most_freq_rhs :: [CoreAlt]
