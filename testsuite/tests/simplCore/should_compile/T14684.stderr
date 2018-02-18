@@ -1,7 +1,7 @@
 
 ==================== Tidy Core ====================
 Result size of Tidy Core
-  = {terms: 133, types: 42, coercions: 0, joins: 0/0}
+  = {terms: 148, types: 45, coercions: 0, joins: 0/0}
 
 -- RHS size: {terms: 6, types: 3, coercions: 0, joins: 0/0}
 T14684.$WFoo3 [InlPrag=INLINE[2]] :: Int -> Foo
@@ -18,7 +18,7 @@ T14684.$WFoo3
   = \ (dt [Occ=Once!] :: Int) ->
       case dt of { GHC.Types.I# dt [Occ=Once] -> T14684.Foo3 dt }
 
--- RHS size: {terms: 13, types: 3, coercions: 0, joins: 0/0}
+-- RHS size: {terms: 15, types: 3, coercions: 0, joins: 0/0}
 T14684.$wfun1 [InlPrag=NOINLINE] :: Foo -> GHC.Prim.Int#
 [GblId, Arity=1, Caf=NoCafRefs, Str=<S,1*U>, Unf=OtherCon []]
 T14684.$wfun1
@@ -26,9 +26,10 @@ T14684.$wfun1
       case w of {
         Foo1 -> 0#;
         Foo2 -> 1#;
-        Foo3 dt -> 1#;
-        Foo4 -> 2#;
-        Foo5 -> 2#
+        Foo3 dt -> 2#;
+        Foo4 -> 1#;
+        Foo5 -> 2#;
+        Foo6 -> 2#
       }
 
 -- RHS size: {terms: 7, types: 2, coercions: 0, joins: 0/0}
@@ -266,6 +267,39 @@ T14684.$tc'Foo5
       1189010889434854244##
       T14684.$trModule
       T14684.$tc'Foo17
+      0#
+      T14684.$tc'Foo7
+
+-- RHS size: {terms: 1, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo20 :: GHC.Prim.Addr#
+[GblId,
+ Caf=NoCafRefs,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 30 0}]
+T14684.$tc'Foo20 = "'Foo6"#
+
+-- RHS size: {terms: 2, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo19 :: GHC.Types.TrName
+[GblId,
+ Caf=NoCafRefs,
+ Str=m1,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 20}]
+T14684.$tc'Foo19 = GHC.Types.TrNameS T14684.$tc'Foo20
+
+-- RHS size: {terms: 7, types: 0, coercions: 0, joins: 0/0}
+T14684.$tc'Foo6 :: GHC.Types.TyCon
+[GblId,
+ Caf=NoCafRefs,
+ Str=m,
+ Unf=Unf{Src=<vanilla>, TopLvl=True, Value=True, ConLike=True,
+         WorkFree=True, Expandable=True, Guidance=IF_ARGS [] 10 70}]
+T14684.$tc'Foo6
+  = GHC.Types.TyCon
+      15742355740191386512##
+      9863847134356324011##
+      T14684.$trModule
+      T14684.$tc'Foo19
       0#
       T14684.$tc'Foo7
 
