@@ -794,7 +794,7 @@ combineIdenticalAlts imposs_deflt_cons alts
       = case alts of
           (DEFAULT, [], rhs1) : _
             -> filter (cheapEqTicked rhs1 . thdOf3) dead_bindr_alts
-          _ -> most_common_alts
+          _ -> most_common_alts -- See #14684
     dead_bindr_alts = filter (all isDeadBinder . sndOf3) alts
     cheapEqTicked e1 e2 = cheapEqExpr' tickishFloatable e1 e2
     most_common_alts = foldCoreMap longest [] core_map
