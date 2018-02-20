@@ -689,7 +689,7 @@ ocGetNames_ELF ( ObjectCode* oc )
            */
           alloc = SECTION_MMAP;
           start = mmap(NULL, size,
-                       PROT_READ | PROT_WRITE | PROT_EXEC,
+                       PROT_READ | PROT_WRITE,
                        MAP_ANON | MAP_PRIVATE,
                        -1, 0);
           mapped_start = start;
@@ -733,7 +733,7 @@ ocGetNames_ELF ( ObjectCode* oc )
           unsigned stub_space = STUB_SIZE * nstubs;
 
           void * mem = mmap(NULL, size+stub_space,
-                            PROT_READ | PROT_WRITE | PROT_EXEC,
+                            PROT_READ | PROT_WRITE,
                             MAP_ANON | MAP_PRIVATE,
                             -1, 0);
 
