@@ -1254,6 +1254,11 @@ primop IndexByteArrayOp_Word64 "indexWord64Array#" GenPrimOp
    {Read 64-bit word; offset in 64-bit words.}
    with can_fail = True
 
+primop IndexByteByteArrayOp_Char "indexByteCharArray#" GenPrimOp
+   ByteArray# -> Int# -> Int# -> Char#
+   {Read 8-bit character; first offset in bytes, second offset in 8-bit characters.}
+   with can_fail = True
+
 primop  ReadByteArrayOp_Char "readCharArray#" GenPrimOp
    MutableByteArray# s -> Int# -> State# s -> (# State# s, Char# #)
    {Read 8-bit character; offset in bytes.}

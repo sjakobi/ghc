@@ -500,6 +500,10 @@ emitPrimOp dflags res IndexByteArrayOp_Word16           args = doIndexByteArrayO
 emitPrimOp dflags res IndexByteArrayOp_Word32           args = doIndexByteArrayOp   (Just (mo_u_32ToWord dflags)) b32  res args
 emitPrimOp _      res IndexByteArrayOp_Word64           args = doIndexByteArrayOp   Nothing b64  res args
 
+-- IndexByteXXXArray
+
+emitPrimOp dflags res IndexByteByteArrayOp_Char        args = doIndexByteByteArrayOp   (Just (mo_u_8ToWord dflags)) b8 res args
+
 -- ReadXXXArray, identical to IndexXXXArray.
 
 emitPrimOp dflags res ReadByteArrayOp_Char             args = doIndexByteArrayOp   (Just (mo_u_8ToWord dflags)) b8 res args
@@ -1371,6 +1375,17 @@ doIndexByteArrayOp maybe_post_read_cast rep [res] [addr,idx]
         mkBasicIndexedRead (arrWordsHdrSize dflags) maybe_post_read_cast rep res addr rep idx
 doIndexByteArrayOp _ _ _ _
    = panic "StgCmmPrim: doIndexByteArrayOp"
+
+doIndexByteByteArrayOp :: Maybe MachOp
+                       -> CmmType
+                       -> [LocalReg]
+                       -> [CmmExpr]
+                       -> FCode ()
+doIndexByteByteArrayOp maybe_post_read_cast rep [res] [addr,bidx,tidx]
+   = do dflags <- getDynFlags
+        mkBasicIndexedRead (arrWordsHdrSize dflags + bidx) maybe_post_read_cast rep res addr rep tidx
+doIndexByteByteArrayOp _ _ _ _
+   = panic "StgCmmPrim: doIndexByteByteArrayOp"
 
 doIndexByteArrayOpAs :: Maybe MachOp
                     -> CmmType
