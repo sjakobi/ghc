@@ -521,7 +521,7 @@ emitPrimOp _      res ReadByteArrayOp_Word64           args = doIndexByteArrayOp
 
 -- IndexByteXXXArray
 
-emitPrimOp dflags res IndexByteByteArrayOp_Char        args = doIndexByteByteArrayOp   (Just (mo_u_8ToWord dflags)) b8 res args
+emitPrimOp dflags res IndexByteByteArrayOp_Int16       args = doIndexByteByteArrayOp   (Just (mo_s_16ToWord dflags)) b16 res args
 
 -- WriteXXXoffAddr
 

@@ -167,3 +167,4 @@ test('T13825-unit',
      ['-package ghc'])
 test('T14619', normal, compile_and_run, [''])
 test('T14754', normal, compile_and_run, [''])
+test('T11143', normal, compile_and_run, [''])
