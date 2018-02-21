@@ -1420,6 +1420,11 @@ primop  WriteByteArrayOp_Word64 "writeWord64Array#" GenPrimOp
    with has_side_effects = True
         can_fail = True
 
+primop IndexByteByteArrayOp_Char "indexByteCharArray#" GenPrimOp
+   ByteArray# -> Int# -> Int# -> Char#
+   {Read 8-bit character; both offsets in bytes.}
+   with can_fail = True
+
 primop  CompareByteArraysOp "compareByteArrays#" GenPrimOp
    ByteArray# -> Int# -> ByteArray# -> Int# -> Int# -> Int#
    {{\tt compareByteArrays# src1 src1_ofs src2 src2_ofs n} compares

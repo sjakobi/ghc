@@ -519,6 +519,10 @@ emitPrimOp dflags res ReadByteArrayOp_Word16           args = doIndexByteArrayOp
 emitPrimOp dflags res ReadByteArrayOp_Word32           args = doIndexByteArrayOp   (Just (mo_u_32ToWord dflags)) b32  res args
 emitPrimOp _      res ReadByteArrayOp_Word64           args = doIndexByteArrayOp   Nothing b64  res args
 
+-- IndexByteXXXArray
+
+emitPrimOp dflags res IndexByteByteArrayOp_Char        args = doIndexByteByteArrayOp   (Just (mo_u_8ToWord dflags)) b8 res args
+
 -- WriteXXXoffAddr
 
 emitPrimOp dflags res WriteOffAddrOp_Char             args = doWriteOffAddrOp (Just (mo_WordTo8 dflags))  b8 res args
@@ -1372,6 +1376,17 @@ doIndexByteArrayOp maybe_post_read_cast rep [res] [addr,idx]
 doIndexByteArrayOp _ _ _ _
    = panic "StgCmmPrim: doIndexByteArrayOp"
 
+doIndexByteByteArrayOp :: Maybe MachOp
+                       -> CmmType
+                       -> [LocalReg]
+                       -> [CmmExpr]
+                       -> FCode ()
+doIndexByteByteArrayOp maybe_post_read_cast rep [res] [addr,off,idx]
+   = do dflags <- getDynFlags
+        mkFancyIndexedRead (arrWordsHdrSize dflags) maybe_post_read_cast rep res addr off rep idx
+doIndexByteByteArrayOp _ _ _ _
+   = panic "StgCmmPrim: doIndexByteByteArrayOp"
+
 doIndexByteArrayOpAs :: Maybe MachOp
                     -> CmmType
                     -> CmmType
@@ -1469,6 +1484,23 @@ mkBasicIndexedWrite off Nothing base idx_ty idx val
 mkBasicIndexedWrite off (Just cast) base idx_ty idx val
    = mkBasicIndexedWrite off Nothing base idx_ty idx (CmmMachOp cast [val])
 
+mkFancyIndexedRead :: ByteOff      -- Initial offset in bytes
+                   -> Maybe MachOp -- Optional result cast
+                   -> CmmType      -- Type of element we are accessing
+                   -> LocalReg     -- Destination
+                   -> CmmExpr      -- Base address
+                   -> CmmExpr      -- Additional offset in bytes
+                   -> CmmType      -- Type of element by which we are indexing
+                   -> CmmExpr      -- Index
+                   -> FCode ()
+mkFancyIndexedRead b_off Nothing ty res base e_off idx_ty idx
+   = do dflags <- getDynFlags
+        emitAssign (CmmLocal res) (cmmLoadIndexOffBExpr dflags b_off e_off ty base idx_ty idx)
+mkFancyIndexedRead b_off (Just cast) ty res base e_off idx_ty idx
+   = do dflags <- getDynFlags
+        emitAssign (CmmLocal res) (CmmMachOp cast [
+                                   cmmLoadIndexOffBExpr dflags b_off e_off ty base idx_ty idx])
+
 -- ----------------------------------------------------------------------------
 -- Misc utils
 
@@ -1481,6 +1513,16 @@ cmmIndexOffExpr :: DynFlags
 cmmIndexOffExpr dflags off width base idx
    = cmmIndexExpr dflags width (cmmOffsetB dflags base off) idx
 
+cmmIndexOffBExpr :: DynFlags
+                 -> ByteOff  -- ^ Initial offset in bytes
+                 -> CmmExpr  -- ^ Additional offset in bytes
+                 -> Width    -- ^ Width of element by which we are indexing
+                 -> CmmExpr  -- ^ Base address
+                 -> CmmExpr  -- ^ Index
+                 -> CmmExpr
+cmmIndexOffBExpr dflags b_off e_off width base idx
+   = cmmIndexExpr dflags width (cmmOffsetBE dflags base b_off e_off) idx
+
 cmmLoadIndexOffExpr :: DynFlags
                     -> ByteOff  -- Initial offset in bytes
                     -> CmmType  -- Type of element we are accessing
@@ -1490,6 +1532,17 @@ cmmLoadIndexOffExpr :: DynFlags
                     -> CmmExpr
 cmmLoadIndexOffExpr dflags off ty base idx_ty idx
    = CmmLoad (cmmIndexOffExpr dflags off (typeWidth idx_ty) base idx) ty
+
+cmmLoadIndexOffBExpr :: DynFlags
+                     -> ByteOff  -- ^ Initial offset in bytes
+                     -> CmmExpr  -- ^ Additional offset in bytes
+                     -> CmmType  -- ^ Type of element we are accessing
+                     -> CmmExpr  -- ^ Base address
+                     -> CmmType  -- ^ Type of element by which we are indexing
+                     -> CmmExpr  -- ^ Index
+                     -> CmmExpr
+cmmLoadIndexOffBExpr dflags b_off e_off ty base idx_ty idx
+   = CmmLoad (cmmIndexOffBExpr dflags b_off e_off (typeWidth idx_ty) base idx) ty
 
 setInfo :: CmmExpr -> CmmExpr -> CmmAGraph
 setInfo closure_ptr info_ptr = mkStore closure_ptr info_ptr

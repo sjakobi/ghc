@@ -1,0 +1,11 @@
+libraries/ghc-prim/dist-install/build/GHC/PrimopWrappers.hs:740:33: error:compilation IS NOT required
+
+    Not in scope: ‘GHC.Prim.indexByteCharArray#’
+    Perhaps you meant one of these:
+      ‘GHC.Prim.indexWideCharArray#’ (imported from GHC.Prim),
+      ‘GHC.Prim.indexByteArrayArray#’ (imported from GHC.Prim),
+      ‘GHC.Prim.indexCharArray#’ (imported from GHC.Prim)
+    Module ‘GHC.Prim’ does not export ‘indexByteCharArray#’.
+    |
+740 | indexByteCharArray# a1 a2 a3 = (GHC.Prim.indexByteCharArray#) a1 a2 a3
+    |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
