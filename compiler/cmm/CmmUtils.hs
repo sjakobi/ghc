@@ -26,7 +26,6 @@ module CmmUtils(
         cmmRegOff,  cmmOffset,  cmmLabelOff,  cmmOffsetLit,  cmmOffsetExpr,
         cmmRegOffB, cmmOffsetB, cmmLabelOffB, cmmOffsetLitB, cmmOffsetExprB,
         cmmRegOffW, cmmOffsetW, cmmLabelOffW, cmmOffsetLitW, cmmOffsetExprW,
-        cmmOffsetBE,
         cmmIndex, cmmIndexExpr, cmmLoadIndex, cmmLoadIndexW,
         cmmNegate,
         cmmULtWord, cmmUGeWord, cmmUGtWord, cmmUShrWord,
@@ -331,17 +330,6 @@ cmmLabelOffW dflags lbl wd_off = cmmLabelOffB lbl (wordsToBytes dflags wd_off)
 
 cmmLoadIndexW :: DynFlags -> CmmExpr -> Int -> CmmType -> CmmExpr
 cmmLoadIndexW dflags base off ty = CmmLoad (cmmOffsetW dflags base off) ty
-
-----------------------
--- The "BE" variants take two byte offsets
-
-cmmOffsetBE :: DynFlags
-            -> CmmExpr -- ^ Base address
-            -> ByteOff -- ^ Byte offset 1
-            -> CmmExpr -- ^ Byte offset 2
-            -> CmmExpr
-cmmOffsetBE dflags base off1 off2
-  = cmmOffsetB dflags (CmmMachOp (mo_wordAdd dflags) [base, off2]) off1
 
 -----------------------
 cmmULtWord, cmmUGeWord, cmmUGtWord, cmmUShrWord,
