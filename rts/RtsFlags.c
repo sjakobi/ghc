@@ -122,6 +122,8 @@ static void setProgName (char *argv[]);
 
 static void errorRtsOptsDisabled (const char *s);
 
+static uint32_t largestCpuCacheSize(void);
+
 /* -----------------------------------------------------------------------------
  * Command-line option parsing routines.
  * ---------------------------------------------------------------------------*/
@@ -2216,6 +2218,26 @@ void freeRtsArgs(void)
     freeRtsArgv();
 }
 
+#include <stddef.h>
+#include <stdio.h>
+#include <unistd.h>
+
+static uint32_t largestCpuCacheSize(void)
+{
+    int args[4] = {
+        _SC_LEVEL4_CACHE_SIZE,
+        _SC_LEVEL3_CACHE_SIZE,
+        _SC_LEVEL2_CACHE_SIZE,
+        _SC_LEVEL1_DCACHE_SIZE
+    };
+    for (int i = 0; i < 4; i++) {
+        long size = sysconf(args[i]);
+            if (size > 0L) {
+                return (uint32_t)size;
+        }
+    }
+    return 0;
+}
 
 /*
 Note [OPTION_SAFE vs OPTION_UNSAFE]
