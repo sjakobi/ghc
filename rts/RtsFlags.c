@@ -31,6 +31,10 @@
 #include <sys/types.h>
 #endif
 
+#if defined(mingw32_HOST_OS)
+#include <windows.h>
+#endif
+
 // Flag Structure
 RTS_FLAGS RtsFlags;
 
@@ -2238,6 +2242,37 @@ static StgWord32 largestCpuCacheSize(void)
         if (size > 0L)
             return (StgWord32)size;
     }
+#elif defined(mingw32_HOST_OS)
+    // TODO: On systems with more than 64 logical processors, the
+    // GetLogicalProcessorInformation function retrieves logical processor
+    // information about processors in the processor group to which the calling
+    // thread is currently assigned. Use the GetLogicalProcessorInformationEx
+    // function to retrieve information about processors in all processor groups
+    // on the system.
+    DWORD max_cache_size = 0;
+
+    DWORD buffer_size = 0;
+    // Determine the necessary buffer size
+    GetLogicalProcessorInformation(NULL, &buffer_size);
+
+    SYSTEM_LOGICAL_PROCESSOR_INFORMATION* buffer =
+        (SYSTEM_LOGICAL_PROCESSOR_INFORMATION*)malloc(buffer_size);
+
+    BOOL ok = GetLogicalProcessorInformation(buffer, &buffer_size);
+    ASSERT(ok);
+
+    int n_slpis = buffer_size / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+
+    for (int i = 0; i < n_slpis; i++) {
+        if (buffer[i].Relationship == RelationCache) {
+            CACHE_DESCRIPTOR cache = buffer[i].Cache;
+            if ((cache.Type == CacheUnified || cache.Type == CacheData) &&
+                    cache.Size > max_cache_size)
+                max_cache_size = cache.Size;
+        }
+    }
+    free(buffer);
+    return (StgWord32)max_cache_size;
 #endif
     return 0;
 }
