@@ -35,6 +35,10 @@
 #include <windows.h>
 #endif
 
+#if defined(darwin_HOST_OS) || defined (freebsd_HOST_OS)
+#include <sys/sysctl.h>
+#endif
+
 // Flag Structure
 RTS_FLAGS RtsFlags;
 
@@ -2273,6 +2277,15 @@ static StgWord32 largestCpuCacheSize(void)
     }
     free(buffer);
     return (StgWord32)max_cache_size;
+#elif defined(darwin_HOST_OS) || defined(freebsd_HOST_OS)
+    char* args[3] = { "hw.l3cachesize", "hw.l2cachesize", "hw.l1dcachesize" };
+    StgWord32 cache_size = 0;
+    size_t data_size = sizeof(cache_size);
+    for (int i = 0; i < 3; i++) {
+        int ret = sysctlbyname(args[i], &cache_size, &data_size, NULL, 0);
+        if (ret == 0 && cache_size > 0)
+            return cache_size;
+    }
 #endif
     return 0;
 }
