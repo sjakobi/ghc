@@ -2267,18 +2267,21 @@ static StgWord32 largestCpuCacheSize(void)
     if (!ok) {
         // not good
     }
+    // SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX is a variable-size structure, so
+    // we progress by adding the size of the current SLPIE to the pointer.
+    for (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* p = buffer;
+            (char*)p < (char*)buffer + buffer_size;
+            p = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)
+                ((char*)p + p->Size)) {
 
-    SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* p = buffer;
-
-    while ((char*)p < (char*)buffer + buffer_size) {
-        if (p->Relationship != RelationCache) {
+        if (p->Relationship == RelationCache) {
+            CACHE_RELATIONSHIP cache = p->Cache;
+            if ((cache.Type == CacheUnified || cache.Type == CacheData) &&
+                    cache.CacheSize > max_cache_size)
+                max_cache_size = cache.CacheSize;
+        } else {
             // not good
         }
-        CACHE_RELATIONSHIP cache = p->Cache;
-        if ((cache.Type == CacheUnified || cache.Type == CacheData) &&
-                cache.CacheSize > max_cache_size)
-            max_cache_size = cache.CacheSize;
-        p = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)((char*)p + p->Size);
     }
     free(buffer);
     return (StgWord32)max_cache_size;
