@@ -2247,12 +2247,6 @@ static StgWord32 largestCpuCacheSize(void)
             return (StgWord32)size;
     }
 #elif defined(mingw32_HOST_OS)
-    // TODO: On systems with more than 64 logical processors, the
-    // GetLogicalProcessorInformation function retrieves logical processor
-    // information about processors in the processor group to which the calling
-    // thread is currently assigned. Use the GetLogicalProcessorInformationEx
-    // function to retrieve information about processors in all processor groups
-    // on the system.
     DWORD max_cache_size = 0;
 
     DWORD buffer_size = 0;
@@ -2264,9 +2258,9 @@ static StgWord32 largestCpuCacheSize(void)
 
     BOOL ok =
         GetLogicalProcessorInformationEx(RelationCache, buffer, &buffer_size);
-    if (!ok) {
-        // not good
-    }
+    if (!ok)
+        sysErrorBelch("GetLogicalProcessorInformationEx failed");
+
     // SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX is a variable-size structure, so
     // we progress by adding the size of the current SLPIE to the pointer.
     for (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* p = buffer;
@@ -2279,9 +2273,8 @@ static StgWord32 largestCpuCacheSize(void)
             if ((cache.Type == CacheUnified || cache.Type == CacheData) &&
                     cache.CacheSize > max_cache_size)
                 max_cache_size = cache.CacheSize;
-        } else {
-            // not good
-        }
+        } else
+            debugBelch("Unexpected Relationship %u", p->Relationship);
     }
     free(buffer);
     return (StgWord32)max_cache_size;
