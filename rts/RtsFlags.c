@@ -2257,23 +2257,27 @@ static StgWord32 largestCpuCacheSize(void)
 
     DWORD buffer_size = 0;
     // Determine the necessary buffer size
-    GetLogicalProcessorInformation(NULL, &buffer_size);
+    GetLogicalProcessorInformationEx(RelationAll, NULL, &buffer_size);
 
-    SYSTEM_LOGICAL_PROCESSOR_INFORMATION* buffer =
-        (SYSTEM_LOGICAL_PROCESSOR_INFORMATION*)malloc(buffer_size);
+    SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* buffer =
+        (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)malloc(buffer_size);
+    printf("Buffer size: %lu\n", buffer_size);
 
-    BOOL ok = GetLogicalProcessorInformation(buffer, &buffer_size);
+    BOOL ok =
+        GetLogicalProcessorInformationEx(RelationAll, buffer, &buffer_size);
     ASSERT(ok);
 
-    int n_slpis = buffer_size / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+    int n = buffer_size / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX);
 
-    for (int i = 0; i < n_slpis; i++) {
-        if (buffer[i].Relationship == RelationCache) {
-            CACHE_DESCRIPTOR cache = buffer[i].Cache;
-            if ((cache.Type == CacheUnified || cache.Type == CacheData) &&
-                    cache.Size > max_cache_size)
-                max_cache_size = cache.Size;
-        }
+    //TODO: Iterate by accumulating byte offsets (variable size struct)
+    for (int i = 0; i < n; i++) {
+	printf("buffer[%i] relationship: %lu\n", i, buffer[i].Relationship);
+	// ASSERT(buffer[i].Relationship == RelationCache);
+	CACHE_RELATIONSHIP cache = buffer[i].Cache;
+	printf("%i: Level: %d, CacheSize: %lu, Type: %lu\n", i, cache.Level, cache.CacheSize, cache.Type);
+        if ((cache.Type == CacheUnified || cache.Type == CacheData) &&
+                cache.CacheSize > max_cache_size)
+            max_cache_size = cache.CacheSize;
     }
     free(buffer);
     return (StgWord32)max_cache_size;
