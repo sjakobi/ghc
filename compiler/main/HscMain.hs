@@ -375,6 +375,12 @@ hscParse' mod_summary
             -- filter them out:
             srcs2 <- liftIO $ filterM doesFileExist srcs1
 
+            let L ss hsm = rdr_module
+                decls = hsmodDecls hsm
+                headr = hsmodHaddockModHeader hsm
+            liftIO $ putStrLn (showSDocUnsafe $ ppr headr)
+            liftIO $ putStrLn (showSDocUnsafe $ ppr (ss, decls))
+
             return HsParsedModule {
                       hpm_module    = rdr_module,
                       hpm_src_files = srcs2,
