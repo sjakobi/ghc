@@ -181,6 +181,40 @@ by saying ``-fno-wombat``.
 
     Enable call-arity analysis.
 
+.. ghc-flag:: -fcombine-most-common-alts
+    :shortdesc: Use a more expensive algorithm when trying to combine identical
+        case alternatives. Implied by :ghc-flag:`-O2`.
+    :type: dynamic
+    :reverse: -fno-combine-most-common-alts
+    :category:
+
+    :default: off but enabled by :ghc-flag:`-O2`
+
+    Given the expression ::
+
+        case a of
+          A -> 1
+          B -> 2
+          C {} -> 1
+          D -> 2
+          E -> 2
+
+    by default we combine the alternatives that are equal to the very first one: ::
+
+        case a of
+          B -> 2
+          D -> 2
+          E -> 2
+          _ -> 1
+
+    With ``-fcombine-most-common-alts`` turned on, we combine the alternatives with
+    the most common right hand side: ::
+
+        case a of
+          A -> 1
+          C {} -> 1
+          _ -> 2
+
 .. ghc-flag:: -fexitification
     :shortdesc: Enables exitification optimisation. Implied by :ghc-flag:`-O`.
     :type: dynamic

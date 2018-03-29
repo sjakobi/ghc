@@ -490,6 +490,7 @@ data GeneralFlag
    | Opt_SolveConstantDicts
    | Opt_AlignmentSanitisation
    | Opt_CatchBottoms
+   | Opt_CombineMostCommonAlts
 
    -- PreInlining is on by default. The option is there just to see how
    -- bad things get if you turn it off!
@@ -674,6 +675,7 @@ optimisationFlags = EnumSet.fromList
    , Opt_SolveConstantDicts
    , Opt_CatchBottoms
    , Opt_IgnoreAsserts
+   , Opt_CombineMostCommonAlts
    ]
 
 -- | Used when outputting warnings: if a reason is given, it is
@@ -3902,6 +3904,7 @@ fFlagsDeps = [
   flagSpec "case-folding"                     Opt_CaseFolding,
   flagSpec "cmm-elim-common-blocks"           Opt_CmmElimCommonBlocks,
   flagSpec "cmm-sink"                         Opt_CmmSink,
+  flagSpec "combine-most-common-alts"         Opt_CombineMostCommonAlts,
   flagSpec "cse"                              Opt_CSE,
   flagSpec "stg-cse"                          Opt_StgCSE,
   flagSpec "cpr-anal"                         Opt_CprAnal,
@@ -4389,6 +4392,7 @@ optLevelFlags -- see Note [Documenting optimisation flags]
 
     , ([2],     Opt_LiberateCase)
     , ([2],     Opt_SpecConstr)
+    , ([2],     Opt_CombineMostCommonAlts)
 --  , ([2],     Opt_RegsGraph)
 --   RegsGraph suffers performance regression. See #7679
 --  , ([2],     Opt_StaticArgumentTransformation)

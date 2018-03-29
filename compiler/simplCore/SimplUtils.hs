@@ -1881,10 +1881,11 @@ prepareAlts scrut case_bndr' alts
            -- Case binder is needed just for its type. Note that as an
            --   OutId, it has maximum information; this is important.
            --   Test simpl013 is an example
-  = do { us <- getUniquesM
+  = do { dflags <- getDynFlags
+       ; us <- getUniquesM
        ; let (idcs1, alts1)       = filterAlts tc tys imposs_cons alts
              (yes2,  alts2)       = refineDefaultAlt us tc tys idcs1 alts1
-             (yes3, idcs3, alts3) = combineIdenticalAlts idcs1 alts2
+             (yes3, idcs3, alts3) = combineIdenticalAlts dflags idcs1 alts2
              -- "idcs" stands for "impossible default data constructors"
              -- i.e. the constructors that can't match the default case
        ; when yes2 $ tick (FillInCaseDefault case_bndr')
