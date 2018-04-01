@@ -29,7 +29,7 @@ import BasicTypes       ( TopLevelFlag(..), isTopLevel
                         , isAlwaysActive, isAnyInlinePragma,
                           inlinePragmaSpec, noUserInlineSpec )
 import TrieMap
-import Util             ( filterOut )
+import Util             ( filterOut, sndOf3 )
 import Data.List        ( mapAccumL )
 
 {-
@@ -519,16 +519,37 @@ cseCase env scrut bndr ty alts
 
 combineAlts :: CSEnv -> [InAlt] -> [InAlt]
 -- See Note [Combine case alternatives]
-combineAlts env ((_,bndrs1,rhs1) : rest_alts)
-  | all isDeadBinder bndrs1
-  = (DEFAULT, [], rhs1) : filtered_alts
+combineAlts env (def_alt@(DEFAULT,[],rhs1) : rest_alts)
+  = def_alt : filtered_alts
   where
     in_scope = substInScope (csEnvSubst env)
     filtered_alts = filterOut identical rest_alts
     identical (_con, bndrs, rhs) = all ok bndrs && eqExpr in_scope rhs1 rhs
     ok bndr = isDeadBinder bndr || not (bndr `elemInScopeSet` in_scope)
 
-combineAlts _ alts = alts  -- Default case
+combineAlts env alts
+  = case most_common_alts of
+      (_con, _bndrs, rhs1) : _ : _
+        -> (DEFAULT, [], rhs1) : [] -- FIXME
+      _ -> alts
+  where
+    most_common_alts = foldCoreMap longest [] core_map
+    core_map = foldr updateCM emptyCoreMap combinable_alts
+    updateCM :: CoreAlt -> CoreMap [InAlt] -> CoreMap [InAlt]
+    updateCM ca@(_, _, rhs) = alterTM rhs (prepend ca)
+    prepend x (Just xs) = Just (x : xs)
+    prepend x Nothing   = Just [x]
+    longest :: [a] -> [a] -> [a]
+    longest xs ys = go xs ys
+      where
+        go _       []      = xs
+        go []      _       = ys
+        go (_:xs') (_:ys') = go xs' ys'
+
+    combinable_alts = filter (all ok . sndOf3) alts
+    -- alle alts mit `all ok bndrs` in coremap packen, längstes rausfischen.
+    in_scope = substInScope (csEnvSubst env)
+    ok bndr = isDeadBinder bndr || not (bndr `elemInScopeSet` in_scope)
 
 {- Note [Combine case alternatives]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
