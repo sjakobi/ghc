@@ -20,6 +20,7 @@ module CoreUtils (
         findDefault, addDefault, findAlt, isDefaultAlt,
         mergeAlts, trimConArgs,
         filterAlts, combineIdenticalAlts, refineDefaultAlt,
+        expandDefaultAlt,
 
         -- * Properties of expressions
         exprType, coreAltType, coreAltsType, isExprLevPoly,
@@ -98,6 +99,7 @@ import Data.Ord            ( comparing )
 import OrdList
 import qualified Data.Set as Set
 import UniqSet
+import UniqSupply
 
 {-
 ************************************************************************
@@ -684,6 +686,43 @@ refineDefaultAlt us tycon tys imposs_deflt_cons all_alts
         -- This can legitimately happen for abstract types and type families,
         -- so don't report that
   = (False, all_alts)
+
+  | otherwise      -- The common case
+  = (False, all_alts)
+
+-- | Replace a default alternative with the alternatives it subsumed.
+expandDefaultAlt :: UniqSupply
+                 -> TyCon             -- ^ Type constructor of scrutinee's type
+                 -> [Type]            -- ^ Type arguments of scrutinee's type
+                 -> [AltCon]          -- ^ Constructors that cannot match the DEFAULT (if any)
+                 -> [CoreAlt]
+                 -> (Bool, [CoreAlt]) -- ^ 'True', if a default alt was replaced with a 'DataAlt'
+expandDefaultAlt us tycon tys imposs_deflt_cons all_alts
+  | (DEFAULT,_,rhs) : rest_alts <- all_alts
+  , isAlgTyCon tycon            -- It's a data type, tuple, or unboxed tuples.
+  , not (isNewTyCon tycon)      -- We can have a newtype, if we are just doing an eval:
+                                --      case x of { DEFAULT -> e }
+                                -- and we don't want to fill in a default for them!
+  , Just all_cons <- tyConDataCons_maybe tycon
+  , let imposs_data_cons = mkUniqSet [con | DataAlt con <- imposs_deflt_cons]
+                             -- We now know it's a data type, so we can use
+                             -- UniqSet rather than Set (more efficient)
+        impossible con   = con `elementOfUniqSet` imposs_data_cons
+                             || dataConCannotMatch tys con
+  = case filterOut impossible all_cons of
+       -- Eliminate the default alternative
+       -- altogether if it can't match:
+       []    -> (False, rest_alts)
+
+       -- It matches exactly one constructor, so fill it in:
+       cons -> (True, mergeAlts rest_alts new_alts)
+                       -- We need the mergeAlts to keep the alternatives in the right order
+             where
+                new_alts = zipWith mkAlt (listSplitUniqSupply us) cons
+
+                mkAlt :: UniqSupply -> DataCon -> CoreAlt
+                mkAlt us' con = (DataAlt con, ex_tvs ++ arg_ids, rhs)
+                  where (ex_tvs, arg_ids) = dataConRepInstPat (uniqsFromSupply us') con tys
 
   | otherwise      -- The common case
   = (False, all_alts)
