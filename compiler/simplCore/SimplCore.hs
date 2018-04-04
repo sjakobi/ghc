@@ -450,7 +450,7 @@ doCorePass pass@(CoreDoSimplify {})  = {-# SCC "Simplify" #-}
                                        simplifyPgm pass
 
 doCorePass CoreCSE                   = {-# SCC "CommonSubExpr" #-}
-                                       doPass cseProgram
+                                       doPassU cseProgram
 
 doCorePass CoreLiberateCase          = {-# SCC "LiberateCase" #-}
                                        doPassD liberateCase

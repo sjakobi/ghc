@@ -31,6 +31,7 @@ import BasicTypes       ( TopLevelFlag(..), isTopLevel
 import TrieMap
 import Util             ( filterOut )
 import Data.List        ( mapAccumL )
+import UniqSupply
 
 {-
                         Simple common sub-expression
@@ -304,8 +305,8 @@ the program; it's a kind of synthetic key for recursive bindings.
 ************************************************************************
 -}
 
-cseProgram :: CoreProgram -> CoreProgram
-cseProgram binds = snd (mapAccumL (cseBind TopLevel) emptyCSEnv binds)
+cseProgram :: UniqSupply -> CoreProgram -> CoreProgram
+cseProgram us binds = snd (mapAccumL (cseBind TopLevel) emptyCSEnv binds)
 
 cseBind :: TopLevelFlag -> CSEnv -> CoreBind -> (CSEnv, CoreBind)
 cseBind toplevel env (NonRec b e)
