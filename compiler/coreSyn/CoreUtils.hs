@@ -19,7 +19,7 @@ module CoreUtils (
         -- * Taking expressions apart
         findDefault, addDefault, findAlt, isDefaultAlt,
         mergeAlts, trimConArgs,
-        filterAlts, combineIdenticalAlts, refineDefaultAlt,
+        filterAlts, refineDefaultAlt,
 
         -- * Properties of expressions
         exprType, coreAltType, coreAltsType, isExprLevPoly,
@@ -62,7 +62,6 @@ module CoreUtils (
 import GhcPrelude
 
 import CoreSyn
-import TrieMap
 import PrelNames ( makeStaticName )
 import PprCore
 import CoreFVs( exprFreeVars )
@@ -87,7 +86,6 @@ import TysPrim
 import DynFlags
 import FastString
 import Maybes
-import ListSetOps       ( minusList )
 import BasicTypes       ( Arity, isConLike )
 import Platform
 import Util
@@ -687,159 +685,6 @@ refineDefaultAlt us tycon tys imposs_deflt_cons all_alts
 
   | otherwise      -- The common case
   = (False, all_alts)
-
-{- Note [Combine identical alternatives]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If several alternatives are identical, merge them into a single
-DEFAULT alternative.  I've occasionally seen this making a big
-difference:
-
-     case e of               =====>     case e of
-       DEFAULT -> f x                     DEFAULT -> f x
-       C _ -> f x                         D v -> ....v....
-       D v -> ....v....
-
-Usually (i.e. without Opt_CombineMostCommonAlts), we just merge branches
-equal to the *first* alternative; this picks up the common cases
-     a) all branches equal
-     b) some branches equal to the DEFAULT (which occurs first)
-
-With Opt_CombineMostCommonAlts turned on, our method of finding identical
-branches depends on whether or not there already is a DEFAULT case:
-
- * If there is a DEFAULT case (which always comes first) we just look
-   for more branches with the same RHS and merge them into the existing
-   DEFAULT case.
-
- * Otherwise we look for the most common RHS and form a new DEFAULT
-   case from those alternatives:
-
-     case a of               =====>     case a of
-       A -> f x                           DEFAULT -> g x
-       B -> g x                           A -> f x
-       C -> f x                           C -> f x
-       D -> g x
-       E -> g x
-
-The case where Combine Identical Alternatives transformation showed up
-was like this (base/Foreign/C/Err/Error.hs):
-
-        x | p `is` 1 -> e1
-          | p `is` 2 -> e2
-        ...etc...
-
-where @is@ was something like
-
-        p `is` n = p /= (-1) && p == n
-
-This gave rise to a horrible sequence of cases
-
-        case p of
-          DEFAULT -> $j p
-          (-1) -> $j p
-          1 -> e1
-
-and similarly in cascade for all the join points!
-
-NB: it's important that all this is done in [InAlt], *before* we work
-on the alternatives themselves, because Simplify.simplAlt may zap the
-occurrence info on the binders in the alternatives, which in turn
-defeats combineIdenticalAlts (see Trac #7360).
-
-Note [Care with impossible-constructors when combining alternatives]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Suppose we have (Trac #10538)
-   data T = A | B | C | D
-
-      case x::T of   (Imposs-default-cons {A,B})
-         DEFAULT -> e1
-         A -> e2
-         B -> e1
-
-When calling combineIdentialAlts, we'll have computed that the
-"impossible constructors" for the DEFAULT alt is {A,B}, since if x is
-A or B we'll take the other alternatives.  But suppose we combine B
-into the DEFAULT, to get
-
-      case x::T of   (Imposs-default-cons {A})
-         DEFAULT -> e1
-         A -> e2
-
-Then we must be careful to trim the impossible constructors to just {A},
-else we risk compiling 'e1' wrong!
-
-Not only that, but we take care when there is no DEFAULT beforehand,
-because we are introducing one.  Consider
-
-   case x of   (Imposs-default-cons {A,B,C})
-     A -> e1
-     B -> e2
-     C -> e1
-
-Then when combining the A and C alternatives we get
-
-   case x of   (Imposs-default-cons {B})
-     DEFAULT -> e1
-     B -> e2
-
-Note that we have a new DEFAULT branch that we didn't have before.  So
-we need delete from the "impossible-default-constructors" all the
-known-con alternatives that we have eliminated. (In Trac #11172 we
-missed the first one.)
-
--}
-
-combineIdenticalAlts :: DynFlags
-                     -> [AltCon]    -- Constructors that cannot match DEFAULT
-                     -> [CoreAlt]
-                     -> (Bool,      -- True <=> we combined some alts
-                         [AltCon],  -- New constructors that cannot match DEFAULT
-                         [CoreAlt]) -- New alternatives
--- See Note [Combine identical alternatives]
-combineIdenticalAlts dflags imposs_deflt_cons alts
-  = case identical_alts of
-      (_con, _bndrs, rhs1) : elim_rest@(_ : _)
-        -> (True, imposs_deflt_cons', alts')
-        where
-          -- See Note
-          -- [Care with impossible-constructors when combining alternatives]
-          imposs_deflt_cons' = imposs_deflt_cons `minusList` elim_cons
-          elim_cons = map fstOf3 identical_alts
-
-          alts' = deflt_alt : filter (not . cheapEqTicked rhs1 . thdOf3) alts
-          deflt_alt = (DEFAULT, [], mkTicks (concat tickss) rhs1)
-          tickss = map (stripTicksT tickishFloatable . thdOf3) elim_rest
-      _ -> (False, imposs_deflt_cons, alts)
-  where
-    identical_alts
-      = case alts of
-          (DEFAULT, [], rhs1) : _
-            -> altsIdenticalTo rhs1
-          _ : _ : _ : _ | gopt Opt_CombineMostCommonAlts dflags
-            -> most_common_alts
-          (_con1, bndrs1, rhs1) : _ | all isDeadBinder bndrs1
-            -> altsIdenticalTo rhs1
-          _ -> []
-    altsIdenticalTo rhs = filter (cheapEqTicked rhs . thdOf3) dead_bindr_alts
-    dead_bindr_alts = filter (all isDeadBinder . sndOf3) alts
-    cheapEqTicked e1 e2 = cheapEqExpr' tickishFloatable e1 e2
-    most_common_alts = foldCoreMap longest [] core_map
-      where
-        core_map = foldr updateCM emptyCoreMap dead_bindr_alts
-
-        updateCM :: CoreAlt -> CoreMap [CoreAlt] -> CoreMap [CoreAlt]
-        updateCM ca@(_, _, rhs) cm
-          = alterTM (stripTicksE tickishFloatable rhs) (prepend ca) cm
-
-        prepend x (Just xs) = Just (x : xs)
-        prepend x Nothing   = Just [x]
-
-        longest :: [a] -> [a] -> [a]
-        longest xs ys = go xs ys
-          where
-            go _       []      = xs
-            go []      _       = ys
-            go (_:xs') (_:ys') = go xs' ys'
 
 {- *********************************************************************
 *                                                                      *
