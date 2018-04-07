@@ -207,6 +207,19 @@ eqChar, neChar :: Char -> Char -> Bool
 (C# x) `eqChar` (C# y) = isTrue# (x `eqChar#` y)
 (C# x) `neChar` (C# y) = isTrue# (x `neChar#` y)
 
+-- | Note that in the presence of @NaN@, this instance does not satisfy
+-- reflexivity:
+--
+-- >>> nan = 0/0 :: Float
+-- >>> nan == nan
+-- False
+--
+-- Also note, that this instance is not structural:
+--
+-- >>> 0 == (-0 :: Float)
+-- True
+-- >>> recip 0 == recip (-0 :: Float)
+-- False
 instance Eq Float where
     (==) = eqFloat
 
@@ -215,6 +228,19 @@ instance Eq Float where
 eqFloat :: Float -> Float -> Bool
 (F# x) `eqFloat` (F# y) = isTrue# (x `eqFloat#` y)
 
+-- | Note that in the presence of @NaN@, this instance does not satisfy
+-- reflexivity:
+--
+-- >>> nan = 0/0 :: Double
+-- >>> nan == nan
+-- False
+--
+-- Also note, that this instance is not structural:
+--
+-- >>> 0 == (-0 :: Double)
+-- True
+-- >>> recip 0 == recip (-0 :: Double)
+-- False
 instance Eq Double where
     (==) = eqDouble
 
@@ -350,6 +376,28 @@ instance Ord Char where
     (C# c1) <= (C# c2) = isTrue# (c1 `leChar#` c2)
     (C# c1) <  (C# c2) = isTrue# (c1 `ltChar#` c2)
 
+-- | Due to the peculiarities of @NaN@, this instance does not satisfy totality:
+--
+-- >>> nan = 0/0 :: Float
+-- >>> nan <= nan
+-- False
+--
+-- Another special case with @NaN@ is:
+--
+-- > 'compare' x y | 'isNaN' x || 'isNaN' y = 'GT'
+--
+-- However
+--
+-- > nan > _ = False
+-- > _ > nan = False
+--
+-- In consequence we also have:
+--
+-- > 'max' x y | 'isNaN' x || 'isNaN' y = x
+-- > 'min' x y | 'isNaN' x || 'isNaN' y = y
+--
+-- Ignoring 'NaN', 'Infinity' and '-Infinity' are the respective greatest
+-- and least elements of 'Float'.
 instance Ord Float where
     (F# x) `compare` (F# y)
         = if      isTrue# (x `ltFloat#` y) then LT
@@ -361,6 +409,26 @@ instance Ord Float where
     (F# x) >= (F# y) = isTrue# (x `geFloat#` y)
     (F# x) >  (F# y) = isTrue# (x `gtFloat#` y)
 
+-- | Due to the peculiarities of @NaN@, this instance does not satisfy totality:
+--
+-- >>> nan = 0/0 :: Double
+-- >>> nan <= nan
+-- False
+--
+-- Another special case with @NaN@ is:
+--
+-- > 'compare' x y | 'isNaN' x || 'isNaN' y = 'GT'
+--
+-- However
+--
+-- > nan > _ = False
+-- > _ > nan = False
+--
+-- > 'max' x y | 'isNaN' x || 'isNaN' y = x
+-- > 'min' x y | 'isNaN' x || 'isNaN' y = y
+--
+-- Ignoring 'NaN', 'Infinity' and '-Infinity' are the respective greatest
+-- and least elements of 'Double'.
 instance Ord Double where
     (D# x) `compare` (D# y)
         = if      isTrue# (x <##  y) then LT
