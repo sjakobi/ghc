@@ -214,7 +214,7 @@ eqChar, neChar :: Char -> Char -> Bool
 -- >>> nan == nan
 -- False
 --
--- Also note, that this instance is not structural:
+-- Also note that this instance is not structural:
 --
 -- >>> 0 == (-0 :: Float)
 -- True
@@ -235,7 +235,7 @@ eqFloat :: Float -> Float -> Bool
 -- >>> nan == nan
 -- False
 --
--- Also note, that this instance is not structural:
+-- Also note that this instance is not structural:
 --
 -- >>> 0 == (-0 :: Double)
 -- True
@@ -384,7 +384,10 @@ instance Ord Char where
 --
 -- Another special case with @NaN@ is:
 --
--- > 'compare' x y | 'isNaN' x || 'isNaN' y = 'GT'
+-- @
+-- 'compare' x y
+--   | 'isNaN' x || 'isNaN' y = 'GT'
+-- @
 --
 -- However
 --
