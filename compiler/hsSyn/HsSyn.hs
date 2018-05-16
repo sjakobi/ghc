@@ -96,8 +96,8 @@ data HsModule pass
         --
 
         -- For details on above see note [Api annotations] in ApiAnnotation
-      hsmodHaddockModHeader :: Maybe LHsDocString
-        -- ^ Haddock module info and description, unparsed
+      hsmodHaddockModHeader :: Maybe (LHsDoc (IdP pass))
+        -- ^ Haddock module info and description
         --
         --  - 'ApiAnnotation.AnnKeywordId's : 'ApiAnnotation.AnnOpen'
         --                                   ,'ApiAnnotation.AnnClose'

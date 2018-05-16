@@ -67,6 +67,7 @@ import Class            ( FunDep )
 -- compiler/parser
 import RdrHsSyn
 import Lexer
+import HaddockLex
 import HaddockUtils
 import ApiAnnotation
 
@@ -749,7 +750,7 @@ module :: { Located (HsModule GhcPs) }
                                (fst $ snd $1) (snd $ snd $1) Nothing Nothing))
                        (fst $1) }
 
-maybedocheader :: { Maybe LHsDocString }
+maybedocheader :: { Maybe (LHsDoc RdrName) }
         : moduleheader            { $1 }
         | {- empty -}             { Nothing }
 
@@ -2180,7 +2181,7 @@ forall :: { Located ([AddAnn], Maybe [LHsTyVarBndr GhcPs]) }
         : 'forall' tv_bndrs '.'       { sLL $1 $> ([mu AnnForall $1,mj AnnDot $3], Just $2) }
         | {- empty -}                 { noLoc ([], Nothing) }
 
-constr_stuff :: { Located (Located RdrName, HsConDeclDetails GhcPs, Maybe LHsDocString) }
+constr_stuff :: { Located (Located RdrName, HsConDeclDetails GhcPs, Maybe (LHsDoc RdrName)) }
     -- See Note [Parsing data constructors is hard] in RdrHsSyn
         : btype_no_ops                         {% do { c <- splitCon $1
                                                      ; return $ sLL $1 $> c } }
@@ -2274,7 +2275,7 @@ There's an awkward overlap with a type signature.  Consider
 docdecl :: { LHsDecl GhcPs }
         : docdecld { sL1 $1 (DocD noExt (unLoc $1)) }
 
-docdecld :: { LDocDecl }
+docdecld :: { LDocDecl GhcPs }
         : docnext                               { sL1 $1 (DocCommentNext (unLoc $1)) }
         | docprev                               { sL1 $1 (DocCommentPrev (unLoc $1)) }
         | docnamed                              { sL1 $1 (case (unLoc $1) of (n, doc) -> DocCommentNamed n doc) }
@@ -3434,31 +3435,31 @@ bars :: { ([SrcSpan],Int) }     -- One or more bars
 -----------------------------------------------------------------------------
 -- Documentation comments
 
-docnext :: { LHsDocString }
-  : DOCNEXT {% return (sL1 $1 (mkHsDocString (getDOCNEXT $1))) }
+docnext :: { LHsDoc RdrName }
+  : DOCNEXT {% return (sL1 $1 (lexHsDoc' (getDOCNEXT $1))) }
 
-docprev :: { LHsDocString }
-  : DOCPREV {% return (sL1 $1 (mkHsDocString (getDOCPREV $1))) }
+docprev :: { LHsDoc RdrName }
+  : DOCPREV {% return (sL1 $1 (lexHsDoc' (getDOCPREV $1))) }
 
-docnamed :: { Located (String, HsDocString) }
+docnamed :: { Located (String, HsDoc RdrName) }
   : DOCNAMED {%
       let string = getDOCNAMED $1
           (name, rest) = break isSpace string
-      in return (sL1 $1 (name, mkHsDocString rest)) }
+      in return (sL1 $1 (name, lexHsDoc' rest)) }
 
-docsection :: { Located (Int, HsDocString) }
+docsection :: { Located (Int, HsDoc RdrName) }
   : DOCSECTION {% let (n, doc) = getDOCSECTION $1 in
-        return (sL1 $1 (n, mkHsDocString doc)) }
+        return (sL1 $1 (n, lexHsDoc' doc)) }
 
-moduleheader :: { Maybe LHsDocString }
+moduleheader :: { Maybe (LHsDoc RdrName) }
         : DOCNEXT {% let string = getDOCNEXT $1 in
-                     return (Just (sL1 $1 (mkHsDocString string))) }
+                     return (Just (sL1 $1 (lexHsDoc' string))) }
 
-maybe_docprev :: { Maybe LHsDocString }
+maybe_docprev :: { Maybe (LHsDoc RdrName) }
         : docprev                       { Just $1 }
         | {- empty -}                   { Nothing }
 
-maybe_docnext :: { Maybe LHsDocString }
+maybe_docnext :: { Maybe (LHsDoc RdrName) }
         : docnext                       { Just $1 }
         | {- empty -}                   { Nothing }
 
@@ -3557,6 +3558,9 @@ getSCC lt = do let s = getSTRING lt
                if ' ' `elem` unpackFS s
                    then failSpanMsgP (getLoc lt) (text err)
                    else return s
+
+lexHsDoc' :: String -> HsDoc RdrName
+lexHsDoc' = lexHsDoc parseIdentifier
 
 -- Utilities for combining source spans
 comb2 :: Located a -> Located b -> SrcSpan

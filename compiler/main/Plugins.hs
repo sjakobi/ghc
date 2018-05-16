@@ -23,6 +23,7 @@ import Avail
 import Fingerprint
 import Data.List
 import Outputable (Outputable(..), text, (<+>))
+import Name
 
 #if __GLASGOW_HASKELL__ < 840
 --Qualified import so we can define a Semigroup instance
@@ -160,7 +161,7 @@ type PluginOperation m a = Plugin -> [CommandLineOption] -> a -> m a
 type ConstPluginOperation m a = Plugin -> [CommandLineOption] -> a -> m ()
 
 type RenamedSource = ( HsGroup GhcRn, [LImportDecl GhcRn]
-                     , Maybe [(LIE GhcRn, Avails)], Maybe LHsDocString )
+                     , Maybe [(LIE GhcRn, Avails)], Maybe (LHsDoc Name))
 
 -- | Perform an operation by using all of the plugins in turn.
 withPlugins :: Monad m => DynFlags -> PluginOperation m a -> a -> m a

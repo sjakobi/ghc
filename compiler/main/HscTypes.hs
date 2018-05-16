@@ -952,7 +952,11 @@ data ModIface
                 -- See Note [RnNames . Trust Own Package]
         mi_complete_sigs :: [IfaceCompleteMatch],
 
-        mi_doc_hdr :: Maybe HsDocString,
+        mi_doc_names_map :: HsDocNamesMap,
+                -- ^ Identifiers that were found in docstrings and the 'Names'
+                -- they might correspond to.
+
+        mi_doc_hdr :: Maybe HsDoc',
                 -- ^ Module header.
 
         mi_decl_docs :: DeclDocMap,
@@ -1038,6 +1042,7 @@ instance Binary ModIface where
                  mi_trust     = trust,
                  mi_trust_pkg = trust_pkg,
                  mi_complete_sigs = complete_sigs,
+                 mi_doc_names_map = doc_names_map,
                  mi_doc_hdr   = doc_hdr,
                  mi_decl_docs = decl_docs,
                  mi_arg_docs  = arg_docs }) = do
@@ -1069,6 +1074,7 @@ instance Binary ModIface where
         put_ bh trust
         put_ bh trust_pkg
         put_ bh complete_sigs
+        lazyPut bh doc_names_map
         lazyPut bh doc_hdr
         lazyPut bh decl_docs
         lazyPut bh arg_docs
@@ -1102,6 +1108,7 @@ instance Binary ModIface where
         trust       <- get bh
         trust_pkg   <- get bh
         complete_sigs <- get bh
+        doc_names_map <- lazyGet bh
         doc_hdr     <- lazyGet bh
         decl_docs   <- lazyGet bh
         arg_docs    <- lazyGet bh
@@ -1139,6 +1146,7 @@ instance Binary ModIface where
                  mi_fix_fn      = mkIfaceFixCache fixities,
                  mi_hash_fn     = mkIfaceHashCache decls,
                  mi_complete_sigs = complete_sigs,
+                 mi_doc_names_map = doc_names_map,
                  mi_doc_hdr     = doc_hdr,
                  mi_decl_docs   = decl_docs,
                  mi_arg_docs    = arg_docs })
@@ -1181,6 +1189,7 @@ emptyModIface mod
                mi_trust       = noIfaceTrustInfo,
                mi_trust_pkg   = False,
                mi_complete_sigs = [],
+               mi_doc_names_map = emptyHsDocNamesMap,
                mi_doc_hdr     = Nothing,
                mi_decl_docs   = emptyDeclDocMap,
                mi_arg_docs    = emptyArgDocMap }
@@ -1312,7 +1321,10 @@ data ModGuts
                                                 -- own package for Safe Haskell?
                                                 -- See Note [RnNames . Trust Own Package]
 
-        mg_doc_hdr       :: !(Maybe HsDocString), -- ^ Module header.
+        mg_doc_names_map :: !HsDocNamesMap,  -- ^ Identifiers that were found
+                                             -- in docstrings and the 'Names'
+                                             -- they might correspond to.
+        mg_doc_hdr       :: !(Maybe HsDoc'), -- ^ Module header.
         mg_decl_docs     :: !DeclDocMap,     -- ^ Docs on declarations.
         mg_arg_docs      :: !ArgDocMap       -- ^ Docs on arguments.
     }

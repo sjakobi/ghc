@@ -25,18 +25,19 @@ import Data.Semigroup
 
 -- | Extract docs from renamer output.
 extractDocs :: TcGblEnv
-            -> (Maybe HsDocString, DeclDocMap, ArgDocMap)
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
             -- ^
-            -- 1. Module header
-            -- 2. Docs on top level declarations
-            -- 3. Docs on arguments
+            -- 1. Identifiers and corresponding names
+            -- 2. Module header
+            -- 3. Docs on top level declarations
+            -- 4. Docs on arguments
 extractDocs TcGblEnv { tcg_semantic_mod = mod
                      , tcg_rn_decls = mb_rn_decls
                      , tcg_insts = insts
                      , tcg_fam_insts = fam_insts
                      , tcg_doc_hdr = mb_doc_hdr
                      } =
-    (unLoc <$> mb_doc_hdr, DeclDocMap doc_map, ArgDocMap arg_map)
+    combineDocs mb_doc_hdr doc_map arg_map
   where
     (doc_map, arg_map) = maybe (M.empty, M.empty)
                                (mkMaps local_insts)
@@ -45,14 +46,33 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
     local_insts = filter (nameIsLocalOrFrom mod)
                          $ map getName insts ++ map getName fam_insts
 
--- | Create decl and arg doc-maps by looping through the declarations.
--- For each declaration, find its names, its subordinates, and its doc strings.
+-- | Split identifier/'Name' info off module header, declaration docs and
+-- argument docs. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
+combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
+            -> Map Name (HsDoc Name)           -- ^ Declaration docs
+            -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
+combineDocs mb_doc_hdr doc_map arg_map =
+  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map')
+  where names_map = hdr_names_map <> doc_map_names_map <> arg_map_names_map
+        (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
+        doc_map_names_map = foldMap fst split_doc_map
+        doc_map' = snd <$> split_doc_map
+        split_doc_map = splitHsDoc <$> doc_map
+        arg_map_names_map = foldMap (foldMap fst) split_arg_map
+        arg_map' = fmap snd <$> split_arg_map
+        split_arg_map = fmap splitHsDoc <$> arg_map
+
+splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
+splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
+splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
+
 mkMaps :: [Name]
-       -> [(LHsDecl GhcRn, [HsDocString])]
-       -> (Map Name (HsDocString), Map Name (Map Int (HsDocString)))
+       -> [(LHsDecl GhcRn, [HsDoc Name])]
+       -> (Map Name (HsDoc Name), Map Name (Map Int (HsDoc Name)))
 mkMaps instances decls =
     ( f' (map (nubByName fst) decls')
-    , f  (filterMapping (not . M.null) args)
+    , f (filterMapping (not . M.null) args)
     )
   where
     (decls', args) = unzip (map mappings decls)
@@ -60,27 +80,27 @@ mkMaps instances decls =
     f :: (Ord a, Semigroup b) => [[(a, b)]] -> Map a b
     f = M.fromListWith (<>) . concat
 
-    f' :: Ord a => [[(a, HsDocString)]] -> Map a HsDocString
-    f' = M.fromListWith appendDocs . concat
+    f' :: Ord a => [[(a, HsDoc Name)]] -> Map a (HsDoc Name)
+    f' = M.fromListWith appendHsDoc . concat
 
     filterMapping :: (b -> Bool) ->  [[(a, b)]] -> [[(a, b)]]
     filterMapping p = map (filter (p . snd))
 
-    mappings :: (LHsDecl GhcRn, [HsDocString])
-             -> ( [(Name, HsDocString)]
-                , [(Name, Map Int (HsDocString))]
+    mappings :: (LHsDecl GhcRn, [HsDoc Name])
+             -> ( [(Name, HsDoc Name)]
+                , [(Name, Map Int (HsDoc Name))]
                 )
     mappings (L l decl, docStrs) =
            (dm, am)
       where
-        doc = concatDocs docStrs
+        doc = concatHsDoc docStrs
         args = declTypeDocs decl
 
-        subs :: [(Name, [(HsDocString)], Map Int (HsDocString))]
+        subs :: [(Name, [(HsDoc Name)], Map Int (HsDoc Name))]
         subs = subordinates instanceMap decl
 
         (subDocs, subArgs) =
-          unzip (map (\(_, strs, m) -> (concatDocs strs, m)) subs)
+          unzip (map (\(_, strs, m) -> (concatHsDoc strs, m)) subs)
 
         ns = names l decl
         subNs = [ n | (n, _, _) <- subs ]
@@ -156,7 +176,7 @@ getInstLoc = \case
 -- family of a type class.
 subordinates :: Map SrcSpan Name
              -> HsDecl GhcRn
-             -> [(Name, [(HsDocString)], Map Int (HsDocString))]
+             -> [(Name, [(HsDoc Name)], Map Int (HsDoc Name))]
 subordinates instMap decl = case decl of
   InstD _ (ClsInstD _ d) -> do
     DataFamInstDecl { dfid_eqn = HsIB { hsib_body =
@@ -174,7 +194,7 @@ subordinates instMap decl = case decl of
                    , name <- getMainDeclBinder d, not (isValD d)
                    ]
     dataSubs :: HsDataDefn GhcRn
-             -> [(Name, [HsDocString], Map Int (HsDocString))]
+             -> [(Name, [HsDoc Name], Map Int (HsDoc Name))]
     dataSubs dd = constrs ++ fields ++ derivs
       where
         cons = map unLoc $ (dd_cons dd)
@@ -193,7 +213,7 @@ subordinates instMap decl = case decl of
                   , Just instName <- [M.lookup l instMap] ]
 
 -- | Extract constructor argument docs from inside constructor decls.
-conArgDocs :: ConDecl GhcRn -> Map Int (HsDocString)
+conArgDocs :: ConDecl GhcRn -> Map Int (HsDoc Name)
 conArgDocs con = case getConArgs con of
                    PrefixCon args -> go 0 (map unLoc args ++ ret)
                    InfixCon arg1 arg2 -> go 0 ([unLoc arg1, unLoc arg2] ++ ret)
@@ -213,7 +233,7 @@ isValD _ = False
 
 -- | All the sub declarations of a class (that we handle), ordered by
 -- source location, with documentation attached if it exists.
-classDecls :: TyClDecl GhcRn -> [(LHsDecl GhcRn, [HsDocString])]
+classDecls :: TyClDecl GhcRn -> [(LHsDecl GhcRn, [HsDoc Name])]
 classDecls class_ = filterDecls . collectDocs . sortByLoc $ decls
   where
     decls = docs ++ defs ++ sigs ++ ats
@@ -223,7 +243,7 @@ classDecls class_ = filterDecls . collectDocs . sortByLoc $ decls
     ats   = mkDecls tcdATs (TyClD noExt . FamDecl noExt) class_
 
 -- | Extract function argument docs from inside top-level decls.
-declTypeDocs :: HsDecl GhcRn -> Map Int (HsDocString)
+declTypeDocs :: HsDecl GhcRn -> Map Int (HsDoc Name)
 declTypeDocs = \case
   SigD  _ (TypeSig _ _ ty)          -> typeDocs (unLoc (hsSigWcType ty))
   SigD  _ (ClassOpSig _ _ _ ty)     -> typeDocs (unLoc (hsSigType ty))
@@ -244,7 +264,7 @@ nubByName f ns = go emptyNameSet ns
         y = f x
 
 -- | Extract function argument docs from inside types.
-typeDocs :: HsType GhcRn -> Map Int (HsDocString)
+typeDocs :: HsType GhcRn -> Map Int (HsDoc Name)
 typeDocs = go 0
   where
     go n (HsForAllTy { hst_body = ty }) = go n (unLoc ty)
@@ -257,7 +277,7 @@ typeDocs = go 0
 
 -- | The top-level declarations of a module that we care about,
 -- ordered by source location, with documentation attached if it exists.
-topDecls :: HsGroup GhcRn -> [(LHsDecl GhcRn, [HsDocString])]
+topDecls :: HsGroup GhcRn -> [(LHsDecl GhcRn, [HsDoc Name])]
 topDecls = filterClasses . filterDecls . collectDocs . sortByLoc . ungroup
 
 -- | Take all declarations except pragmas, infix decls, rules from an 'HsGroup'.
@@ -286,7 +306,7 @@ sortByLoc = sortOn getLoc
 -- | Collect docs and attach them to the right declarations.
 --
 -- A declaration may have multiple doc strings attached to it.
-collectDocs :: [LHsDecl pass] -> [(LHsDecl pass, [HsDocString])]
+collectDocs :: [LHsDecl pass] -> [(LHsDecl pass, [HsDoc (IdP pass)])]
 -- ^ This is an example.
 collectDocs = go Nothing []
   where

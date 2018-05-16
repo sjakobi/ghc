@@ -396,7 +396,7 @@ hscParse' mod_summary
 -- exception/signal an error.
 type RenamedStuff =
         (Maybe (HsGroup GhcRn, [LImportDecl GhcRn], Maybe [(LIE GhcRn, Avails)],
-                Maybe LHsDocString))
+                Maybe (LHsDoc Name)))
 
 -- -----------------------------------------------------------------------------
 -- | If the renamed source has been kept, extract it. Dump it if requested.

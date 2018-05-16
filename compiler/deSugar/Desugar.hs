@@ -184,7 +184,8 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
-        ; let (doc_hdr, decl_docs, arg_docs) = extractDocs tcg_env
+        ; let (doc_names_map, doc_hdr, decl_docs, arg_docs) =
+                extractDocs tcg_env
 
         ; let mod_guts = ModGuts {
                 mg_module       = mod,
@@ -213,6 +214,7 @@ deSugar hsc_env
                 mg_safe_haskell = safe_mode,
                 mg_trust_pkg    = imp_trust_own_pkg imports,
                 mg_complete_sigs = complete_matches,
+                mg_doc_names_map = doc_names_map,
                 mg_doc_hdr      = doc_hdr,
                 mg_decl_docs    = decl_docs,
                 mg_arg_docs     = arg_docs
