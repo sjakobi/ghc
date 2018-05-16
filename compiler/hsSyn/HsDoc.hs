@@ -30,6 +30,8 @@ data HsDoc name = HsDoc
   , hsDocIdentifiers :: [HsDocIdentifier name]
   } deriving (Eq, Show)
 
+type LHsDoc name = Located (HsDoc name)
+
 -- | Haskell Documentation String
 newtype HsDocString = HsDocString FastString
   deriving (Eq, Show, Data)
