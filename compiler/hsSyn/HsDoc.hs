@@ -31,6 +31,8 @@ data HsDoc name = HsDoc
   { hsDocString :: HsDocString
   , hsDocIdentifiers :: [HsDocIdentifier name]
   } deriving (Eq, Show)
+instance Outputable (HsDoc a) where
+  ppr _ = text "<document comment>"
 
 type LHsDoc name = Located (HsDoc name)
 
@@ -44,7 +46,7 @@ type LHsDocString = Located HsDocString
 instance Outputable HsDocString where
   ppr (HsDocString fs) = ftext fs
 
-ppr_mbDoc :: Maybe LHsDocString -> SDoc
+ppr_mbDoc :: Maybe (LHsDoc a) -> SDoc
 ppr_mbDoc (Just doc) = ppr doc
 ppr_mbDoc Nothing    = empty
 
