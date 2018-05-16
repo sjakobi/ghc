@@ -154,15 +154,12 @@ mkIface hsc_env maybe_old_fingerprint mod_details
                       mg_hpc_info     = hpc_info,
                       mg_safe_haskell = safe_mode,
                       mg_trust_pkg    = self_trust,
-                      mg_doc_hdr      = doc_hdr,
-                      mg_decl_docs    = decl_docs,
-                      mg_arg_docs     = arg_docs
+                      mg_docs         = docs
                     }
         = mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src used_th deps rdr_env fix_env
                    warns hpc_info self_trust
-                   safe_mode usages
-                   doc_hdr decl_docs arg_docs
+                   safe_mode usages docs
                    mod_details
 
 -- | make an interface from the results of typechecking only.  Useful
@@ -181,17 +178,17 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
                       tcg_rdr_env = rdr_env,
                       tcg_fix_env = fix_env,
                       tcg_merged = merged,
-                      tcg_warns = warns,
                       tcg_hpc = other_hpc_info,
                       tcg_th_splice_used = tc_splice_used,
                       tcg_dependent_files = dependent_files
                     }
   = do
+          let dflags = hsc_dflags hsc_env
           let used_names = mkUsedNames tc_result
           let pluginModules =
-                map lpModule (plugins (hsc_dflags hsc_env))
+                map lpModule (plugins dflags)
           deps <- mkDependencies
-                    (thisInstalledUnitId (hsc_dflags hsc_env))
+                    (thisInstalledUnitId dflags)
                     pluginModules tc_result
           let hpc_info = emptyHpcInfo other_hpc_info
           used_th <- readIORef tc_splice_used
@@ -205,33 +202,27 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
           -- See Note [Identity versus semantic module]
           usages <- mkUsageInfo hsc_env this_mod (imp_mods imports) used_names dep_files merged
 
-          let (doc_hdr', doc_map, arg_map) = extractDocs tc_result
+          let (warns, docs) = extractDocs dflags tc_result
 
           mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src
                    used_th deps rdr_env
                    fix_env warns hpc_info
-                   (imp_trust_own_pkg imports) safe_mode usages
-                   doc_hdr' doc_map arg_map
+                   (imp_trust_own_pkg imports) safe_mode usages docs
                    mod_details
-
-
 
 mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> HscSource
          -> Bool -> Dependencies -> GlobalRdrEnv
-         -> NameEnv FixItem -> Warnings -> HpcInfo
+         -> NameEnv FixItem -> Warnings HsDoc' -> HpcInfo
          -> Bool
          -> SafeHaskellMode
          -> [Usage]
-         -> Maybe HsDocString
-         -> DeclDocMap
-         -> ArgDocMap
+         -> Maybe Docs
          -> ModDetails
          -> IO (ModIface, Bool)
 mkIface_ hsc_env maybe_old_fingerprint
          this_mod hsc_src used_th deps rdr_env fix_env src_warns
-         hpc_info pkg_trust_req safe_mode usages
-         doc_hdr decl_docs arg_docs
+         hpc_info pkg_trust_req safe_mode usages docs
          ModDetails{  md_insts     = insts,
                       md_fam_insts = fam_insts,
                       md_rules     = rules,
@@ -320,9 +311,7 @@ mkIface_ hsc_env maybe_old_fingerprint
               mi_warn_fn     = mkIfaceWarnCache warns,
               mi_fix_fn      = mkIfaceFixCache fixities,
               mi_complete_sigs = icomplete_sigs,
-              mi_doc_hdr     = doc_hdr,
-              mi_decl_docs   = decl_docs,
-              mi_arg_docs    = arg_docs }
+              mi_docs        = docs }
 
     (new_iface, no_change_at_all)
           <- {-# SCC "versioninfo" #-}
