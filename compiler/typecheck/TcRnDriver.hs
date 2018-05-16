@@ -57,6 +57,7 @@ import TcUnify( checkConstraints )
 import RnTypes
 import RnExpr
 import RnUtils ( HsDocContext(..) )
+import RnHsDoc
 import RnFixity ( lookupFixityRn )
 import MkId
 import TidyPgm    ( globaliseAndTidyId )
@@ -243,10 +244,12 @@ tcRnModuleTcRnM hsc_env mod_sum
           -- If the whole module is warned about or deprecated
           -- (via mod_deprec) record that in tcg_warns. If we do thereby add
           -- a WarnAll, it will override any subsequent deprecations added to tcg_warns
-        let { tcg_env1 = case mod_deprec of
-                         Just (L _ txt) -> tcg_env { tcg_warns = WarnAll txt }
-                         Nothing        -> tcg_env
-            } ;
+        mb_warn_txt <- traverse (traverse rnLHsDoc) (unLoc <$> mod_deprec) ;
+        let { tcg_env1 = maybe
+                           tcg_env
+                           (\txt -> tcg_env { tcg_warns = WarnAll txt })
+                           mb_warn_txt
+            };
 
         setGblEnv tcg_env1 $ do {
 
@@ -277,9 +280,8 @@ tcRnModuleTcRnM hsc_env mod_sum
         -- because the latter might add new bindings for boot_dfuns,
         -- which may be mentioned in imported unfoldings
 
-                -- Don't need to rename the Haddock documentation,
-                -- it's not parsed by GHC anymore.
-        tcg_env <- return (tcg_env { tcg_doc_hdr = maybe_doc_hdr }) ;
+        -- Rename the module header
+        tcg_env <- rnMbDocHdr maybe_doc_hdr tcg_env ;
 
                 -- Report unused names
                 -- Do this /after/ type inference, so that when reporting
@@ -2772,7 +2774,7 @@ runRenamerPlugin mod_sum hsc_env gbl_env = do
 -- exception/signal an error.
 type RenamedStuff =
         (Maybe (HsGroup GhcRn, [LImportDecl GhcRn], Maybe [(LIE GhcRn, Avails)],
-                Maybe LHsDocString))
+                Maybe (LHsDoc Name)))
 
 -- | Extract the renamed information from TcGblEnv.
 getRenamedStuff :: TcGblEnv -> RenamedStuff

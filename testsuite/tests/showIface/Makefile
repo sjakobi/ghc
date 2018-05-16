@@ -8,8 +8,16 @@ Orphans:
 
 DocsInHiFile0:
 	'$(TEST_HC)' $(TEST_HC_OPTS) -c DocsInHiFile.hs
-	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface DocsInHiFile.hi | grep -A 4 'module header:'
+	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface DocsInHiFile.hi | grep -A 4 'docs:'
 
 DocsInHiFile1:
 	'$(TEST_HC)' $(TEST_HC_OPTS) -c -haddock DocsInHiFile.hs
-	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface DocsInHiFile.hi | grep -A 100 'module header:'
+	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface DocsInHiFile.hi | grep -A 200 'docs:'
+
+NoExportList:
+	'$(TEST_HC)' $(TEST_HC_OPTS) -c -haddock NoExportList.hs
+	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface NoExportList.hi | grep -A 100 'docs:'
+
+PragmaDocs:
+	'$(TEST_HC)' $(TEST_HC_OPTS) -c -haddock PragmaDocs.hs
+	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface PragmaDocs.hi | grep -A 100 'Warnings:'
