@@ -4,7 +4,9 @@
 \section[HscTypes]{Types for the per-module compiler}
 -}
 
-{-# LANGUAGE CPP, ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RecordWildCards #-}
 
 -- | Types for the per-module compiler
@@ -887,7 +889,7 @@ data ModIface
                 -- ^ Fixities
                 -- NOT STRICT!  we read this field lazily from the interface file
 
-        mi_warns    :: Warnings,
+        mi_warns    :: Warnings HsDoc',
                 -- ^ Warnings
                 -- NOT STRICT!  we read this field lazily from the interface file
 
@@ -928,7 +930,7 @@ data ModIface
                 -- Cached environments for easy lookup
                 -- These are computed (lazily) from other fields
                 -- and are not put into the interface file
-        mi_warn_fn   :: OccName -> Maybe WarningTxt,
+        mi_warn_fn   :: OccName -> Maybe (WarningTxt HsDoc'),
                 -- ^ Cached lookup for 'mi_warns'
         mi_fix_fn    :: OccName -> Maybe Fixity,
                 -- ^ Cached lookup for 'mi_fixities'
@@ -954,14 +956,7 @@ data ModIface
                 -- See Note [RnNames . Trust Own Package]
         mi_complete_sigs :: [IfaceCompleteMatch],
 
-        mi_doc_hdr :: Maybe HsDocString,
-                -- ^ Module header.
-
-        mi_decl_docs :: DeclDocMap,
-                -- ^ Docs on declarations.
-
-        mi_arg_docs :: ArgDocMap
-                -- ^ Docs on arguments.
+        mi_docs      :: Maybe Docs
      }
 
 -- | Old-style accessor for whether or not the ModIface came from an hs-boot
@@ -1040,9 +1035,7 @@ instance Binary ModIface where
                  mi_trust     = trust,
                  mi_trust_pkg = trust_pkg,
                  mi_complete_sigs = complete_sigs,
-                 mi_doc_hdr   = doc_hdr,
-                 mi_decl_docs = decl_docs,
-                 mi_arg_docs  = arg_docs }) = do
+                 mi_docs      = docs }) = do
         put_ bh mod
         put_ bh sig_of
         put_ bh hsc_src
@@ -1071,9 +1064,7 @@ instance Binary ModIface where
         put_ bh trust
         put_ bh trust_pkg
         put_ bh complete_sigs
-        lazyPut bh doc_hdr
-        lazyPut bh decl_docs
-        lazyPut bh arg_docs
+        lazyPut bh docs
 
    get bh = do
         mod         <- get bh
@@ -1104,9 +1095,7 @@ instance Binary ModIface where
         trust       <- get bh
         trust_pkg   <- get bh
         complete_sigs <- get bh
-        doc_hdr     <- lazyGet bh
-        decl_docs   <- lazyGet bh
-        arg_docs    <- lazyGet bh
+        docs        <- lazyGet bh
         return (ModIface {
                  mi_module      = mod,
                  mi_sig_of      = sig_of,
@@ -1141,9 +1130,7 @@ instance Binary ModIface where
                  mi_fix_fn      = mkIfaceFixCache fixities,
                  mi_hash_fn     = mkIfaceHashCache decls,
                  mi_complete_sigs = complete_sigs,
-                 mi_doc_hdr     = doc_hdr,
-                 mi_decl_docs   = decl_docs,
-                 mi_arg_docs    = arg_docs })
+                 mi_docs        = docs })
 
 -- | The original names declared of a certain module that are exported
 type IfaceExport = AvailInfo
@@ -1183,10 +1170,7 @@ emptyModIface mod
                mi_trust       = noIfaceTrustInfo,
                mi_trust_pkg   = False,
                mi_complete_sigs = [],
-               mi_doc_hdr     = Nothing,
-               mi_decl_docs   = emptyDeclDocMap,
-               mi_arg_docs    = emptyArgDocMap }
-
+               mi_docs        = Nothing }
 
 -- | Constructs cache for the 'mi_hash_fn' field of a 'ModIface'
 mkIfaceHashCache :: [(Fingerprint,IfaceDecl)]
@@ -1291,7 +1275,7 @@ data ModGuts
         mg_foreign   :: !ForeignStubs,   -- ^ Foreign exports declared in this module
         mg_foreign_files :: ![(ForeignSrcLang, FilePath)],
         -- ^ Files to be compiled with the C compiler
-        mg_warns     :: !Warnings,       -- ^ Warnings declared in the module
+        mg_warns     :: !(Warnings HsDoc'), -- ^ Warnings declared in the module
         mg_anns      :: [Annotation],    -- ^ Annotations declared in this module
         mg_complete_sigs :: [CompleteMatch], -- ^ Complete Matches
         mg_hpc_info  :: !HpcInfo,        -- ^ Coverage tick boxes in the module
@@ -1314,9 +1298,7 @@ data ModGuts
                                                 -- own package for Safe Haskell?
                                                 -- See Note [RnNames . Trust Own Package]
 
-        mg_doc_hdr       :: !(Maybe HsDocString), -- ^ Module header.
-        mg_decl_docs     :: !DeclDocMap,     -- ^ Docs on declarations.
-        mg_arg_docs      :: !ArgDocMap       -- ^ Docs on arguments.
+        mg_docs         :: !(Maybe Docs)        -- ^ Documentation.
     }
 
 -- The ModGuts takes on several slightly different forms:
@@ -2222,10 +2204,10 @@ but they are mostly elaborated elsewhere
 
 ------------------ Warnings -------------------------
 -- | Warning information for a module
-data Warnings
-  = NoWarnings                          -- ^ Nothing deprecated
-  | WarnAll WarningTxt                  -- ^ Whole module deprecated
-  | WarnSome [(OccName,WarningTxt)]     -- ^ Some specific things deprecated
+data Warnings text
+  = NoWarnings                            -- ^ Nothing deprecated
+  | WarnAll (WarningTxt text)             -- ^ Whole module deprecated
+  | WarnSome [(OccName, WarningTxt text)] -- ^ Some specific things deprecated
 
      -- Only an OccName is needed because
      --    (1) a deprecation always applies to a binding
@@ -2247,9 +2229,9 @@ data Warnings
      --
      --        this is in contrast with fixity declarations, where we need to map
      --        a Name to its fixity declaration.
-  deriving( Eq )
+  deriving (Functor, Foldable, Traversable)
 
-instance Binary Warnings where
+instance Binary text => Binary (Warnings text) where
     put_ bh NoWarnings     = putByte bh 0
     put_ bh (WarnAll t) = do
             putByte bh 1
@@ -2267,16 +2249,24 @@ instance Binary Warnings where
               _ -> do aa <- get bh
                       return (WarnSome aa)
 
+instance Outputable text => Outputable (Warnings text) where
+  ppr NoWarnings     = Outputable.empty
+  ppr (WarnAll txt)  = text "Warn all:" <+> ppr txt
+  ppr (WarnSome prs) = text "Warnings:"
+                       <+> nest 2 (vcat (map pprWarning prs))
+    where
+      pprWarning (name, txt) = ppr name <> colon <+> ppr txt
+
 -- | Constructs the cache for the 'mi_warn_fn' field of a 'ModIface'
-mkIfaceWarnCache :: Warnings -> OccName -> Maybe WarningTxt
+mkIfaceWarnCache :: Warnings text -> OccName -> Maybe (WarningTxt text)
 mkIfaceWarnCache NoWarnings  = \_ -> Nothing
 mkIfaceWarnCache (WarnAll t) = \_ -> Just t
 mkIfaceWarnCache (WarnSome pairs) = lookupOccEnv (mkOccEnv pairs)
 
-emptyIfaceWarnCache :: OccName -> Maybe WarningTxt
+emptyIfaceWarnCache :: OccName -> Maybe (WarningTxt text)
 emptyIfaceWarnCache _ = Nothing
 
-plusWarns :: Warnings -> Warnings -> Warnings
+plusWarns :: Warnings text -> Warnings text -> Warnings text
 plusWarns d NoWarnings = d
 plusWarns NoWarnings d = d
 plusWarns _ (WarnAll t) = WarnAll t

@@ -1,36 +1,111 @@
-module header:
-  Just " `elem`, 'print',
+docs:
+  Just identifier env:
+         ":=:":
+         "<>":
+           <> from GHC.Base
+         "Bool":
+           Bool from GHC.Types
+         "D":
+           D from DocsInHiFile
+         "Show":
+           Show from GHC.Show
+         "Unknown":
+         "add":
+           add from DocsInHiFile
+         "elem":
+           elem from Data.Foldable
+           elem from DocsInHiFile
+         "print":
+           print from System.IO
+       module header:
+         Just text:
+                " `elem`, 'print',
 `Unknown',
 '<>', ':=:', 'Bool'
 "
-declaration docs:
-  elem:
-    " '()', 'elem'."
-  D:
-    " A datatype."
-  D0:
-    " A constructor for 'D'. '"
-  D1:
-    " Another constructor"
-  P:
-    " A class"
-  p:
-    " A class method"
-  $fShowD:
-    " 'Show' instance"
-  D':
-    " Another datatype...
+              spans: 2-6, 10-15, 19-26, 30-32, 36-39, 43-47
+       declaration docs:
+         D':
+           text:
+             " Another datatype...
 
  ...with two docstrings."
-arg docs:
-  add:
-    0:
-      " First summand for 'add'"
-    1:
-      " Second summand"
-    2:
-      " Sum"
-  p:
-    0:
-      " An argument"
+           spans:
+         P:
+           text:
+             " A class"
+           spans:
+         p:
+           text:
+             " A class method"
+           spans:
+         D:
+           text:
+             " A datatype."
+           spans:
+         D0:
+           text:
+             " A constructor for 'D'. '"
+           spans: 20-21
+         D1:
+           text:
+             " Another constructor"
+           spans:
+         elem:
+           text:
+             " '()', 'elem'."
+           spans: 8-12
+         $fShowD:
+           text:
+             " 'Show' instance"
+           spans: 2-6
+       arg docs:
+         p:
+           0:
+             text:
+               " An argument"
+             spans:
+         add:
+           0:
+             text:
+               " First summand for 'add'"
+             spans: 20-23
+           1:
+             text:
+               " Second summand"
+             spans:
+           2:
+             text:
+               " Sum"
+             spans:
+       documentation structure:
+         section heading, level 1:
+           text:
+             " First section heading"
+           spans:
+         documentation chunk:
+           text:
+             " A small chunk of documentation"
+           spans:
+         avails:
+           [elem]
+         reference to named chunk: namedchunk
+         avails:
+           [D{D, D0, D1;}]
+         avails:
+           [add]
+         section heading, level 1:
+           text:
+             " Another section heading"
+           spans:
+         avails:
+           [P{P, p;}]
+         avails:
+           [Show{Show, show, showList, showsPrec;}]
+       named chunks:
+         "namedchunk":
+           text:
+             "
+ This chunk of documentation is named "namedchunk"."
+           spans:
 

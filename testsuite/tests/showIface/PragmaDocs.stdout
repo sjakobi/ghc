@@ -1,0 +1,28 @@
+Warnings: x: text:
+               "These are useless"
+             spans:
+          y: text:
+               "These are useless"
+             spans:
+          contains: text:
+                      "Use `elem` instead."
+                    spans: 5-9
+trusted: safe
+require own pkg trusted: False
+docs:
+  Just identifier env:
+         "elem":
+           elem from Data.Foldable
+       module header:
+         Nothing
+       declaration docs:
+       arg docs:
+       documentation structure:
+         avails:
+           [contains]
+         avails:
+           [x]
+         avails:
+           [y]
+       named chunks:
+
