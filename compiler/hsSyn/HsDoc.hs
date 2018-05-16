@@ -1,6 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable #-}
 
 module HsDoc (
+  HsDoc(..),
+  LHsDoc(..),
   HsDocString(..),
   LHsDocString,
   ppr_mbDoc
