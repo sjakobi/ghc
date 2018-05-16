@@ -65,7 +65,7 @@ import DataCon
 import TyCon
 import ErrUtils         ( MsgDoc )
 import PrelNames        ( rOOT_MAIN )
-import BasicTypes       ( pprWarningTxtForMsg, TopLevelFlag(..))
+import BasicTypes       ( WarningTxt(..), WarningSort(..), TopLevelFlag(..))
 import SrcLoc
 import Outputable
 import Util
@@ -1265,7 +1265,16 @@ warnIfDeprecated gre@(GRE { gre_name = name, gre_imp = iss })
         extra | imp_mod == moduleName name_mod = Outputable.empty
               | otherwise = text ", but defined in" <+> ppr name_mod
 
-lookupImpDeprec :: ModIface -> GlobalRdrElt -> Maybe WarningTxt
+pprWarningTxtForMsg :: WarningTxt HsDoc' -> SDoc
+pprWarningTxtForMsg (WarningTxt sort_ _ ws) =
+    withHeading (doubleQuotes (vcat (map (text . unpackHDS . hsDoc'String) ws)))
+  where
+    withHeading =
+      case sort_ of
+        WsDeprecated -> (text "Deprecated:" <+>)
+        WsWarning -> id
+
+lookupImpDeprec :: ModIface -> GlobalRdrElt -> Maybe (WarningTxt HsDoc')
 lookupImpDeprec iface gre
   = mi_warn_fn iface (greOccName gre) `mplus`  -- Bleat if the thing,
     case gre_par gre of                      -- or its parent, is warn'd
