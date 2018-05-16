@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DeriveDataTypeable #-}
+{-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable #-}
 
 module HsDoc (
   HsDocString(..),
@@ -15,6 +15,20 @@ import SrcLoc
 import FastString
 
 import Data.Data
+
+data HsDocIdentifierSpan = HsDocIdentifierSpan !Int !Int
+  deriving (Eq, Show)
+
+data HsDocIdentifier name = HsDocIdentifier
+  { hsDocIdentifierSpan :: HsDocIdentifierSpan
+  , hsDocIdentifierString :: HsDocString
+  , hsDocIdentifierNames :: [name]
+  } deriving (Eq, Show)
+
+data HsDoc name = HsDoc
+  { hsDocString :: HsDocString
+  , hsDocIdentifiers :: [HsDocIdentifier name]
+  } deriving (Eq, Show)
 
 -- | Haskell Documentation String
 newtype HsDocString = HsDocString FastString
