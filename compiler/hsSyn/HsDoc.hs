@@ -8,18 +8,22 @@ module HsDoc (
   mkHsDocString,
   HsDocIdentifier(..),
   HsDocIdentifierSpan(..),
-  ppr_mbDoc
+  ppr_mbDoc,
+  HsDocNamesMap(..),
+  HsDoc'(..)
   ) where
 
 #include "HsVersions.h"
 
 import GhcPrelude
 
+import Name
 import Outputable
 import SrcLoc
 import FastString
 
 import Data.Data
+import Data.Map (Map)
 
 data HsDocIdentifierSpan = HsDocIdentifierSpan !Int !Int
   deriving (Eq, Show, Data)
@@ -55,3 +59,12 @@ mkHsDocString = HsDocString . mkFastString
 ppr_mbDoc :: Maybe (LHsDoc a) -> SDoc
 ppr_mbDoc (Just doc) = ppr doc
 ppr_mbDoc Nothing    = empty
+
+-- | The collected identifiers for a module.
+newtype HsDocNamesMap = HsDocNamesMap (Map HsDocString [Name])
+
+-- | A version of 'HsDoc' intended for serialization.
+data HsDoc' = HsDoc'
+  { hsDoc'String :: !HsDocString
+  , hsDoc'IdentifierSpans :: ![HsDocIdentifierSpan]
+  }
