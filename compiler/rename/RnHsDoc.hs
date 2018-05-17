@@ -6,20 +6,18 @@ import GhcPrelude
 import TcRnTypes
 import HsSyn
 import SrcLoc
+import RdrName
+import Name
 
 
-rnMbLHsDoc :: Maybe LHsDocString -> RnM (Maybe LHsDocString)
-rnMbLHsDoc mb_doc = case mb_doc of
-  Just doc -> do
-    doc' <- rnLHsDoc doc
-    return (Just doc')
-  Nothing -> return Nothing
+rnMbLHsDoc :: Maybe (LHsDoc RdrName) -> RnM (Maybe (LHsDoc Name))
+rnMbLHsDoc = traverse rnLHsDoc
 
-rnLHsDoc :: LHsDocString -> RnM LHsDocString
+rnLHsDoc :: LHsDoc RdrName -> RnM (LHsDoc Name)
 rnLHsDoc (L pos doc) = do
   doc' <- rnHsDoc doc
   return (L pos doc')
 
-rnHsDoc :: HsDocString -> RnM HsDocString
-rnHsDoc (HsDocString s) = return (HsDocString s)
+rnHsDoc :: HsDoc RdrName -> RnM (HsDoc Name)
+rnHsDoc = undefined
 
