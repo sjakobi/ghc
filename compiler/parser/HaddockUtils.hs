@@ -5,7 +5,6 @@ import GhcPrelude
 
 import HsSyn
 import SrcLoc
-import RdrName
 
 import Control.Monad
 
@@ -33,6 +32,3 @@ addConDocs (x:xs) doc = x : addConDocs xs doc
 addConDocFirst :: [LConDecl a] -> Maybe (LHsDoc (IdP a)) -> [LConDecl a]
 addConDocFirst [] _ = []
 addConDocFirst (x:xs) doc = addConDoc x doc : xs
-
-lexHsDoc :: String -> HsDoc RdrName
-lexHsDoc = undefined

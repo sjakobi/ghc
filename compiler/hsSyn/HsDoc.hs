@@ -5,6 +5,9 @@ module HsDoc (
   LHsDoc(..),
   HsDocString(..),
   LHsDocString,
+  mkHsDocString,
+  HsDocIdentifier(..),
+  HsDocIdentifierSpan(..),
   ppr_mbDoc
   ) where
 
@@ -46,7 +49,9 @@ type LHsDocString = Located HsDocString
 instance Outputable HsDocString where
   ppr (HsDocString fs) = ftext fs
 
+mkHsDocString :: String -> HsDocString
+mkHsDocString = HsDocString . mkFastString
+
 ppr_mbDoc :: Maybe (LHsDoc a) -> SDoc
 ppr_mbDoc (Just doc) = ppr doc
 ppr_mbDoc Nothing    = empty
-
