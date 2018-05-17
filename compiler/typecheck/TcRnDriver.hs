@@ -273,9 +273,8 @@ tcRnModuleTcRnM hsc_env hsc_src
         -- because the latter might add new bindings for boot_dfuns,
         -- which may be mentioned in imported unfoldings
 
-                -- Don't need to rename the Haddock documentation,
-                -- it's not parsed by GHC anymore.
-        tcg_env <- return (tcg_env { tcg_doc_hdr = maybe_doc_hdr }) ;
+                -- Rename the Haddock documentation 
+        tcg_env <- undefined maybe_doc_hdr tcg_env
 
                 -- Report unused names
                 -- Do this /after/ type inference, so that when reporting
