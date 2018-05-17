@@ -1303,9 +1303,10 @@ data ModGuts
                                                 -- one); c.f. 'tcg_fam_inst_env'
 
         mg_safe_haskell :: SafeHaskellMode,     -- ^ Safe Haskell mode
-        mg_trust_pkg    :: Bool                 -- ^ Do we need to trust our
+        mg_trust_pkg    :: Bool,                -- ^ Do we need to trust our
                                                 -- own package for Safe Haskell?
                                                 -- See Note [RnNames . Trust Own Package]
+        mg_doc_hdr      :: Maybe (HsDoc Name)
     }
 
 -- The ModGuts takes on several slightly different forms:
