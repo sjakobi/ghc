@@ -25,14 +25,14 @@ data HsDocIdentifierSpan = HsDocIdentifierSpan !Int !Int
   deriving (Eq, Show, Data)
 
 data HsDocIdentifier name = HsDocIdentifier
-  { hsDocIdentifierSpan :: HsDocIdentifierSpan
-  , hsDocIdentifierString :: HsDocString
-  , hsDocIdentifierNames :: [name]
+  { hsDocIdentifierSpan :: !HsDocIdentifierSpan
+  , hsDocIdentifierString :: !HsDocString
+  , hsDocIdentifierNames :: ![name]
   } deriving (Eq, Show, Data)
 
 data HsDoc name = HsDoc
-  { hsDocString :: HsDocString
-  , hsDocIdentifiers :: [HsDocIdentifier name]
+  { hsDocString :: !HsDocString
+  , hsDocIdentifiers :: ![HsDocIdentifier name]
   } deriving (Eq, Show, Data)
 instance Outputable (HsDoc a) where
   ppr _ = text "<document comment>"
