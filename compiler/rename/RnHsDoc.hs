@@ -8,7 +8,6 @@ import HsSyn
 import RdrName
 import Name
 import RnEnv
-import IOEnv
 
 rnHaddock :: Maybe (LHsDoc RdrName) -> TcGblEnv -> RnM TcGblEnv
 rnHaddock mb_doc tcg_env = do
