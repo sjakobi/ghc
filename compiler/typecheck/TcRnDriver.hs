@@ -55,6 +55,7 @@ import TcUnify( checkConstraints )
 import RnTypes
 import RnExpr
 import RnUtils ( HsDocContext(..) )
+import RnHsDoc
 import RnFixity ( lookupFixityRn )
 import MkId
 import TidyPgm    ( globaliseAndTidyId )
@@ -274,7 +275,7 @@ tcRnModuleTcRnM hsc_env hsc_src
         -- which may be mentioned in imported unfoldings
 
                 -- Rename the Haddock documentation 
-        tcg_env <- undefined maybe_doc_hdr tcg_env
+        tcg_env <- rnHaddock maybe_doc_hdr tcg_env ;
 
                 -- Report unused names
                 -- Do this /after/ type inference, so that when reporting
