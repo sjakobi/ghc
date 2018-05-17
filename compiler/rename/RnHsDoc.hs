@@ -21,18 +21,18 @@ rnLHsDoc :: LHsDoc RdrName -> RnM (LHsDoc Name)
 rnLHsDoc = traverse rnHsDoc
 
 rnHsDoc :: HsDoc RdrName -> RnM (HsDoc Name)
-rnHsDoc (HsDoc s ids) = HsDoc s <$> traverse rnHsDocIdentifier ids
-
-rnHsDocIdentifier :: HsDocIdentifier RdrName -> RnM (HsDocIdentifier Name)
-rnHsDocIdentifier (HsDocIdentifier span s rdr_names) = do
-  -- TODO: Add a check that there should be exactly 1 RdrName in the identifier?
-
-  -- Generate the choices for the possible kind of thing this
-  -- is.
-  let choices = concatMap dataTcOccs rdr_names
-
+rnHsDoc (HsDoc s ids) = do
   gre <- tcg_rdr_env <$> getGblEnv
-  -- Try to look up all the names in the GlobalRdrEnv that match
-  -- the names.
-  let names = concatMap (\c -> map gre_name (lookupGRE_RdrName c gre)) choices
-  pure (HsDocIdentifier span s names)
+  pure (HsDoc s (rnHsDocIdentifier gre <$> ids))
+
+rnHsDocIdentifier :: GlobalRdrEnv -> HsDocIdentifier RdrName -> HsDocIdentifier Name
+rnHsDocIdentifier gre (HsDocIdentifier span s rdr_names) =
+  -- TODO: Add a check that there should be exactly 1 RdrName in the identifier?
+  HsDocIdentifier span s names
+  where
+    -- Try to look up all the names in the GlobalRdrEnv that match
+    -- the names.
+    names = concatMap (\c -> map gre_name (lookupGRE_RdrName c gre)) choices
+    -- Generate the choices for the possible kind of thing this
+    -- is.
+    choices = concatMap dataTcOccs rdr_names
