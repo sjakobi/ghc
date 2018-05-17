@@ -752,7 +752,7 @@ module :: { Located (HsModule GhcPs) }
                                (fst $ snd $1) (snd $ snd $1) Nothing Nothing))
                        (fst $1) }
 
-maybedocheader :: { Maybe LHsDocString }
+maybedocheader :: { Maybe (LHsDoc RdrName) }
         : moduleheader            { $1 }
         | {- empty -}             { Nothing }
 
@@ -2194,7 +2194,7 @@ forall :: { Located ([AddAnn], Maybe [LHsTyVarBndr GhcPs]) }
         : 'forall' tv_bndrs '.'       { sLL $1 $> ([mu AnnForall $1,mj AnnDot $3], Just $2) }
         | {- empty -}                 { noLoc ([], Nothing) }
 
-constr_stuff :: { Located (Located RdrName, HsConDeclDetails GhcPs, Maybe LHsDocString) }
+constr_stuff :: { Located (Located RdrName, HsConDeclDetails GhcPs, Maybe (LHsDoc RdrName)) }
     -- See Note [Parsing data constructors is hard] in RdrHsSyn
         : btype_no_ops                         {% do { c <- splitCon $1
                                                      ; return $ sLL $1 $> c } }
@@ -3469,31 +3469,31 @@ bars :: { ([SrcSpan],Int) }     -- One or more bars
 -----------------------------------------------------------------------------
 -- Documentation comments
 
-docnext :: { LHsDocString }
+docnext :: { LHsDoc RdrName }
   : DOCNEXT {% return (sL1 $1 (HsDocString (mkFastString (getDOCNEXT $1)))) }
 
-docprev :: { LHsDocString }
+docprev :: { LHsDoc RdrName }
   : DOCPREV {% return (sL1 $1 (HsDocString (mkFastString (getDOCPREV $1)))) }
 
-docnamed :: { Located (String, HsDocString) }
+docnamed :: { Located (String, HsDoc RdrName) }
   : DOCNAMED {%
       let string = getDOCNAMED $1
           (name, rest) = break isSpace string
       in return (sL1 $1 (name, HsDocString (mkFastString rest))) }
 
-docsection :: { Located (Int, HsDocString) }
+docsection :: { Located (Int, HsDoc RdrName) }
   : DOCSECTION {% let (n, doc) = getDOCSECTION $1 in
         return (sL1 $1 (n, HsDocString (mkFastString doc))) }
 
-moduleheader :: { Maybe LHsDocString }
+moduleheader :: { Maybe (LHsDoc RdrName) }
         : DOCNEXT {% let string = getDOCNEXT $1 in
                      return (Just (sL1 $1 (HsDocString (mkFastString string)))) }
 
-maybe_docprev :: { Maybe LHsDocString }
+maybe_docprev :: { Maybe (LHsDoc RdrName) }
         : docprev                       { Just $1 }
         | {- empty -}                   { Nothing }
 
-maybe_docnext :: { Maybe LHsDocString }
+maybe_docnext :: { Maybe (LHsDoc RdrName) }
         : docnext                       { Just $1 }
         | {- empty -}                   { Nothing }
 
