@@ -2,7 +2,7 @@
 
 module HsDoc (
   HsDoc(..),
-  LHsDoc(..),
+  LHsDoc,
   HsDocString(..),
   LHsDocString,
   mkHsDocString,
