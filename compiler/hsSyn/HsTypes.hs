@@ -592,7 +592,7 @@ data HsType pass
       -- For details on above see note [Api annotations] in ApiAnnotation
 
   | HsDocTy             (XDocTy pass)
-                        (LHsType pass) LHsDocString -- A documented type
+                        (LHsType pass) (LHsDoc (IdP pass)) -- A documented type
       -- ^ - 'ApiAnnotation.AnnKeywordId' : None
 
       -- For details on above see note [Api annotations] in ApiAnnotation
