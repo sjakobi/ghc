@@ -105,6 +105,7 @@ deSugar hsc_env
                             tcg_rules        = rules,
                             tcg_vects        = vects,
                             tcg_patsyns      = patsyns,
+                            tcg_doc_hdr      = doc_hdr,
                             tcg_tcs          = tcs,
                             tcg_insts        = insts,
                             tcg_fam_insts    = fam_insts,
@@ -211,7 +212,8 @@ deSugar hsc_env
                 mg_vect_info    = noVectInfo,
                 mg_safe_haskell = safe_mode,
                 mg_trust_pkg    = imp_trust_own_pkg imports,
-                mg_complete_sigs = complete_matches
+                mg_complete_sigs = complete_matches,
+                mg_doc_hdr      = unLoc <$> doc_hdr
               }
         ; return (msgs, Just mod_guts)
         }}}}
