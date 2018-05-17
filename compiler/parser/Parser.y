@@ -2282,7 +2282,7 @@ There's an awkward overlap with a type signature.  Consider
 docdecl :: { LHsDecl GhcPs }
         : docdecld { sL1 $1 (DocD noExt (unLoc $1)) }
 
-docdecld :: { LDocDecl }
+docdecld :: { LDocDecl GhcPs }
         : docnext                               { sL1 $1 (DocCommentNext (unLoc $1)) }
         | docprev                               { sL1 $1 (DocCommentPrev (unLoc $1)) }
         | docnamed                              { sL1 $1 (case (unLoc $1) of (n, doc) -> DocCommentNamed n doc) }
