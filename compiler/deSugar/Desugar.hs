@@ -184,6 +184,8 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
+        ; let (doc_names_map, doc_hdr') = combineDocs doc_hdr
+
         ; let mod_guts = ModGuts {
                 mg_module       = mod,
                 mg_hsc_src      = hsc_src,
@@ -213,7 +215,8 @@ deSugar hsc_env
                 mg_safe_haskell = safe_mode,
                 mg_trust_pkg    = imp_trust_own_pkg imports,
                 mg_complete_sigs = complete_matches,
-                mg_doc_hdr      = unLoc <$> doc_hdr
+                mg_doc_names_map = doc_names_map,
+                mg_doc_hdr      = doc_hdr'
               }
         ; return (msgs, Just mod_guts)
         }}}}
