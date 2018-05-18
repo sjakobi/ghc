@@ -1306,7 +1306,8 @@ data ModGuts
         mg_trust_pkg    :: Bool,                -- ^ Do we need to trust our
                                                 -- own package for Safe Haskell?
                                                 -- See Note [RnNames . Trust Own Package]
-        mg_doc_hdr      :: Maybe (HsDoc Name)
+        mg_doc_names_map :: HsDocNamesMap,
+        mg_doc_hdr      :: Maybe HsDoc'
     }
 
 -- The ModGuts takes on several slightly different forms:
