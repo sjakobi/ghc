@@ -964,7 +964,10 @@ data ModIface
                 -- itself) but imports some trustworthy modules from its own
                 -- package (which does require its own package be trusted).
                 -- See Note [RnNames . Trust Own Package]
-        mi_complete_sigs :: [IfaceCompleteMatch]
+        mi_complete_sigs :: [IfaceCompleteMatch],
+
+        mi_doc_names_map :: HsDocNamesMap,
+        mi_doc_hdr :: Maybe HsDoc'
      }
 
 -- | Old-style accessor for whether or not the ModIface came from an hs-boot
@@ -1101,6 +1104,8 @@ instance Binary ModIface where
         trust       <- get bh
         trust_pkg   <- get bh
         complete_sigs <- get bh
+        doc_names_map <- lazyGet bh
+        doc_hdr     <- lazyGet bh
         return (ModIface {
                  mi_module      = mod,
                  mi_sig_of      = sig_of,
@@ -1134,7 +1139,9 @@ instance Binary ModIface where
                  mi_warn_fn     = mkIfaceWarnCache warns,
                  mi_fix_fn      = mkIfaceFixCache fixities,
                  mi_hash_fn     = mkIfaceHashCache decls,
-                 mi_complete_sigs = complete_sigs })
+                 mi_complete_sigs = complete_sigs,
+                 mi_doc_names_map = doc_names_map,
+                 mi_doc_hdr     = doc_hdr })
 
 -- | The original names declared of a certain module that are exported
 type IfaceExport = AvailInfo
@@ -1173,7 +1180,9 @@ emptyModIface mod
                mi_hpc         = False,
                mi_trust       = noIfaceTrustInfo,
                mi_trust_pkg   = False,
-               mi_complete_sigs = [] }
+               mi_complete_sigs = [],
+               mi_doc_names_map = emptyHsDocNamesMap,
+               mi_doc_hdr     = Nothing }
 
 
 -- | Constructs cache for the 'mi_hash_fn' field of a 'ModIface'
