@@ -10,6 +10,7 @@ module HsDoc (
   HsDocIdentifierSpan(..),
   ppr_mbDoc,
   HsDocNamesMap(..),
+  emptyHsDocNamesMap,
   HsDoc'(..),
   combineDocs
   ) where
@@ -22,6 +23,7 @@ import Name
 import Outputable
 import SrcLoc
 import FastString
+import Binary
 
 import Data.Data
 import Data.Foldable
@@ -30,6 +32,15 @@ import qualified Data.Map as Map
 
 data HsDocIdentifierSpan = HsDocIdentifierSpan !Int !Int
   deriving (Eq, Show, Data)
+
+instance Binary HsDocIdentifierSpan where
+  put_ bh (HsDocIdentifierSpan a b) = do
+    put_ bh a
+    put_ bh b
+  get bh = do
+    a <- get bh
+    b <- get bh
+    return (HsDocIdentifierSpan a b)
 
 data HsDocIdentifier name = HsDocIdentifier
   { hsDocIdentifierSpan :: !HsDocIdentifierSpan
@@ -41,6 +52,7 @@ data HsDoc name = HsDoc
   { hsDocString :: !HsDocString
   , hsDocIdentifiers :: ![HsDocIdentifier name]
   } deriving (Eq, Show, Data)
+
 instance Outputable (HsDoc a) where
   ppr _ = text "<document comment>"
 
@@ -49,6 +61,10 @@ type LHsDoc name = Located (HsDoc name)
 -- | Haskell Documentation String
 newtype HsDocString = HsDocString FastString
   deriving (Eq, Ord, Show, Data)
+
+instance Binary HsDocString where
+  put_ bh (HsDocString fs) = put_ bh fs
+  get bh = HsDocString <$> get bh
 
 -- | Located Haskell Documentation String
 type LHsDocString = Located HsDocString
@@ -66,6 +82,10 @@ ppr_mbDoc Nothing    = empty
 -- | The collected identifiers for a module.
 newtype HsDocNamesMap = HsDocNamesMap (Map HsDocString [Name])
 
+instance Binary HsDocNamesMap where
+  put_ bh (HsDocNamesMap m) = put_ bh (Map.toAscList m)
+  get bh = HsDocNamesMap . Map.fromDistinctAscList <$> get bh
+
 emptyHsDocNamesMap :: HsDocNamesMap
 emptyHsDocNamesMap = HsDocNamesMap Map.empty
 
@@ -79,6 +99,15 @@ data HsDoc' = HsDoc'
   { hsDoc'String :: !HsDocString
   , hsDoc'IdentifierSpans :: ![HsDocIdentifierSpan]
   }
+
+instance Binary HsDoc' where
+  put_ bh (HsDoc' s spans) = do
+    put_ bh s
+    put_ bh spans
+  get bh = do
+    s <- get bh
+    spans <- get bh
+    return (HsDoc' s spans)
 
 combineDocs :: Maybe (LHsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 combineDocs mb_doc_hdr = splitMbHsDoc (unLoc <$> mb_doc_hdr)
