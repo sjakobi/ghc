@@ -73,7 +73,7 @@ instance Binary HsDocString where
 type LHsDocString = Located HsDocString
 
 instance Outputable HsDocString where
-  ppr (HsDocString fs) = ftext fs
+  ppr (HsDocString fs) = char '"' <> ftext fs <> char '"'
 
 mkHsDocString :: String -> HsDocString
 mkHsDocString = HsDocString . mkFastString
