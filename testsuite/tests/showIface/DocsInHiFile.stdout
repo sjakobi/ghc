@@ -1,0 +1,17 @@
+doc names map:
+  ":=:":
+  "<>":
+    <>
+  "Unknown":
+  "elem":
+    elem
+    elem
+  "print":
+    print
+module header:
+  Just text:
+         " `elem`, 'print',
+`Unknown',
+'<>', ':=:'
+"
+       spans: 2-6, 10-15, 19-26, 30-32, 36-39
