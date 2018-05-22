@@ -1045,7 +1045,9 @@ instance Binary ModIface where
                  mi_hpc       = hpc_info,
                  mi_trust     = trust,
                  mi_trust_pkg = trust_pkg,
-                 mi_complete_sigs = complete_sigs }) = do
+                 mi_complete_sigs = complete_sigs,
+                 mi_doc_names_map = doc_names_map,
+                 mi_doc_hdr   = doc_hdr }) = do
         put_ bh mod
         put_ bh sig_of
         put_ bh hsc_src
@@ -1074,6 +1076,8 @@ instance Binary ModIface where
         put_ bh trust
         put_ bh trust_pkg
         put_ bh complete_sigs
+        lazyPut bh doc_names_map
+        lazyPut bh doc_hdr
 
    get bh = do
         mod         <- get bh
