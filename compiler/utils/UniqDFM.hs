@@ -114,7 +114,7 @@ data TaggedVal val =
   TaggedVal
     val
     {-# UNPACK #-} !Int -- ^ insertion time
-  deriving Data
+  deriving (Data, Show)
 
 taggedFst :: TaggedVal val -> val
 taggedFst (TaggedVal v _) = v
@@ -137,7 +137,7 @@ data UniqDFM ele =
                                 -- be distinct within a single map
     {-# UNPACK #-} !Int         -- Upper bound on the values' insertion
                                 -- time. See Note [Overflow on plusUDFM]
-  deriving (Data, Functor)
+  deriving (Data, Functor, Show)
 
 emptyUDFM :: UniqDFM elt
 emptyUDFM = UDFM M.empty 0

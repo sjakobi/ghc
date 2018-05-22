@@ -38,7 +38,7 @@ import Data.Data
 -}
 
 newtype ForeignCall = CCall CCallSpec
-  deriving Eq
+  deriving (Eq, Show)
 
 isSafeForeignCall :: ForeignCall -> Bool
 isSafeForeignCall (CCall (CCallSpec _ _ safe)) = playSafe safe
@@ -100,7 +100,7 @@ data CCallSpec
   =  CCallSpec  CCallTarget     -- What to call
                 CCallConv       -- Calling convention to use.
                 Safety
-  deriving( Eq )
+  deriving( Eq, Show )
 
 -- The call target:
 
@@ -127,7 +127,7 @@ data CCallTarget
                                         -- allowed in CAPI imports
   | DynamicTarget
 
-  deriving( Eq, Data )
+  deriving( Eq, Data, Show )
 
 isDynamicTarget :: CCallTarget -> Bool
 isDynamicTarget DynamicTarget = True
@@ -147,7 +147,7 @@ See: http://www.programmersheaven.com/2/Calling-conventions
 
 -- any changes here should be replicated in  the CallConv type in template haskell
 data CCallConv = CCallConv | CApiConv | StdCallConv | PrimCallConv | JavaScriptCallConv
-  deriving (Eq, Data)
+  deriving (Eq, Data, Show)
 
 instance Outputable CCallConv where
   ppr StdCallConv = text "stdcall"
@@ -220,7 +220,7 @@ instance Outputable CCallSpec where
 -- The filename for a C header file
 -- Note [Pragma source text] in BasicTypes
 data Header = Header SourceText FastString
-    deriving (Eq, Data)
+    deriving (Eq, Data, Show)
 
 instance Outputable Header where
     ppr (Header st h) = pprWithSourceText st (doubleQuotes $ ppr h)
@@ -235,7 +235,7 @@ instance Outputable Header where
 data CType = CType SourceText -- Note [Pragma source text] in BasicTypes
                    (Maybe Header) -- header to include for this type
                    (SourceText,FastString) -- the type itself
-    deriving (Eq, Data)
+    deriving (Eq, Data, Show)
 
 instance Outputable CType where
     ppr (CType stp mh (stct,ct))

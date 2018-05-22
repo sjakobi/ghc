@@ -519,6 +519,9 @@ data TcTyVarDetails
            , mtv_ref   :: IORef MetaDetails
            , mtv_tclvl :: TcLevel }  -- See Note [TcLevel and untouchable type variables]
 
+instance Show TcTyVarDetails where
+  show _ = "TcTyVarDetails"
+
 vanillaSkolemTv, superSkolemTv :: TcTyVarDetails
 -- See Note [Binding when looking up instances] in InstEnv
 vanillaSkolemTv = SkolemTv topTcLevel False  -- Might be instantiated

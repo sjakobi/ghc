@@ -85,7 +85,7 @@ import Data.Functor.Classes (Eq1 (..))
 
 
 newtype UniqFM ele = UFM (M.IntMap ele)
-  deriving (Data, Eq, Functor)
+  deriving (Data, Eq, Functor, Show)
   -- We used to derive Traversable and Foldable, but they were nondeterministic
   -- and not obvious at the call site. You can use explicit nonDetEltsUFM
   -- and fold a list if needed.

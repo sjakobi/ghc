@@ -108,7 +108,7 @@ data PatSyn
              --  forall univ_tvs, ex_tvs. (req_theta, prov_theta)
              --                       =>  arg_tys -> res_ty
              -- See Note [Builder for pattern synonyms with unboxed type]
-  }
+  } deriving Show
 
 {- Note [Pattern synonym signature contexts]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

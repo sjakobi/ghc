@@ -52,6 +52,7 @@ import qualified Data.Data as Data
 -- | A constructor-like thing
 data ConLike = RealDataCon DataCon
              | PatSynCon PatSyn
+             deriving Show
 
 {-
 ************************************************************************

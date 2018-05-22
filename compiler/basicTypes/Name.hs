@@ -111,7 +111,7 @@ data Name = Name {
                 n_occ  :: !OccName,     -- Its occurrence name
                 n_uniq :: {-# UNPACK #-} !Unique,
                 n_loc  :: !SrcSpan      -- Definition site
-            }
+            } deriving Show
 
 -- NOTE: we make the n_loc field strict to eliminate some potential
 -- (and real!) space leaks, due to the fact that we don't look at
@@ -128,6 +128,7 @@ data NameSort
 
   | System              -- A system-defined Id or TyVar.  Typically the
                         -- OccName is very uninformative (like 's')
+  deriving Show
 
 instance Outputable NameSort where
   ppr (External _)    = text "external"
@@ -151,6 +152,7 @@ instance NFData NameSort where
 -- which have special syntactic forms.  They aren't in scope
 -- as such.
 data BuiltInSyntax = BuiltInSyntax | UserSyntax
+  deriving Show
 
 {-
 Notes about the NameSorts:

@@ -396,6 +396,7 @@ type TyConBinder = TyVarBndr TyVar TyConBndrVis
 data TyConBndrVis
   = NamedTCB ArgFlag
   | AnonTCB
+  deriving Show
 
 instance Outputable TyConBndrVis where
   ppr (NamedTCB flag) = text "NamedTCB" <+> ppr flag
@@ -832,7 +833,7 @@ data TyCon
 
         tcTyConFlavour :: TyConFlavour
                            -- ^ What sort of 'TyCon' this represents.
-      }
+      } deriving Show
 
 -- | Represents right-hand-sides of 'TyCon's for algebraic types
 data AlgTyConRhs
@@ -899,7 +900,7 @@ data AlgTyConRhs
                              -- See Note [Newtype eta]
                              -- Watch out!  If any newtypes become transparent
                              -- again check Trac #1072.
-    }
+    } deriving Show
 
 mkSumTyConRhs :: [DataCon] -> AlgTyConRhs
 mkSumTyConRhs data_cons = SumTyCon data_cons (length data_cons)
@@ -930,6 +931,9 @@ data RuntimeRepInfo
       -- be the list of arguments to the promoted datacon.
   | VecCount Int         -- ^ A constructor of @VecCount@
   | VecElem PrimElemRep  -- ^ A constructor of @VecElem@
+
+instance Show RuntimeRepInfo where
+  show _ = "RuntimeRepInfo"
 
 -- | Extract those 'DataCon's that we are able to learn about.  Note
 -- that visibility in this sense does not correspond to visibility in
@@ -997,6 +1001,7 @@ data AlgTyConFlav
         --      data R:TList a = ...
         --      axiom co a :: T [a] ~ R:TList a
         -- with R:TList's algTcParent = DataFamInstTyCon T [a] co
+  deriving Show
 
 instance Outputable AlgTyConFlav where
     ppr (VanillaAlgTyCon {})        = text "Vanilla ADT"
@@ -1022,7 +1027,7 @@ isNoParent _                   = False
 data Injectivity
   = NotInjective
   | Injective [Bool]   -- 1-1 with tyConTyVars (incl kind vars)
-  deriving( Eq )
+  deriving( Eq, Show )
 
 -- | Information pertaining to the expansion of a type synonym (@type@)
 data FamTyConFlav
@@ -1054,6 +1059,7 @@ data FamTyConFlav
 
    -- | Built-in type family used by the TypeNats solver
    | BuiltInSynFamTyCon BuiltInSynFamily
+   deriving Show
 
 instance Outputable FamTyConFlav where
     ppr (DataFamilyTyCon n) = text "data family" <+> ppr n
@@ -2404,7 +2410,7 @@ data TyConFlavour
   | TypeSynonymFlavour
   | BuiltInTypeFlavour -- ^ e.g., the @(->)@ 'TyCon'.
   | PromotedDataConFlavour
-  deriving Eq
+  deriving (Eq, Show)
 
 instance Outputable TyConFlavour where
   ppr = text . go

@@ -1190,6 +1190,7 @@ data DmdType = DmdType
                                 --      free variables
                   [Demand]      -- Demand on arguments
                   DmdResult     -- See [Nature of result demand]
+  deriving Show
 
 {-
 Note [Nature of result demand]
@@ -1716,7 +1717,7 @@ uses x with <L,U>, and its arg with demand <L,U>.
 -}
 
 newtype StrictSig = StrictSig DmdType
-                  deriving( Eq )
+                  deriving( Eq, Show )
 
 instance Outputable StrictSig where
    ppr (StrictSig ty) = ppr ty

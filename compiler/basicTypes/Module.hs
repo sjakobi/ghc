@@ -320,6 +320,7 @@ addBootSuffixLocn locn
 
 -- | A ModuleName is essentially a simple string, e.g. @Data.List@.
 newtype ModuleName = ModuleName FastString
+  deriving Show
 
 instance Uniquable ModuleName where
   getUnique (ModuleName nm) = getUnique nm
@@ -411,7 +412,7 @@ data Module = Module {
    moduleUnitId :: !UnitId,  -- pkg-1.0
    moduleName :: !ModuleName  -- A.B.C
   }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Show)
 
 -- | Calculate the free holes of a 'Module'.  If this set is non-empty,
 -- this module was defined in an indefinite library that had required

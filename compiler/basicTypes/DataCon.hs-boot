@@ -32,3 +32,4 @@ instance Uniquable DataCon
 instance NamedThing DataCon
 instance Outputable DataCon
 instance OutputableBndr DataCon
+instance Show DataCon

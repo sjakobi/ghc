@@ -126,7 +126,7 @@ data Literal
 
   | LitInteger Integer Type --  ^ Integer literals
                             -- See Note [Integer literals]
-  deriving Data
+  deriving (Data, Show)
 
 {-
 Note [Integer literals]

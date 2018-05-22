@@ -281,7 +281,7 @@ data Expr b
   | Tick  (Tickish Id) (Expr b)
   | Type  Type
   | Coercion Coercion
-  deriving Data
+  deriving (Data, Show)
 
 -- | Type synonym for expressions that occur in function argument positions.
 -- Only 'Arg' should contain a 'Type' at top level, general 'Expr' should not
@@ -308,7 +308,7 @@ data AltCon
                       -- See Note [Literal alternatives]
 
   | DEFAULT           -- ^ Trivial alternative: @case e of { _ -> ... }@
-   deriving (Eq, Data)
+   deriving (Eq, Data, Show)
 
 -- This instance is a bit shady. It can only be used to compare AltCons for
 -- a single type constructor. Fortunately, it seems quite unlikely that we'll
@@ -331,7 +331,7 @@ instance Ord AltCon where
 -- See Note [GHC Formalism] in coreSyn/CoreLint.hs
 data Bind b = NonRec b (Expr b)
             | Rec [(b, (Expr b))]
-  deriving Data
+  deriving (Data, Show)
 
 {-
 Note [Shadowing]
@@ -862,7 +862,7 @@ data Tickish id =
                                 --   (uses same names as CCs)
     }
 
-  deriving (Eq, Ord, Data)
+  deriving (Eq, Ord, Data, Show)
 
 -- | A "counting tick" (where tickishCounts is True) is one that
 -- counts evaluations in some way.  We cannot discard a counting tick,
@@ -1257,6 +1257,9 @@ data CoreRule
     }
                 -- See Note [Extra args in rule matching] in Rules.hs
 
+instance Show CoreRule where
+  show _ = "CoreRule"
+
 type RuleFun = DynFlags -> InScopeEnv -> Id -> [CoreExpr] -> Maybe CoreExpr
 type InScopeEnv = (InScopeSet, IdUnfoldingFun)
 
@@ -1377,7 +1380,7 @@ data Unfolding
         uf_expandable :: Bool,          -- True <=> can expand in RULE matching
                                         --      Cached version of exprIsExpandable
         uf_guidance   :: UnfoldingGuidance      -- Tells about the *size* of the template.
-    }
+    } deriving Show
   -- ^ An unfolding with redundant cached information. Parameters:
   --
   --  uf_tmpl: Template used to perform unfolding;
@@ -1423,6 +1426,7 @@ data UnfoldingSource
                        -- Only a few primop-like things have this property
                        -- (see MkId.hs, calls to mkCompulsoryUnfolding).
                        -- Inline absolutely always, however boring the context.
+  deriving Show
 
 
 
@@ -1453,7 +1457,7 @@ data UnfoldingGuidance
                           -- (where there are the right number of arguments.)
 
   | UnfNever        -- The RHS is big, so don't inline it
-  deriving (Eq)
+  deriving (Eq, Show)
 
 {-
 Note [Historical note: unfoldings for wrappers]

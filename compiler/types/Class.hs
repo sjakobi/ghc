@@ -68,7 +68,7 @@ data Class
 
         classBody :: ClassBody -- Superclasses, ATs, methods
 
-     }
+     } deriving Show
 
 --  | e.g.
 --
@@ -98,6 +98,7 @@ data ClassATItem
         (Maybe (Type, SrcSpan))
                       -- Default associated type (if any) from this template
                       -- Note [Associated type defaults]
+  deriving Show
 
 type ClassMinimalDef = BooleanFormula Name -- Required methods
 
@@ -119,7 +120,7 @@ data ClassBody
 
         -- Minimal complete definition
         classMinimalDefStuff :: ClassMinimalDef
-    }
+    } deriving Show
     -- TODO: maybe super classes should be allowed in abstract class definitions
 
 classMinimalDef :: Class -> ClassMinimalDef

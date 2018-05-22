@@ -133,6 +133,7 @@ type Unbranched = 'Unbranched
 
 newtype Branches (br :: BranchFlag)
   = MkBranches { unMkBranches :: Array BranchIndex CoAxBranch }
+  deriving Show
 type role Branches nominal
 
 manyBranches :: [CoAxBranch] -> Branches Branched
@@ -214,7 +215,7 @@ data CoAxiom br
     , co_ax_implicit :: Bool          -- True <=> the axiom is "implicit"
                                       -- See Note [Implicit axioms]
          -- INVARIANT: co_ax_implicit == True implies length co_ax_branches == 1.
-    }
+    } deriving Show
 
 data CoAxBranch
   = CoAxBranch
@@ -233,7 +234,7 @@ data CoAxBranch
     , cab_incomps  :: [CoAxBranch]  -- The previous incompatible branches
                                     -- See Note [Storing compatibility]
     }
-  deriving Data.Data
+  deriving (Data.Data, Show)
 
 toBranchedAxiom :: CoAxiom br -> CoAxiom Branched
 toBranchedAxiom (CoAxiom unique name role tc branches implicit)
@@ -425,7 +426,7 @@ Roles are defined here to avoid circular dependencies.
 -- Order of constructors matters: the Ord instance coincides with the *super*typing
 -- relation on roles.
 data Role = Nominal | Representational | Phantom
-  deriving (Eq, Ord, Data.Data)
+  deriving (Eq, Ord, Data.Data, Show)
 
 -- These names are slurped into the parser code. Changing these strings
 -- will change the **surface syntax** that GHC accepts! If you want to
@@ -483,6 +484,9 @@ data CoAxiomRule = CoAxiomRule
         -- checks for that.
   }
 
+instance Show CoAxiomRule where
+  show _ = "CoAxiomRule"
+
 instance Data.Data CoAxiomRule where
   -- don't traverse?
   toConstr _   = abstractConstr "CoAxiomRule"
@@ -509,6 +513,9 @@ data BuiltInSynFamily = BuiltInSynFamily
   , sfInteractInert :: [Type] -> Type ->
                        [Type] -> Type -> [TypeEqn]
   }
+
+instance Show BuiltInSynFamily where
+  show _ = "BuiltInSynFamily"
 
 -- Provides default implementations that do nothing.
 trivialBuiltInFamily :: BuiltInSynFamily

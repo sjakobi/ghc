@@ -242,15 +242,18 @@ data Var
         idScope    :: IdScope,
         id_details :: IdDetails,        -- Stable, doesn't change
         id_info    :: IdInfo }          -- Unstable, updated by simplifier
+  deriving Show
 
 -- | Identifier Scope
 data IdScope    -- See Note [GlobalId/LocalId]
   = GlobalId
   | LocalId ExportFlag
+  deriving Show
 
 data ExportFlag   -- See Note [ExportFlag on binders]
   = NotExported   -- ^ Not exported: may be discarded as dead code.
   | Exported      -- ^ Exported: kept alive
+  deriving Show
 
 {- Note [ExportFlag on binders]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -382,7 +385,7 @@ updateVarTypeM f id = do { ty' <- f (varType id)
 -- prohibited entirely from appearing in source Haskell ('Inferred')?
 -- See Note [TyVarBndrs, TyVarBinders, TyConBinders, and visibility] in TyCoRep
 data ArgFlag = Inferred | Specified | Required
-  deriving (Eq, Ord, Data)
+  deriving (Eq, Ord, Data, Show)
   -- (<) on ArgFlag meant "is less visible than"
 
 -- | Does this 'ArgFlag' classify an argument that is written in Haskell?
@@ -415,7 +418,7 @@ sameVis _        _        = True
 --   * tyvar can be TyVar or IfaceTv
 --   * argf  can be ArgFlag or TyConBndrVis
 data TyVarBndr tyvar argf = TvBndr tyvar argf
-  deriving( Data )
+  deriving( Data, Show )
 
 -- | Type Variable Binder
 --

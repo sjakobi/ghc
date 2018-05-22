@@ -24,3 +24,5 @@ isRuntimeRepTy :: Type -> Bool
 
 instance Data Type
   -- To support Data instances in CoAxiom
+instance Show Type
+instance Show TyThing

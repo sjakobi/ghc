@@ -322,6 +322,9 @@ code (either C or assembly), or generating interface files.
 -- abstraction layer.
 newtype SDoc = SDoc { runSDoc :: SDocContext -> Doc }
 
+instance Show SDoc where
+  show = showSDocUnsafe 
+
 data SDocContext = SDC
   { sdocStyle      :: !PprStyle
   , sdocLastColour :: !Col.PprColour

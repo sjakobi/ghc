@@ -9,3 +9,5 @@ coVarDetails :: IdDetails
 isCoVarDetails :: IdDetails -> Bool
 pprIdDetails :: IdDetails -> SDoc
 
+instance Show IdDetails
+instance Show IdInfo

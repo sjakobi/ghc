@@ -433,7 +433,7 @@ data DataCon
 
         dcPromoted :: TyCon    -- The promoted TyCon
                                -- See Note [Promoted data constructors] in TyCon
-  }
+  } deriving Show
 
 
 {- Note [TyVarBinders in DataCons]
@@ -558,7 +558,7 @@ data DataConRep
                                      -- about the original arguments; 1-1 with orig_arg_tys
                                      -- See Note [Bangs on data constructor arguments]
 
-    }
+    } deriving Show
 -- Algebraic data types always have a worker, and
 -- may or may not have a wrapper, depending on whether
 -- the wrapper does anything.
@@ -599,7 +599,7 @@ data HsSrcBang =
   HsSrcBang SourceText -- Note [Pragma source text] in BasicTypes
             SrcUnpackedness
             SrcStrictness
-  deriving Data.Data
+  deriving (Data.Data, Show)
 
 -- | Haskell Implementation Bang
 --
@@ -611,7 +611,7 @@ data HsImplBang
   | HsUnpack (Maybe Coercion)
     -- ^ Strict and unpacked field
     -- co :: arg-ty ~ product-ty HsBang
-  deriving Data.Data
+  deriving (Data.Data, Show)
 
 -- | Source Strictness
 --
@@ -619,7 +619,7 @@ data HsImplBang
 data SrcStrictness = SrcLazy -- ^ Lazy, ie '~'
                    | SrcStrict -- ^ Strict, ie '!'
                    | NoSrcStrict -- ^ no strictness annotation
-     deriving (Eq, Data.Data)
+     deriving (Eq, Data.Data, Show)
 
 -- | Source Unpackedness
 --
@@ -627,7 +627,7 @@ data SrcStrictness = SrcLazy -- ^ Lazy, ie '~'
 data SrcUnpackedness = SrcUnpack -- ^ {-# UNPACK #-} specified
                      | SrcNoUnpack -- ^ {-# NOUNPACK #-} specified
                      | NoSrcUnpack -- ^ no unpack pragma
-     deriving (Eq, Data.Data)
+     deriving (Eq, Data.Data, Show)
 
 
 
@@ -635,11 +635,13 @@ data SrcUnpackedness = SrcUnpack -- ^ {-# UNPACK #-} specified
 -- StrictnessMark is internal only, used to indicate strictness
 -- of the DataCon *worker* fields
 data StrictnessMark = MarkedStrict | NotMarkedStrict
+  deriving Show
 
 -- | An 'EqSpec' is a tyvar/type pair representing an equality made in
 -- rejigging a GADT constructor
 data EqSpec = EqSpec TyVar
                      Type
+  deriving Show
 
 -- | Make an 'EqSpec'
 mkEqSpec :: TyVar -> Type -> EqSpec

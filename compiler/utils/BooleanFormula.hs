@@ -36,7 +36,7 @@ type LBooleanFormula a = Located (BooleanFormula a)
 
 data BooleanFormula a = Var a | And [LBooleanFormula a] | Or [LBooleanFormula a]
                       | Parens (LBooleanFormula a)
-  deriving (Eq, Data, Functor, Foldable, Traversable)
+  deriving (Eq, Data, Functor, Foldable, Traversable, Show)
 
 mkVar :: a -> BooleanFormula a
 mkVar = Var

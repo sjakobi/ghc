@@ -10,6 +10,7 @@ Haskell. [WDP 94/11])
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module IdInfo (
         -- * The IdDetails type
@@ -163,8 +164,12 @@ data IdDetails
   | JoinId JoinArity           -- ^ An 'Id' for a join point taking n arguments
        -- Note [Join points] in CoreSyn
 
+-- Due to missing Show instance for 'PrimOp'
+instance Show IdDetails where
+  show _ = "IdDetails"
+
 -- | Recursive Selector Parent
-data RecSelParent = RecSelData TyCon | RecSelPatSyn PatSyn deriving Eq
+data RecSelParent = RecSelData TyCon | RecSelPatSyn PatSyn deriving (Eq, Show)
   -- Either `TyCon` or `PatSyn` depending
   -- on the origin of the record selector.
   -- For a data type family, this is the
@@ -253,7 +258,7 @@ data IdInfo
                                          -- n <=> all calls have at least n arguments
 
         levityInfo      :: LevityInfo    -- ^ when applied, will this Id ever have a levity-polymorphic type?
-    }
+    } deriving Show
 
 -- Setters
 
@@ -413,6 +418,7 @@ data RuleInfo
                         -- of rules.  I don't think it needs to include the
                         -- ru_fn though.
                         -- Note [Rule dependency info] in OccurAnal
+  deriving Show
 
 -- | Assume that no specilizations exist: always safe
 emptyRuleInfo :: RuleInfo
@@ -457,7 +463,7 @@ data CafInfo
 
         | NoCafRefs                     -- ^ A function or static constructor
                                         -- that refers to no CAFs.
-        deriving (Eq, Ord)
+        deriving (Eq, Ord, Show)
 
 -- | Assumes that the 'Id' has CAF references: definitely safe
 vanillaCafInfo :: CafInfo
@@ -576,6 +582,7 @@ type TickBoxId = Int
 -- | Tick box for Hpc-style coverage
 data TickBoxOp
    = TickBox Module {-# UNPACK #-} !TickBoxId
+   deriving Show
 
 instance Outputable TickBoxOp where
     ppr (TickBox mod n)         = text "tick" <+> ppr (mod,n)
@@ -602,7 +609,7 @@ this is required to prevent perf/compiler/T5631 from blowing up.
 -- See Note [Levity info]
 data LevityInfo = NoLevityInfo  -- always safe
                 | NeverLevityPolymorphic
-  deriving Eq
+  deriving (Eq, Show)
 
 instance Outputable LevityInfo where
   ppr NoLevityInfo           = text "NoLevityInfo"

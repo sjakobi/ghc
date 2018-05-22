@@ -126,7 +126,7 @@ import Data.Function (on)
 -}
 
 data LeftOrRight = CLeft | CRight
-                 deriving( Eq, Data )
+                 deriving( Eq, Data, Show )
 
 pickLR :: LeftOrRight -> (a,a) -> a
 pickLR CLeft  (l,_) = l
@@ -216,7 +216,7 @@ type Alignment = Int -- align to next N-byte boundary (N must be a power of 2).
 data OneShotInfo
   = NoOneShotInfo -- ^ No information
   | OneShotLam    -- ^ The lambda is applied at most once.
-  deriving (Eq)
+  deriving (Eq, Show)
 
 -- | It is always safe to assume that an 'Id' has no lambda-bound variable information
 noOneShotInfo :: OneShotInfo
@@ -280,7 +280,7 @@ unSwap IsSwapped  f a b = f b a
 -}
 
 data FunctionOrData = IsFunction | IsData
-    deriving (Eq, Ord, Data)
+    deriving (Eq, Ord, Data, Show)
 
 instance Outputable FunctionOrData where
     ppr IsFunction = text "(function)"
@@ -483,7 +483,7 @@ instance Outputable TopLevelFlag where
 data Boxity
   = Boxed
   | Unboxed
-  deriving( Eq, Data )
+  deriving( Eq, Data, Show )
 
 isBoxed :: Boxity -> Bool
 isBoxed Boxed   = True
@@ -761,7 +761,7 @@ data TupleSort
   = BoxedTuple
   | UnboxedTuple
   | ConstraintTuple
-  deriving( Eq, Data )
+  deriving( Eq, Data, Show )
 
 tupleSortBoxity :: TupleSort -> Boxity
 tupleSortBoxity BoxedTuple      = Boxed
@@ -871,7 +871,7 @@ data OccInfo
                     , occ_tail       :: !TailCallInfo }
                         -- Note [LoopBreaker OccInfo]
 
-  deriving (Eq)
+  deriving (Eq, Show)
 
 type RulesOnly = Bool
 
@@ -922,7 +922,7 @@ notOneBranch = False
 -----------------
 data TailCallInfo = AlwaysTailCalled JoinArity -- See Note [TailCallInfo]
                   | NoTailCallInfo
-  deriving (Eq)
+  deriving (Eq, Show)
 
 tailCallInfo :: OccInfo -> TailCallInfo
 tailCallInfo IAmDead   = NoTailCallInfo
@@ -1039,6 +1039,7 @@ Class object.
 data DefMethSpec ty
   = VanillaDM     -- Default method given with polymorphic code
   | GenericDM ty  -- Default method given with code of this type
+  deriving Show
 
 instance Outputable (DefMethSpec ty) where
   ppr VanillaDM      = text "{- Has default method -}"
@@ -1176,7 +1177,7 @@ data Activation = NeverActive
                   -- Active only *strictly before* this phase
                 | ActiveAfter SourceText PhaseNum
                   -- Active in this phase and later
-                deriving( Eq, Data )
+                deriving( Eq, Data, Show )
                   -- Eq used in comparing rules in HsDecls
 
 -- | Rule Match Information
@@ -1201,7 +1202,7 @@ data InlinePragma            -- Note [InlinePragma]
                                      -- See Note [inl_inline and inl_act]
 
       , inl_rule   :: RuleMatchInfo  -- Should the function be treated like a constructor?
-    } deriving( Eq, Data )
+    } deriving( Eq, Data, Show )
 
 -- | Inline Specification
 data InlineSpec   -- What the user's INLINE pragma looked like

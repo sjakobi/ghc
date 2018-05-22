@@ -215,6 +215,7 @@ data TyThing
   | AConLike ConLike
   | ATyCon   TyCon       -- TyCons and classes; see Note [ATyCon for classes]
   | ACoAxiom (CoAxiom Branched)
+  deriving Show
 
 instance Outputable TyThing where
   ppr = pprShortTyThing
@@ -311,7 +312,7 @@ data Type
                     -- in the list of a TyConApp, when applying a promoted
                     -- GADT data constructor
 
-  deriving Data.Data
+  deriving (Data.Data, Show)
 
 
 -- NOTE:  Other parts of the code assume that type literals do not contain
@@ -319,7 +320,7 @@ data Type
 data TyLit
   = NumTyLit Integer
   | StrTyLit FastString
-  deriving (Eq, Ord, Data.Data)
+  deriving (Eq, Ord, Data.Data, Show)
 
 {- Note [Arguments to type constructors]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -935,7 +936,7 @@ data Coercion
 
   | HoleCo CoercionHole              -- ^ See Note [Coercion holes]
                                      -- Only present during typechecking
-  deriving Data.Data
+  deriving (Data.Data, Show)
 
 type CoercionN = Coercion       -- always nominal
 type CoercionR = Coercion       -- always representational
@@ -1305,7 +1306,7 @@ data UnivCoProvenance
   | PluginProv String  -- ^ From a plugin, which asserts that this coercion
                        --   is sound. The string is for the use of the plugin.
 
-  deriving Data.Data
+  deriving (Data.Data, Show)
 
 instance Outputable UnivCoProvenance where
   ppr UnsafeCoerceProv   = text "(unsafeCoerce#)"
@@ -1320,6 +1321,9 @@ data CoercionHole
 
                  , ch_ref    :: IORef (Maybe Coercion)
                  }
+
+instance Show CoercionHole where
+  show _ = "CoercionHole"
 
 coHoleCoVar :: CoercionHole -> CoVar
 coHoleCoVar = ch_co_var
