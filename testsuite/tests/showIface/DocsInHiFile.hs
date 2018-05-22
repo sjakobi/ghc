@@ -1,6 +1,6 @@
 {-| `elem`, 'print',
 `Unknown',
-'<>', ':=:'
+'<>', ':=:', 'Bool'
 -}
 module DocsInHiFile where
 
