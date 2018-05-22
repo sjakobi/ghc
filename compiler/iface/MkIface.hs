@@ -175,7 +175,8 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
                       tcg_warns = warns,
                       tcg_hpc = other_hpc_info,
                       tcg_th_splice_used = tc_splice_used,
-                      tcg_dependent_files = dependent_files
+                      tcg_dependent_files = dependent_files,
+                      tcg_doc_hdr = doc_hdr
                     }
   = do
           let used_names = mkUsedNames tc_result
@@ -191,11 +192,12 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
           -- module and does not need to be recorded as a dependency.
           -- See Note [Identity versus semantic module]
           usages <- mkUsageInfo hsc_env this_mod (imp_mods imports) used_names dep_files merged
+          let (doc_names_map, doc_hdr') = combineDocs doc_hdr
           mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src
                    used_th deps rdr_env
                    fix_env warns hpc_info
-                   (imp_trust_own_pkg imports) safe_mode usages undefined undefined mod_details
+                   (imp_trust_own_pkg imports) safe_mode usages doc_names_map doc_hdr' mod_details
 
 
 mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> HscSource
