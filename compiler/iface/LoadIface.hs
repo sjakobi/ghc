@@ -1041,6 +1041,8 @@ pprModIface iface
         , pprTrustInfo (mi_trust iface)
         , pprTrustPkg (mi_trust_pkg iface)
         , vcat (map ppr (mi_complete_sigs iface))
+        , text "doc names map:" $$ nest 2 (ppr (mi_doc_names_map iface))
+        , text "module header:" $$ nest 2 (ppr (mi_doc_hdr iface))
         ]
   where
     pp_hsc_src HsBootFile = text "[boot]"
