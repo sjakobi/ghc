@@ -42,6 +42,9 @@ instance Binary HsDocIdentifierSpan where
     b <- get bh
     return (HsDocIdentifierSpan a b)
 
+instance Outputable HsDocIdentifierSpan where
+  ppr (HsDocIdentifierSpan a b) = int a <> char '-' <> int b
+
 data HsDocIdentifier name = HsDocIdentifier
   { hsDocIdentifierSpan :: !HsDocIdentifierSpan
   , hsDocIdentifierString :: !HsDocString
@@ -86,6 +89,11 @@ instance Binary HsDocNamesMap where
   put_ bh (HsDocNamesMap m) = put_ bh (Map.toAscList m)
   get bh = HsDocNamesMap . Map.fromDistinctAscList <$> get bh
 
+instance Outputable HsDocNamesMap where
+  ppr (HsDocNamesMap m) = vcat (map pprPair (Map.toAscList m))
+    where
+      pprPair (s, names) = ppr s <> colon $$ nest 2 (vcat (map ppr names))
+
 emptyHsDocNamesMap :: HsDocNamesMap
 emptyHsDocNamesMap = HsDocNamesMap Map.empty
 
@@ -108,6 +116,12 @@ instance Binary HsDoc' where
     s <- get bh
     spans <- get bh
     return (HsDoc' s spans)
+
+instance Outputable HsDoc' where
+  ppr (HsDoc' s spans) =
+    vcat [ text "text:" $$ nest 2 (ppr s)
+         , text "spans:" <+> fsep (punctuate (char ',') (map ppr spans))
+         ]
 
 combineDocs :: Maybe (LHsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 combineDocs mb_doc_hdr = splitMbHsDoc (unLoc <$> mb_doc_hdr)
