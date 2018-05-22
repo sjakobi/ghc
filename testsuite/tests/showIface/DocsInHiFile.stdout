@@ -1,13 +1,13 @@
 doc names map:
   ":=:":
   "<>":
-    <>
+    GHC.Base.<>
   "Unknown":
   "elem":
-    elem
-    elem
+    Data.Foldable.elem
+    DocsInHiFile.elem
   "print":
-    print
+    System.IO.print
 module header:
   Just text:
          " `elem`, 'print',
