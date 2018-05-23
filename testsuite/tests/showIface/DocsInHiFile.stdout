@@ -1,17 +1,19 @@
 doc names map:
   ":=:":
   "<>":
-    GHC.Base.<>
+    <> from GHC.Base
+  "Bool":
+    Bool from GHC.Types
   "Unknown":
   "elem":
-    Data.Foldable.elem
-    DocsInHiFile.elem
+    elem from Data.Foldable
+    elem from DocsInHiFile
   "print":
-    System.IO.print
+    print from System.IO
 module header:
   Just text:
          " `elem`, 'print',
 `Unknown',
-'<>', ':=:'
+'<>', ':=:', 'Bool'
 "
-       spans: 2-6, 10-15, 19-26, 30-32, 36-39
+       spans: 2-6, 10-15, 19-26, 30-32, 36-39, 43-47

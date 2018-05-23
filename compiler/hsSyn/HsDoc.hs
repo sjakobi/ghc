@@ -92,7 +92,8 @@ instance Binary HsDocNamesMap where
 instance Outputable HsDocNamesMap where
   ppr (HsDocNamesMap m) = vcat (map pprPair (Map.toAscList m))
     where
-      pprPair (s, names) = ppr s <> colon $$ nest 2 (vcat (map (text . show) names))
+      pprPair (s, names) = ppr s <> colon $$ nest 2 (vcat (map pprName' names))
+      pprName' n = ppr (nameOccName n) <+> text "from" <+> ppr (nameModule n)
 
 emptyHsDocNamesMap :: HsDocNamesMap
 emptyHsDocNamesMap = HsDocNamesMap Map.empty
