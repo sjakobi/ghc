@@ -6,6 +6,7 @@
 The Desugarer: turning HsSyn into Core.
 -}
 
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -66,6 +67,8 @@ import SeparateDocs
 
 import Data.List
 import Data.IORef
+import qualified Data.Map as Map
+import Data.Maybe
 import Control.Monad( when )
 
 {-
@@ -186,8 +189,14 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
-        ; let declsWithDocs = topDecls <$> mb_rn_decls
-        ; let (doc_names_map, doc_hdr') = combineDocs doc_hdr
+        ; let mb_decls_with_docs = topDecls <$> mb_rn_decls
+        ; let local_insts = filter (nameIsLocalOrFrom mod)
+                                   $ map getName insts ++ map getName fam_insts
+        ; let mb_maps = mkMaps local_insts <$> mb_decls_with_docs
+        ; let (!doc_map, !_arg_map, _, _) =
+                fromMaybe (Map.empty, Map.empty, Map.empty, Map.empty)
+                          mb_maps
+        ; let (doc_names_map, doc_hdr', doc_map') = combineDocs doc_hdr doc_map
 
         ; let mod_guts = ModGuts {
                 mg_module       = mod,
@@ -219,7 +228,8 @@ deSugar hsc_env
                 mg_trust_pkg    = imp_trust_own_pkg imports,
                 mg_complete_sigs = complete_matches,
                 mg_doc_names_map = doc_names_map,
-                mg_doc_hdr      = doc_hdr'
+                mg_doc_hdr      = doc_hdr',
+                mg_decl_docs    = doc_map'
               }
         ; return (msgs, Just mod_guts)
         }}}}
