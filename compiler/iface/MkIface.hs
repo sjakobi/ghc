@@ -3,6 +3,7 @@
 (c) The GRASP/AQUA Project, Glasgow University, 1993-1998
 -}
 
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP, NondecreasingIndentation #-}
 {-# LANGUAGE MultiWayIf #-}
 
@@ -109,6 +110,7 @@ import Fingerprint
 import Exception
 import UniqSet
 import Packages
+import SeparateDocs
 
 import Control.Monad
 import Data.Function
@@ -167,16 +169,20 @@ mkIfaceTc :: HscEnv
           -> IO (ModIface, Bool)
 mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
   tc_result@TcGblEnv{ tcg_mod = this_mod,
+                      tcg_semantic_mod = mod,
                       tcg_src = hsc_src,
                       tcg_imports = imports,
                       tcg_rdr_env = rdr_env,
                       tcg_fix_env = fix_env,
                       tcg_merged = merged,
+                      tcg_rn_decls = mb_rn_decls,
                       tcg_warns = warns,
                       tcg_hpc = other_hpc_info,
                       tcg_th_splice_used = tc_splice_used,
                       tcg_dependent_files = dependent_files,
-                      tcg_doc_hdr = doc_hdr
+                      tcg_doc_hdr = doc_hdr,
+                      tcg_insts = insts,
+                      tcg_fam_insts = fam_insts
                     }
   = do
           let used_names = mkUsedNames tc_result
@@ -192,7 +198,16 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
           -- module and does not need to be recorded as a dependency.
           -- See Note [Identity versus semantic module]
           usages <- mkUsageInfo hsc_env this_mod (imp_mods imports) used_names dep_files merged
-          let (doc_names_map, doc_hdr') = combineDocs doc_hdr
+
+          let mb_decls_with_docs = topDecls <$> mb_rn_decls
+              local_insts = filter (nameIsLocalOrFrom mod)
+                                   $ map getName insts ++ map getName fam_insts
+              mb_maps = mkMaps local_insts <$> mb_decls_with_docs
+              (!doc_map, !_arg_map, _, _) =
+                fromMaybe (Map.empty, Map.empty, Map.empty, Map.empty)
+                          mb_maps
+              (doc_names_map, doc_hdr', _doc_map') = combineDocs doc_hdr doc_map
+
           mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src
                    used_th deps rdr_env
