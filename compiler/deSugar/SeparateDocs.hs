@@ -31,7 +31,7 @@ ungroup group_ =
   mkDecls (typesigs . hs_valds)  (SigD noExt)   group_ ++
   mkDecls (valbinds . hs_valds)  (ValD noExt)   group_
   where
-    typesigs (XValBindsLR (NValBinds _ sigs)) = filter isUserLSig sigs
+    typesigs (XValBindsLR (NValBinds _ sigs)) = filter (isUserSig . unLoc) sigs
     typesigs _ = error "expected ValBindsOut"
 
     valbinds (XValBindsLR (NValBinds binds _)) = concatMap bagToList . snd . unzip $ binds
@@ -64,7 +64,7 @@ filterDecls = filter (isHandled . unLoc . fst)
     isHandled (TyClD {})  = True
     isHandled (InstD {})  = True
     isHandled (DerivD {}) = True
-    isHandled (SigD _ d)  = isUserLSig (reL d)
+    isHandled (SigD _ d)  = isUserSig d
     isHandled (ValD {})   = True
     -- we keep doc declarations to be able to get at named docs
     isHandled (DocD {})   = True
@@ -77,22 +77,19 @@ filterClasses decls = [ if isClassD d then (L loc (filterClass d), doc) else x
                       | x@(L loc d, doc) <- decls ]
   where
     filterClass (TyClD x c) =
-      TyClD x $ c { tcdSigs = filter (liftA2 (||) isUserLSig isMinimalLSig) $ tcdSigs c }
+      TyClD x $ c { tcdSigs = filter (liftA2 (||) (isUserSig . unLoc) isMinimalLSig) $ tcdSigs c }
     filterClass _ = error "expected TyClD"
 
 -- | Was this signature given by the user?
-isUserLSig :: LSig name -> Bool
-isUserLSig (L _(TypeSig {}))    = True
-isUserLSig (L _(ClassOpSig {})) = True
-isUserLSig (L _(PatSynSig {}))  = True
-isUserLSig _                    = False
+isUserSig :: Sig name -> Bool
+isUserSig TypeSig {}    = True
+isUserSig ClassOpSig {} = True
+isUserSig PatSynSig {}  = True
+isUserSig _             = False
 
 isClassD :: HsDecl a -> Bool
 isClassD (TyClD _ d) = isClassDecl d
 isClassD _ = False
-
-reL :: a -> Located a
-reL = L undefined
 
 -- | Take a field of declarations from a data structure and create HsDecls
 -- using the given constructor
