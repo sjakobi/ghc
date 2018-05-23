@@ -4,7 +4,6 @@ module SeparateDocs where
 
 import GhcPrelude
 import Bag
-import DynFlags
 import HsBinds
 import HsDoc
 import HsDecls
@@ -13,7 +12,6 @@ import HsTypes
 import HsUtils
 import Name
 import NameSet
-import RdrName
 import SrcLoc
 
 import Control.Applicative
@@ -34,19 +32,16 @@ type Maps = ( Map Name (HsDoc Name)
 -- | Create 'Maps' by looping through the declarations. For each declaration,
 -- find its names, its subordinates, and its doc strings. Process doc strings
 -- into 'Doc's.
-mkMaps :: Monad m
-       => DynFlags
-       -> GlobalRdrEnv
-       -> [Name]
+mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
-       -> m Maps
-mkMaps dflags gre instances decls = do
-  (a, b, c) <- unzip3 <$> traverse mappings decls
-  pure ( f' (map (nubByName fst) a)
-       , f  (filterMapping (not . M.null) b)
-       , f  (filterMapping (not . null) c)
-       , instanceMap
-       )
+       -> Maps
+mkMaps instances decls =
+  let (a, b, c) = unzip3 (map mappings decls)
+  in ( f' (map (nubByName fst) a)
+     , f  (filterMapping (not . M.null) b)
+     , f  (filterMapping (not . null) c)
+     , instanceMap
+     )
   where
     f :: (Ord a, Monoid b) => [[(a, b)]] -> Map a b
     f = M.fromListWith (<>) . concat
@@ -58,41 +53,37 @@ mkMaps dflags gre instances decls = do
     filterMapping :: (b -> Bool) ->  [[(a, b)]] -> [[(a, b)]]
     filterMapping p = map (filter (p . snd))
 
-    mappings :: (LHsDecl GhcRn, [(HsDoc Name)])
-             -> m ( [(Name, HsDoc Name)]
-                        , [(Name, Map Int (HsDoc Name))]
-                        , [(Name,  [LHsDecl GhcRn])]
-                        )
-    mappings (ldecl, docStrs) = do
+    mappings :: (LHsDecl GhcRn, [HsDoc Name])
+             -> ( [(Name, HsDoc Name)]
+                , [(Name, Map Int (HsDoc Name))]
+                , [(Name,  [LHsDecl GhcRn])]
+                )
+    mappings (ldecl, docStrs) =
       let L l decl = ldecl
+
           declDoc :: [(HsDoc Name)] -> Map Int (HsDoc Name)
-                  -> m (Maybe (HsDoc Name), Map Int (HsDoc Name))
-          declDoc strs m = do
-            doc' <- processDocStrings dflags gre strs
-            m'   <- traverse (processDocStringParas dflags gre) m
-            pure (doc', m')
+                  -> (Maybe (HsDoc Name), Map Int (HsDoc Name))
+          declDoc strs m = (concatHsDoc strs, m)
 
-      (doc, args) <- declDoc docStrs (declTypeDocs decl)
-
-      let
+          (doc, args) = declDoc docStrs (declTypeDocs decl)
+         
           subs :: [(Name, [(HsDoc Name)], Map Int (HsDoc Name))]
           subs = subordinates instanceMap decl
 
-      (subDocs, subArgs) <- unzip <$> traverse (\(_, strs, m) -> declDoc strs m) subs
-
-      let
+          (subDocs, subArgs) = unzip (map (\(_, strs, m) -> declDoc strs m) subs)
+         
           ns = names l decl
           subNs = [ n | (n, _, _) <- subs ]
           dm = [ (n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs ]
           am = [ (n, args) | n <- ns ] ++ zip subNs subArgs
           cm = [ (n, [ldecl]) | n <- ns ++ subNs ]
 
-      seqList ns `seq`
-        seqList subNs `seq`
-        doc `seq`
-        seqList subDocs `seq`
-        seqList subArgs `seq`
-        pure (dm, am, cm)
+      in seqList ns `seq`
+           seqList subNs `seq`
+           doc `seq`
+           seqList subDocs `seq`
+           seqList subArgs `seq`
+           (dm, am, cm)
 
     instanceMap :: Map SrcSpan Name
     instanceMap = M.fromList [ (getSrcSpan n, n) | n <- instances ]
