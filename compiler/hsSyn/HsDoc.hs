@@ -13,7 +13,9 @@ module HsDoc (
   HsDocNamesMap(..),
   emptyHsDocNamesMap,
   HsDoc'(..),
-  combineDocs
+  combineDocs,
+  DeclDocMap,
+  emptyDeclDocMap
   ) where
 
 #include "HsVersions.h"
@@ -158,10 +160,24 @@ instance Outputable HsDoc' where
          , text "spans:" <+> fsep (punctuate (char ',') (map ppr spans))
          ]
 
+newtype DeclDocMap = DeclDocMap (Map Name HsDoc')
+
+instance Binary DeclDocMap where
+  put_ bh (DeclDocMap m) = put_ bh (Map.toAscList m)
+  get bh = DeclDocMap . Map.fromDistinctAscList <$> get bh
+
+instance Outputable DeclDocMap where
+  ppr (DeclDocMap m) = vcat (map pprPair (Map.toAscList m))
+    where
+      pprPair (name, doc) = ppr name Outputable.<> colon $$ nest 2 (ppr doc)
+
+emptyDeclDocMap :: DeclDocMap
+emptyDeclDocMap = DeclDocMap Map.empty
+
 combineDocs :: Maybe (LHsDoc Name)
             -> Map Name (HsDoc Name)
-            -> (HsDocNamesMap, Maybe HsDoc', Map Name HsDoc')
-combineDocs mb_doc_hdr doc_map = (names_map, mb_doc_hdr', doc_map')
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap)
+combineDocs mb_doc_hdr doc_map = (names_map, mb_doc_hdr', DeclDocMap doc_map')
   where names_map = hdr_names_map <> doc_map_names_map
         (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
         doc_map_names_map = foldMap fst split_doc_map
