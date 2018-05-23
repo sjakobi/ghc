@@ -8,4 +8,4 @@ Orphans:
 
 DocsInHiFile:
 	'$(TEST_HC)' $(TEST_HC_OPTS) -c -haddock DocsInHiFile.hs
-	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface DocsInHiFile.hi | grep -A 16 'doc names map:'
+	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface DocsInHiFile.hi | grep -A 18 'doc names map:'
