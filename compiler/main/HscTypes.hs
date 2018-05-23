@@ -212,7 +212,6 @@ import Foreign
 import Control.Monad    ( guard, liftM, ap )
 import Data.Foldable    ( foldl' )
 import Data.IORef
-import Data.Map         ( Map )
 import Data.Time
 import Exception
 import System.FilePath
@@ -968,7 +967,8 @@ data ModIface
         mi_complete_sigs :: [IfaceCompleteMatch],
 
         mi_doc_names_map :: HsDocNamesMap,
-        mi_doc_hdr :: Maybe HsDoc'
+        mi_doc_hdr :: Maybe HsDoc',
+        mi_decl_docs :: DeclDocMap
      }
 
 -- | Old-style accessor for whether or not the ModIface came from an hs-boot
@@ -1048,7 +1048,8 @@ instance Binary ModIface where
                  mi_trust_pkg = trust_pkg,
                  mi_complete_sigs = complete_sigs,
                  mi_doc_names_map = doc_names_map,
-                 mi_doc_hdr   = doc_hdr }) = do
+                 mi_doc_hdr   = doc_hdr,
+                 mi_decl_docs = decl_docs }) = do
         put_ bh mod
         put_ bh sig_of
         put_ bh hsc_src
@@ -1079,6 +1080,7 @@ instance Binary ModIface where
         put_ bh complete_sigs
         lazyPut bh doc_names_map
         lazyPut bh doc_hdr
+        lazyPut bh decl_docs
 
    get bh = do
         mod         <- get bh
@@ -1111,6 +1113,7 @@ instance Binary ModIface where
         complete_sigs <- get bh
         doc_names_map <- lazyGet bh
         doc_hdr     <- lazyGet bh
+        decl_docs   <- lazyGet bh
         return (ModIface {
                  mi_module      = mod,
                  mi_sig_of      = sig_of,
@@ -1146,7 +1149,8 @@ instance Binary ModIface where
                  mi_hash_fn     = mkIfaceHashCache decls,
                  mi_complete_sigs = complete_sigs,
                  mi_doc_names_map = doc_names_map,
-                 mi_doc_hdr     = doc_hdr })
+                 mi_doc_hdr     = doc_hdr,
+                 mi_decl_docs   = decl_docs })
 
 -- | The original names declared of a certain module that are exported
 type IfaceExport = AvailInfo
@@ -1187,7 +1191,8 @@ emptyModIface mod
                mi_trust_pkg   = False,
                mi_complete_sigs = [],
                mi_doc_names_map = emptyHsDocNamesMap,
-               mi_doc_hdr     = Nothing }
+               mi_doc_hdr     = Nothing,
+               mi_decl_docs   = emptyDeclDocMap }
 
 
 -- | Constructs cache for the 'mi_hash_fn' field of a 'ModIface'
@@ -1322,7 +1327,7 @@ data ModGuts
                                                 -- See Note [RnNames . Trust Own Package]
         mg_doc_names_map :: HsDocNamesMap,
         mg_doc_hdr      :: Maybe HsDoc',
-        mg_decl_docs    :: Map Name HsDoc'
+        mg_decl_docs    :: DeclDocMap
     }
 
 -- The ModGuts takes on several slightly different forms:

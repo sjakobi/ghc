@@ -151,12 +151,13 @@ mkIface hsc_env maybe_old_fingerprint mod_details
                       mg_safe_haskell = safe_mode,
                       mg_trust_pkg    = self_trust,
                       mg_doc_names_map = doc_names_map,
-                      mg_doc_hdr      = doc_hdr
+                      mg_doc_hdr      = doc_hdr,
+                      mg_decl_docs    = decl_docs
                     }
         = mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src used_th deps rdr_env fix_env
                    warns hpc_info self_trust
-                   safe_mode usages doc_names_map doc_hdr mod_details
+                   safe_mode usages doc_names_map doc_hdr decl_docs mod_details
 
 -- | make an interface from the results of typechecking only.  Useful
 -- for non-optimising compilation, or where we aren't generating any
@@ -203,16 +204,18 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
               local_insts = filter (nameIsLocalOrFrom mod)
                                    $ map getName insts ++ map getName fam_insts
               mb_maps = mkMaps local_insts <$> mb_decls_with_docs
-              (!doc_map, !_arg_map, _, _) =
+              (!decl_docs, !_arg_map, _, _) =
                 fromMaybe (Map.empty, Map.empty, Map.empty, Map.empty)
                           mb_maps
-              (doc_names_map, doc_hdr', _doc_map') = combineDocs doc_hdr doc_map
+              (doc_names_map, doc_hdr', decl_docs') = combineDocs doc_hdr decl_docs
 
           mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src
                    used_th deps rdr_env
                    fix_env warns hpc_info
-                   (imp_trust_own_pkg imports) safe_mode usages doc_names_map doc_hdr' mod_details
+                   (imp_trust_own_pkg imports) safe_mode usages
+                   doc_names_map doc_hdr' decl_docs'
+                   mod_details
 
 
 mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> HscSource
@@ -223,11 +226,12 @@ mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> HscSource
          -> [Usage]
          -> HsDocNamesMap
          -> Maybe HsDoc'
+         -> DeclDocMap
          -> ModDetails
          -> IO (ModIface, Bool)
 mkIface_ hsc_env maybe_old_fingerprint
          this_mod hsc_src used_th deps rdr_env fix_env src_warns
-         hpc_info pkg_trust_req safe_mode usages doc_names_map doc_hdr
+         hpc_info pkg_trust_req safe_mode usages doc_names_map doc_hdr decl_docs
          ModDetails{  md_insts     = insts,
                       md_fam_insts = fam_insts,
                       md_rules     = rules,
@@ -320,7 +324,8 @@ mkIface_ hsc_env maybe_old_fingerprint
               mi_fix_fn      = mkIfaceFixCache fixities,
               mi_complete_sigs = icomplete_sigs,
               mi_doc_names_map = doc_names_map,
-              mi_doc_hdr     = doc_hdr }
+              mi_doc_hdr     = doc_hdr,
+              mi_decl_docs   = decl_docs }
 
     (new_iface, no_change_at_all)
           <- {-# SCC "versioninfo" #-}

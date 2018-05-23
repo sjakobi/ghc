@@ -1093,6 +1093,7 @@ pprModIface iface
         , vcat (map ppr (mi_complete_sigs iface))
         , text "doc names map:" $$ nest 2 (ppr (mi_doc_names_map iface))
         , text "module header:" $$ nest 2 (ppr (mi_doc_hdr iface))
+        , text "declaration docs:" $$ nest 2 (ppr (mi_decl_docs iface))
         ]
   where
     pp_hsc_src HsBootFile = text "[boot]"
