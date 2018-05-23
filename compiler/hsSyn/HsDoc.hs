@@ -117,6 +117,7 @@ ppr_mbDoc Nothing    = empty
 
 -- | The collected identifiers for a module.
 newtype HsDocNamesMap = HsDocNamesMap (Map HsDocString [Name])
+  deriving (Semigroup, Monoid)
 
 instance Binary HsDocNamesMap where
   put_ bh (HsDocNamesMap m) = put_ bh (Map.toAscList m)
@@ -157,8 +158,15 @@ instance Outputable HsDoc' where
          , text "spans:" <+> fsep (punctuate (char ',') (map ppr spans))
          ]
 
-combineDocs :: Maybe (LHsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
-combineDocs mb_doc_hdr = splitMbHsDoc (unLoc <$> mb_doc_hdr)
+combineDocs :: Maybe (LHsDoc Name)
+            -> Map Name (HsDoc Name)
+            -> (HsDocNamesMap, Maybe HsDoc', Map Name HsDoc')
+combineDocs mb_doc_hdr doc_map = (names_map, mb_doc_hdr', doc_map')
+  where names_map = hdr_names_map <> doc_map_names_map
+        (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
+        doc_map_names_map = foldMap fst split_doc_map
+        doc_map' = snd <$> split_doc_map
+        split_doc_map = splitHsDoc <$> doc_map
 
 splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
