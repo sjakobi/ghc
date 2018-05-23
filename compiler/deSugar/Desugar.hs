@@ -62,6 +62,7 @@ import Coverage
 import Util
 import MonadUtils
 import OrdList
+import SeparateDocs
 
 import Data.List
 import Data.IORef
@@ -94,6 +95,7 @@ deSugar hsc_env
                             tcg_inst_env     = inst_env,
                             tcg_fam_inst_env = fam_inst_env,
                             tcg_merged       = merged,
+                            tcg_rn_decls     = mb_rn_decls,
                             tcg_warns        = warns,
                             tcg_anns         = anns,
                             tcg_binds        = binds,
@@ -184,6 +186,7 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
+        ; let declsWithDocs = topDecls <$> mb_rn_decls
         ; let (doc_names_map, doc_hdr') = combineDocs doc_hdr
 
         ; let mod_guts = ModGuts {

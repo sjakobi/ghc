@@ -212,6 +212,7 @@ import Foreign
 import Control.Monad    ( guard, liftM, ap )
 import Data.Foldable    ( foldl' )
 import Data.IORef
+import Data.Map         ( Map )
 import Data.Time
 import Exception
 import System.FilePath
@@ -1320,7 +1321,8 @@ data ModGuts
                                                 -- own package for Safe Haskell?
                                                 -- See Note [RnNames . Trust Own Package]
         mg_doc_names_map :: HsDocNamesMap,
-        mg_doc_hdr      :: Maybe HsDoc'
+        mg_doc_hdr      :: Maybe HsDoc',
+        mg_decl_docs    :: Map Name HsDoc'
     }
 
 -- The ModGuts takes on several slightly different forms:

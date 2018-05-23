@@ -647,3 +647,4 @@ Library
             Linker
             RtClosureInspect
             GHCi
+            SeparateDocs
