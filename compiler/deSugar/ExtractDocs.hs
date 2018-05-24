@@ -61,18 +61,14 @@ mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
        -> (Map Name (HsDoc Name), Map Name (Map Int (HsDoc Name)))
 mkMaps instances decls =
-    ( f' (map (nubByName fst) decls')
-    , f  (filterMapping (not . M.null) args)
+    ( f (map (nubByName fst) decls')
+    , f (filterMapping (not . M.null) args)
     )
   where
     (decls', args) = unzip (map mappings decls)
 
     f :: (Ord a, Monoid b) => [[(a, b)]] -> Map a b
     f = M.fromListWith (<>) . concat
-
-    f' :: [[(Name, HsDoc Name)]] -> Map Name (HsDoc Name)
-    f' = M.fromListWith undefined . concat
-    -- f' = M.fromListWith metaDocAppend . concat
 
     filterMapping :: (b -> Bool) ->  [[(a, b)]] -> [[(a, b)]]
     filterMapping p = map (filter (p . snd))
