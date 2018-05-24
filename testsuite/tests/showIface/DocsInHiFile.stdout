@@ -7,6 +7,8 @@ doc names map:
   "D":
     D from DocsInHiFile
   "Unknown":
+  "add":
+    add from DocsInHiFile
   "elem":
     elem from Data.Foldable
     elem from DocsInHiFile
@@ -36,3 +38,17 @@ declaration docs:
     text:
       " '()', 'elem'."
     spans: 8-12
+arg docs:
+  add:
+    0:
+      text:
+        " First summand for 'add'"
+      spans: 20-23
+    1:
+      text:
+        " Second summand"
+      spans:
+    2:
+      text:
+        " Sum"
+      spans:
