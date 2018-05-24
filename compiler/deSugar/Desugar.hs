@@ -67,8 +67,6 @@ import SeparateDocs
 
 import Data.List
 import Data.IORef
-import qualified Data.Map as Map
-import Data.Maybe
 import Control.Monad( when )
 
 {-
@@ -189,12 +187,9 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
-        ; let mb_decls_with_docs = topDecls <$> mb_rn_decls
         ; let local_insts = filter (nameIsLocalOrFrom mod)
                                    $ map getName insts ++ map getName fam_insts
-        ; let mb_maps = mkMaps local_insts <$> mb_decls_with_docs
-        ; let (!doc_map, !arg_map) = fromMaybe (Map.empty, Map.empty) mb_maps
-        ; let (doc_names_map, doc_hdr', doc_map', arg_map') = combineDocs doc_hdr doc_map arg_map
+        ; let (doc_names_map, doc_hdr', doc_map', arg_map') = extractDocs doc_hdr mb_rn_decls local_insts
 
         ; let mod_guts = ModGuts {
                 mg_module       = mod,
