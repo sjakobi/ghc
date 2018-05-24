@@ -1250,8 +1250,7 @@ data ConDecl pass
       , con_args    :: HsConDeclDetails pass   -- ^ Arguments; never InfixCon
       , con_res_ty  :: LHsType pass            -- ^ Result type
 
-      , con_doc     :: Maybe (LHsDoc (IdP pass))
-          -- ^ A possible Haddock comment.
+      , con_doc     :: Maybe (LHsDoc (IdP pass)) -- ^ A possible Haddock comment.
       }
 
   | ConDeclH98
