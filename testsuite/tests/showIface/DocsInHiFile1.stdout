@@ -6,6 +6,8 @@ doc names map:
     Bool from GHC.Types
   "D":
     D from DocsInHiFile
+  "Show":
+    Show from GHC.Show
   "Unknown":
   "add":
     add from DocsInHiFile
@@ -22,6 +24,14 @@ module header:
 "
        spans: 2-6, 10-15, 19-26, 30-32, 36-39, 43-47
 declaration docs:
+  P:
+    text:
+      " A class"
+    spans:
+  p:
+    text:
+      " A class method"
+    spans:
   D:
     text:
       " A datatype."
@@ -38,7 +48,16 @@ declaration docs:
     text:
       " '()', 'elem'."
     spans: 8-12
+  $fShowD:
+    text:
+      " 'Show' instance"
+    spans: 2-6
 arg docs:
+  p:
+    0:
+      text:
+        " An argument"
+      spans:
   add:
     0:
       text:
