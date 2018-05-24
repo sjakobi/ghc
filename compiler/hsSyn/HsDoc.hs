@@ -1,24 +1,24 @@
 {-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
 
-module HsDoc (
-  HsDoc(..),
-  LHsDoc,
-  concatHsDoc,
-  splitHsDoc,
-  HsDocString(..),
-  LHsDocString,
-  mkHsDocString,
-  HsDocIdentifier(..),
-  HsDocIdentifierSpan(..),
-  ppr_mbDoc,
-  HsDocNamesMap(..),
-  emptyHsDocNamesMap,
-  hsDocIdentifierNamesMap,
-  HsDoc'(..),
-  DeclDocMap(..),
-  emptyDeclDocMap,
-  ArgDocMap(..),
-  emptyArgDocMap
+module HsDoc
+  ( HsDoc(..)
+  , LHsDoc
+  , concatHsDoc
+  , splitHsDoc
+  , HsDocString(..)
+  , LHsDocString
+  , mkHsDocString
+  , HsDocIdentifier(..)
+  , HsDocIdentifierSpan(..)
+  , ppr_mbDoc
+  , HsDocNamesMap(..)
+  , emptyHsDocNamesMap
+  , hsDocIdentifierNamesMap
+  , HsDoc'(..)
+  , DeclDocMap(..)
+  , emptyDeclDocMap
+  , ArgDocMap(..)
+  , emptyArgDocMap
   ) where
 
 #include "HsVersions.h"
