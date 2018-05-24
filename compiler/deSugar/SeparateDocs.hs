@@ -23,24 +23,17 @@ import Data.Semigroup
 import Data.Ord
 
 
-type Maps = ( Map Name (HsDoc Name)
-            , Map Name (Map Int (HsDoc Name))
-            , Map Name [LHsDecl GhcRn]
-            , Map SrcSpan Name
-            )
 
--- | Create 'Maps' by looping through the declarations. For each declaration,
+-- | Create doc and arg maps by looping through the declarations. For each declaration,
 -- find its names, its subordinates, and its doc strings. Process doc strings
 -- into 'Doc's.
 mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
-       -> Maps
+       -> (Map Name (HsDoc Name), Map Name (Map Int (HsDoc Name)))
 mkMaps instances decls =
-  let (a, b, c) = unzip3 (map mappings decls)
+  let (a, b) = unzip (map mappings decls)
   in ( f' (map (nubByName fst) a)
      , f  (filterMapping (not . M.null) b)
-     , f  (filterMapping (not . null) c)
-     , instanceMap
      )
   where
     f :: (Ord a, Monoid b) => [[(a, b)]] -> Map a b
@@ -56,7 +49,6 @@ mkMaps instances decls =
     mappings :: (LHsDecl GhcRn, [HsDoc Name])
              -> ( [(Name, HsDoc Name)]
                 , [(Name, Map Int (HsDoc Name))]
-                , [(Name,  [LHsDecl GhcRn])]
                 )
     mappings (ldecl, docStrs) =
       let L l decl = ldecl
@@ -76,14 +68,13 @@ mkMaps instances decls =
           subNs = [ n | (n, _, _) <- subs ]
           dm = [ (n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs ]
           am = [ (n, args) | n <- ns ] ++ zip subNs subArgs
-          cm = [ (n, [ldecl]) | n <- ns ++ subNs ]
 
       in seqList ns `seq`
            seqList subNs `seq`
            doc `seq`
            seqList subDocs `seq`
            seqList subArgs `seq`
-           (dm, am, cm)
+           (dm, am)
 
     instanceMap :: Map SrcSpan Name
     instanceMap = M.fromList [ (getSrcSpan n, n) | n <- instances ]
