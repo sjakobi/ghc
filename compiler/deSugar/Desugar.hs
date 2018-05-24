@@ -6,7 +6,6 @@
 The Desugarer: turning HsSyn into Core.
 -}
 
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeFamilies #-}
 

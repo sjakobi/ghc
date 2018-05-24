@@ -3,7 +3,6 @@
 (c) The GRASP/AQUA Project, Glasgow University, 1993-1998
 -}
 
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP, NondecreasingIndentation #-}
 {-# LANGUAGE MultiWayIf #-}
 
