@@ -967,9 +967,17 @@ data ModIface
         mi_complete_sigs :: [IfaceCompleteMatch],
 
         mi_doc_names_map :: HsDocNamesMap,
+                -- ^ Identifiers that were found in docstrings and the 'Names'
+                -- they might correspond to.
+
         mi_doc_hdr :: Maybe HsDoc',
+                -- ^ Module header.
+
         mi_decl_docs :: DeclDocMap,
+                -- ^ Docs on declarations.
+
         mi_arg_docs :: ArgDocMap
+                -- ^ Docs on arguments.
      }
 
 -- | Old-style accessor for whether or not the ModIface came from an hs-boot
@@ -1330,10 +1338,12 @@ data ModGuts
         mg_trust_pkg    :: Bool,                -- ^ Do we need to trust our
                                                 -- own package for Safe Haskell?
                                                 -- See Note [RnNames . Trust Own Package]
-        mg_doc_names_map :: HsDocNamesMap,
-        mg_doc_hdr      :: Maybe HsDoc',
-        mg_decl_docs    :: DeclDocMap,
-        mg_arg_docs     :: ArgDocMap
+
+        mg_doc_names_map :: HsDocNamesMap, -- ^ Identifiers that were found in docstrings
+                                           -- and the 'Names' they might correspond to.
+        mg_doc_hdr       :: Maybe HsDoc',  -- ^ Module header.
+        mg_decl_docs     :: DeclDocMap,    -- ^ Docs on declarations.
+        mg_arg_docs      :: ArgDocMap      -- ^ Docs on arguments.
     }
 
 -- The ModGuts takes on several slightly different forms:
