@@ -33,6 +33,25 @@ extractDocs mb_doc_hdr mb_rn_decls local_insts =
     mb_maps = mkMaps local_insts <$> mb_decls_with_docs
     mb_decls_with_docs = topDecls <$> mb_rn_decls
 
+combineDocs :: Maybe (LHsDoc Name)
+            -> Map Name (HsDoc Name)
+            -> Map Name (Map Int (HsDoc Name))
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
+combineDocs mb_doc_hdr doc_map arg_map =
+  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map')
+  where names_map = hdr_names_map <> doc_map_names_map <> arg_map_names_map
+        (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
+        doc_map_names_map = foldMap fst split_doc_map
+        doc_map' = snd <$> split_doc_map
+        split_doc_map = splitHsDoc <$> doc_map
+        arg_map_names_map = foldMap (foldMap fst) split_arg_map
+        arg_map' = fmap snd <$> split_arg_map
+        split_arg_map = fmap splitHsDoc <$> arg_map
+
+splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
+splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
+splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
+
 -- | Create doc and arg maps by looping through the declarations. For each declaration,
 -- find its names, its subordinates, and its doc strings. Process doc strings
 -- into 'Doc's.

@@ -4,6 +4,7 @@ module HsDoc (
   HsDoc(..),
   LHsDoc,
   concatHsDoc,
+  splitHsDoc,
   HsDocString(..),
   LHsDocString,
   mkHsDocString,
@@ -12,11 +13,11 @@ module HsDoc (
   ppr_mbDoc,
   HsDocNamesMap(..),
   emptyHsDocNamesMap,
+  hsDocIdentifierNamesMap,
   HsDoc'(..),
-  combineDocs,
-  DeclDocMap,
+  DeclDocMap(..),
   emptyDeclDocMap,
-  ArgDocMap,
+  ArgDocMap(..),
   emptyArgDocMap
   ) where
 
@@ -32,7 +33,6 @@ import FastString
 import Binary
 
 import Data.Data
-import Data.Foldable
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Semigroup
@@ -90,6 +90,12 @@ concatHsDoc xs =
     HsDoc s [] | nullHDS s -> Nothing
     x -> Just x
 
+splitHsDoc :: HsDoc Name -> (HsDocNamesMap, HsDoc')
+splitHsDoc (HsDoc s ids) = (names, hsDoc')
+  where
+    hsDoc' = HsDoc' s (hsDocIdentifierSpan <$> ids)
+    names = foldMap hsDocIdentifierNamesMap ids
+
 type LHsDoc name = Located (HsDoc name)
 
 -- | Haskell Documentation String
@@ -121,7 +127,10 @@ ppr_mbDoc Nothing    = empty
 
 -- | The collected identifiers for a module.
 newtype HsDocNamesMap = HsDocNamesMap (Map HsDocString [Name])
-  deriving (Semigroup, Monoid)
+  deriving ( Semigroup
+             -- ^ Assumes that equal identifiers will correspond to the same names.
+           , Monoid
+           )
 
 instance Binary HsDocNamesMap where
   put_ bh (HsDocNamesMap m) = put_ bh (Map.toAscList m)
@@ -136,10 +145,9 @@ instance Outputable HsDocNamesMap where
 emptyHsDocNamesMap :: HsDocNamesMap
 emptyHsDocNamesMap = HsDocNamesMap Map.empty
 
--- | Assumes that equal identifiers will correspond to the same names.
-unionHsDocNamesMap :: HsDocNamesMap -> HsDocNamesMap -> HsDocNamesMap
-unionHsDocNamesMap (HsDocNamesMap m0) (HsDocNamesMap m1) =
-  HsDocNamesMap (Map.union m0 m1)
+hsDocIdentifierNamesMap :: HsDocIdentifier Name -> HsDocNamesMap
+hsDocIdentifierNamesMap (HsDocIdentifier _span s names) =
+  HsDocNamesMap (Map.singleton s names)
 
 -- | A version of 'HsDoc' intended for serialization.
 data HsDoc' = HsDoc'
@@ -191,34 +199,3 @@ instance Outputable ArgDocMap where
 
 emptyArgDocMap :: ArgDocMap
 emptyArgDocMap = ArgDocMap Map.empty
-
-combineDocs :: Maybe (LHsDoc Name)
-            -> Map Name (HsDoc Name)
-            -> Map Name (Map Int (HsDoc Name))
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
-combineDocs mb_doc_hdr doc_map arg_map =
-  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map')
-  where names_map = hdr_names_map <> doc_map_names_map <> arg_map_names_map
-        (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
-        doc_map_names_map = foldMap fst split_doc_map
-        doc_map' = snd <$> split_doc_map
-        split_doc_map = splitHsDoc <$> doc_map
-        arg_map_names_map = foldMap (foldMap fst) split_arg_map
-        arg_map' = fmap snd <$> split_arg_map
-        split_arg_map = fmap splitHsDoc <$> arg_map
-
-splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
-splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
-splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
-
-splitHsDoc :: HsDoc Name -> (HsDocNamesMap, HsDoc')
-splitHsDoc (HsDoc s ids) = (names, hsDoc')
-  where
-    hsDoc' = HsDoc' s (hsDocIdentifierSpan <$> ids)
-    names = foldl' (\m id' -> unionHsDocNamesMap m (hsDocIdentifierNamesMap id'))
-                   emptyHsDocNamesMap
-                   ids
-
-hsDocIdentifierNamesMap :: HsDocIdentifier Name -> HsDocNamesMap
-hsDocIdentifierNamesMap (HsDocIdentifier _span s names) =
-  HsDocNamesMap (Map.singleton s names)
