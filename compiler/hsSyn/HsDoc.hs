@@ -15,7 +15,9 @@ module HsDoc (
   HsDoc'(..),
   combineDocs,
   DeclDocMap,
-  emptyDeclDocMap
+  emptyDeclDocMap,
+  ArgDocMap,
+  emptyArgDocMap
   ) where
 
 #include "HsVersions.h"
@@ -174,15 +176,36 @@ instance Outputable DeclDocMap where
 emptyDeclDocMap :: DeclDocMap
 emptyDeclDocMap = DeclDocMap Map.empty
 
+newtype ArgDocMap = ArgDocMap (Map Name (Map Int HsDoc'))
+
+instance Binary ArgDocMap where
+  put_ bh (ArgDocMap m) = put_ bh (Map.toAscList (Map.toAscList <$> m))
+  get bh = ArgDocMap . fmap Map.fromDistinctAscList . Map.fromDistinctAscList <$> get bh
+
+instance Outputable ArgDocMap where
+  ppr (ArgDocMap m) = vcat (map pprPair (Map.toAscList m))
+    where
+      pprPair (name, int_map) = ppr name Outputable.<> colon $$ nest 2 (pprIntMap int_map)
+      pprIntMap im = vcat (map pprIPair (Map.toAscList im))
+      pprIPair (i, doc) = ppr i Outputable.<> colon $$ nest 2 (ppr doc)
+
+emptyArgDocMap :: ArgDocMap
+emptyArgDocMap = ArgDocMap Map.empty
+
 combineDocs :: Maybe (LHsDoc Name)
             -> Map Name (HsDoc Name)
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap)
-combineDocs mb_doc_hdr doc_map = (names_map, mb_doc_hdr', DeclDocMap doc_map')
-  where names_map = hdr_names_map <> doc_map_names_map
+            -> Map Name (Map Int (HsDoc Name))
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
+combineDocs mb_doc_hdr doc_map arg_map =
+  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map')
+  where names_map = hdr_names_map <> doc_map_names_map <> arg_map_names_map
         (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
         doc_map_names_map = foldMap fst split_doc_map
         doc_map' = snd <$> split_doc_map
         split_doc_map = splitHsDoc <$> doc_map
+        arg_map_names_map = foldMap (foldMap fst) split_arg_map
+        arg_map' = fmap snd <$> split_arg_map
+        split_arg_map = fmap splitHsDoc <$> arg_map
 
 splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)

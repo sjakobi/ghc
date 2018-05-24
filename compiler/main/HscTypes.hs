@@ -968,7 +968,8 @@ data ModIface
 
         mi_doc_names_map :: HsDocNamesMap,
         mi_doc_hdr :: Maybe HsDoc',
-        mi_decl_docs :: DeclDocMap
+        mi_decl_docs :: DeclDocMap,
+        mi_arg_docs :: ArgDocMap
      }
 
 -- | Old-style accessor for whether or not the ModIface came from an hs-boot
@@ -1049,7 +1050,8 @@ instance Binary ModIface where
                  mi_complete_sigs = complete_sigs,
                  mi_doc_names_map = doc_names_map,
                  mi_doc_hdr   = doc_hdr,
-                 mi_decl_docs = decl_docs }) = do
+                 mi_decl_docs = decl_docs,
+                 mi_arg_docs  = arg_docs }) = do
         put_ bh mod
         put_ bh sig_of
         put_ bh hsc_src
@@ -1081,6 +1083,7 @@ instance Binary ModIface where
         lazyPut bh doc_names_map
         lazyPut bh doc_hdr
         lazyPut bh decl_docs
+        lazyPut bh arg_docs
 
    get bh = do
         mod         <- get bh
@@ -1114,6 +1117,7 @@ instance Binary ModIface where
         doc_names_map <- lazyGet bh
         doc_hdr     <- lazyGet bh
         decl_docs   <- lazyGet bh
+        arg_docs    <- lazyGet bh
         return (ModIface {
                  mi_module      = mod,
                  mi_sig_of      = sig_of,
@@ -1150,7 +1154,8 @@ instance Binary ModIface where
                  mi_complete_sigs = complete_sigs,
                  mi_doc_names_map = doc_names_map,
                  mi_doc_hdr     = doc_hdr,
-                 mi_decl_docs   = decl_docs })
+                 mi_decl_docs   = decl_docs,
+                 mi_arg_docs    = arg_docs })
 
 -- | The original names declared of a certain module that are exported
 type IfaceExport = AvailInfo
@@ -1192,7 +1197,8 @@ emptyModIface mod
                mi_complete_sigs = [],
                mi_doc_names_map = emptyHsDocNamesMap,
                mi_doc_hdr     = Nothing,
-               mi_decl_docs   = emptyDeclDocMap }
+               mi_decl_docs   = emptyDeclDocMap,
+               mi_arg_docs    = emptyArgDocMap }
 
 
 -- | Constructs cache for the 'mi_hash_fn' field of a 'ModIface'
@@ -1326,7 +1332,8 @@ data ModGuts
                                                 -- See Note [RnNames . Trust Own Package]
         mg_doc_names_map :: HsDocNamesMap,
         mg_doc_hdr      :: Maybe HsDoc',
-        mg_decl_docs    :: DeclDocMap
+        mg_decl_docs    :: DeclDocMap,
+        mg_arg_docs     :: ArgDocMap
     }
 
 -- The ModGuts takes on several slightly different forms:
