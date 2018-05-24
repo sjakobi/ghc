@@ -65,11 +65,12 @@ mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
        -> (Map Name (HsDoc Name), Map Name (Map Int (HsDoc Name)))
 mkMaps instances decls =
-  let (a, b) = unzip (map mappings decls)
-  in ( f' (map (nubByName fst) a)
-     , f  (filterMapping (not . M.null) b)
-     )
+    ( f' (map (nubByName fst) decls')
+    , f  (filterMapping (not . M.null) args)
+    )
   where
+    (decls', args) = unzip (map mappings decls)
+
     f :: (Ord a, Monoid b) => [[(a, b)]] -> Map a b
     f = M.fromListWith (<>) . concat
 
@@ -84,31 +85,29 @@ mkMaps instances decls =
              -> ( [(Name, HsDoc Name)]
                 , [(Name, Map Int (HsDoc Name))]
                 )
-    mappings (ldecl, docStrs) =
-      let L l decl = ldecl
-
-          declDoc :: [(HsDoc Name)] -> Map Int (HsDoc Name)
-                  -> (Maybe (HsDoc Name), Map Int (HsDoc Name))
-          declDoc strs m = (concatHsDoc strs, m)
-
-          (doc, args) = declDoc docStrs (declTypeDocs decl)
-         
-          subs :: [(Name, [(HsDoc Name)], Map Int (HsDoc Name))]
-          subs = subordinates instanceMap decl
-
-          (subDocs, subArgs) = unzip (map (\(_, strs, m) -> declDoc strs m) subs)
-         
-          ns = names l decl
-          subNs = [ n | (n, _, _) <- subs ]
-          dm = [ (n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs ]
-          am = [ (n, args) | n <- ns ] ++ zip subNs subArgs
-
-      in seqList ns `seq`
+    mappings (L l decl, docStrs) =
+        seqList ns `seq`
            seqList subNs `seq`
            doc `seq`
            seqList subDocs `seq`
            seqList subArgs `seq`
            (dm, am)
+      where
+        declDoc :: [(HsDoc Name)] -> Map Int (HsDoc Name)
+                -> (Maybe (HsDoc Name), Map Int (HsDoc Name))
+        declDoc strs m = (concatHsDoc strs, m)
+
+        (doc, args) = declDoc docStrs (declTypeDocs decl)
+       
+        subs :: [(Name, [(HsDoc Name)], Map Int (HsDoc Name))]
+        subs = subordinates instanceMap decl
+
+        (subDocs, subArgs) = unzip (map (\(_, strs, m) -> declDoc strs m) subs)
+         
+        ns = names l decl
+        subNs = [ n | (n, _, _) <- subs ]
+        dm = [ (n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs ]
+        am = [ (n, args) | n <- ns ] ++ zip subNs subArgs
 
     instanceMap :: Map SrcSpan Name
     instanceMap = M.fromList [ (getSrcSpan n, n) | n <- instances ]
