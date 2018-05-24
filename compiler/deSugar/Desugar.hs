@@ -96,7 +96,6 @@ deSugar hsc_env
                             tcg_inst_env     = inst_env,
                             tcg_fam_inst_env = fam_inst_env,
                             tcg_merged       = merged,
-                            tcg_rn_decls     = mb_rn_decls,
                             tcg_warns        = warns,
                             tcg_anns         = anns,
                             tcg_binds        = binds,
@@ -108,7 +107,6 @@ deSugar hsc_env
                             tcg_rules        = rules,
                             tcg_vects        = vects,
                             tcg_patsyns      = patsyns,
-                            tcg_doc_hdr      = doc_hdr,
                             tcg_tcs          = tcs,
                             tcg_insts        = insts,
                             tcg_fam_insts    = fam_insts,
@@ -187,9 +185,7 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
-        ; let local_insts = filter (nameIsLocalOrFrom mod)
-                                   $ map getName insts ++ map getName fam_insts
-        ; let (doc_names_map, doc_hdr', doc_map', arg_map') = extractDocs doc_hdr mb_rn_decls local_insts
+        ; let (doc_names_map, doc_hdr', doc_map', arg_map') = extractDocs tcg_env
 
         ; let mod_guts = ModGuts {
                 mg_module       = mod,
