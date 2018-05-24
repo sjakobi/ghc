@@ -193,9 +193,7 @@ deSugar hsc_env
         ; let local_insts = filter (nameIsLocalOrFrom mod)
                                    $ map getName insts ++ map getName fam_insts
         ; let mb_maps = mkMaps local_insts <$> mb_decls_with_docs
-        ; let (!doc_map, !arg_map, _, _) =
-                fromMaybe (Map.empty, Map.empty, Map.empty, Map.empty)
-                          mb_maps
+        ; let (!doc_map, !arg_map) = fromMaybe (Map.empty, Map.empty) mb_maps
         ; let (doc_names_map, doc_hdr', doc_map', arg_map') = combineDocs doc_hdr doc_map arg_map
 
         ; let mod_guts = ModGuts {
