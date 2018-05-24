@@ -158,7 +158,9 @@ mkIface hsc_env maybe_old_fingerprint mod_details
         = mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src used_th deps rdr_env fix_env
                    warns hpc_info self_trust
-                   safe_mode usages doc_names_map doc_hdr decl_docs arg_docs mod_details
+                   safe_mode usages
+                   doc_names_map doc_hdr decl_docs arg_docs
+                   mod_details
 
 -- | make an interface from the results of typechecking only.  Useful
 -- for non-optimising compilation, or where we aren't generating any
@@ -221,7 +223,8 @@ mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> HscSource
          -> IO (ModIface, Bool)
 mkIface_ hsc_env maybe_old_fingerprint
          this_mod hsc_src used_th deps rdr_env fix_env src_warns
-         hpc_info pkg_trust_req safe_mode usages doc_names_map doc_hdr decl_docs arg_docs
+         hpc_info pkg_trust_req safe_mode usages
+         doc_names_map doc_hdr decl_docs arg_docs
          ModDetails{  md_insts     = insts,
                       md_fam_insts = fam_insts,
                       md_rules     = rules,
