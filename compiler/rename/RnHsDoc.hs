@@ -1,4 +1,4 @@
-module RnHsDoc ( rnHaddock, rnHsDoc, rnLHsDoc, rnMbLHsDoc ) where
+module RnHsDoc ( rnMbDocHdr, rnHsDoc, rnLHsDoc, rnMbLHsDoc ) where
 
 import GhcPrelude
 
@@ -9,8 +9,10 @@ import RdrName
 import Name
 import RnEnv
 
-rnHaddock :: Maybe (LHsDoc RdrName) -> TcGblEnv -> RnM TcGblEnv
-rnHaddock mb_doc tcg_env = do
+rnMbDocHdr :: Maybe (LHsDoc RdrName) -- ^ A module header, possibly.
+           -> TcGblEnv
+           -> RnM TcGblEnv
+rnMbDocHdr mb_doc tcg_env = do
   rn_doc <- rnMbLHsDoc mb_doc
   pure tcg_env { tcg_doc_hdr = rn_doc }
 
