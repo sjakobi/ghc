@@ -89,16 +89,13 @@ mkMaps instances decls =
            seqList subArgs `seq`
            (dm, am)
       where
-        declDoc :: [(HsDoc Name)] -> Map Int (HsDoc Name)
-                -> (Maybe (HsDoc Name), Map Int (HsDoc Name))
-        declDoc strs m = (concatHsDoc strs, m)
+        doc = concatHsDoc docStrs
+        args = declTypeDocs decl
 
-        (doc, args) = declDoc docStrs (declTypeDocs decl)
-       
         subs :: [(Name, [(HsDoc Name)], Map Int (HsDoc Name))]
         subs = subordinates instanceMap decl
 
-        (subDocs, subArgs) = unzip (map (\(_, strs, m) -> declDoc strs m) subs)
+        (subDocs, subArgs) = unzip (map (\(_, strs, m) -> (concatHsDoc strs, m)) subs)
          
         ns = names l decl
         subNs = [ n | (n, _, _) <- subs ]
