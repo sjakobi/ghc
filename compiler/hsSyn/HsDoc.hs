@@ -37,7 +37,15 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Semigroup
 
-data HsDocIdentifierSpan = HsDocIdentifierSpan !Int !Int
+-- | The location of an identifier in a 'HsDocString'.
+
+-- TODO: This could be a newtype of Word64
+data HsDocIdentifierSpan = HsDocIdentifierSpan
+  { hsDocIdentifierSpanStart :: !Int
+    -- ^ The position of the first character of the identifier.
+  , hsDocIdentifierSpanEnd   :: !Int
+    -- ^ The position of the first character after the identifier.
+  }
   deriving (Eq, Show, Data)
 
 instance Binary HsDocIdentifierSpan where
