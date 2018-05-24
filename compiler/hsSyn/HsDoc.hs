@@ -2,21 +2,28 @@
 
 module HsDoc
   ( HsDoc(..)
-  , LHsDoc
   , concatHsDoc
   , splitHsDoc
-  , HsDocString(..)
-  , LHsDocString
-  , mkHsDocString
-  , HsDocIdentifier(..)
-  , HsDocIdentifierSpan(..)
+  , LHsDoc
   , ppr_mbDoc
+
+  , HsDocString(..)
+  , mkHsDocString
+  , LHsDocString
+
+  , HsDocIdentifier(..)
+
+  , HsDocIdentifierSpan(..)
+
   , HsDocNamesMap(..)
   , emptyHsDocNamesMap
   , hsDocIdentifierNamesMap
+
   , HsDoc'(..)
+
   , DeclDocMap(..)
   , emptyDeclDocMap
+
   , ArgDocMap(..)
   , emptyArgDocMap
   ) where
@@ -45,8 +52,7 @@ data HsDocIdentifierSpan = HsDocIdentifierSpan
     -- ^ The position of the first character of the identifier.
   , hsDocIdentifierSpanEnd   :: !Int
     -- ^ The position of the first character after the identifier.
-  }
-  deriving (Eq, Show, Data)
+  } deriving (Eq, Show, Data)
 
 instance Binary HsDocIdentifierSpan where
   put_ bh (HsDocIdentifierSpan a b) = do
@@ -64,9 +70,10 @@ shiftHsDocIdentifierSpan :: Int -> HsDocIdentifierSpan -> HsDocIdentifierSpan
 shiftHsDocIdentifierSpan n (HsDocIdentifierSpan a b) =
   HsDocIdentifierSpan (a + n) (b + n)
 
+-- | An identifier from a docstring.
 data HsDocIdentifier name = HsDocIdentifier
   { hsDocIdentifierSpan :: !HsDocIdentifierSpan
-  , hsDocIdentifierString :: !HsDocString
+  , hsDocIdentifierString :: !HsDocString -- ^ The text of the docstring.
   , hsDocIdentifierNames :: ![name]
   } deriving (Eq, Show, Data)
 
@@ -74,6 +81,7 @@ shiftHsDocIdentifier :: Int -> HsDocIdentifier name -> HsDocIdentifier name
 shiftHsDocIdentifier n (HsDocIdentifier span s names) =
   HsDocIdentifier (shiftHsDocIdentifierSpan n span) s names
 
+-- | A docstring with the (probable) identifiers found in it.
 data HsDoc name = HsDoc
   { hsDocString :: !HsDocString
   , hsDocIdentifiers :: ![HsDocIdentifier name]
@@ -83,7 +91,7 @@ instance Outputable (HsDoc a) where
   ppr _ = text "<document comment>"
 
 instance Semigroup (HsDoc a) where
-  -- Do I need to add an extra '\n' in between?
+  -- TODO: Do I need to add an extra '\n' in between?
   HsDoc s0 ids0 <> HsDoc s1 ids1 =
     HsDoc (s0 <> s1)
           (ids0 ++ map (shiftHsDocIdentifier (lengthHDS s0)) ids1)
@@ -92,6 +100,9 @@ instance Monoid (HsDoc a) where
   mempty = HsDoc mempty []
   mappend = (<>)
 
+-- | Concatenate several 'HsDoc's.
+--
+-- Returns 'Nothing' if all inputs are empty.
 concatHsDoc :: [HsDoc name] -> Maybe (HsDoc name)
 concatHsDoc xs =
   case mconcat xs of
@@ -106,6 +117,10 @@ splitHsDoc (HsDoc s ids) = (names, hsDoc')
 
 type LHsDoc name = Located (HsDoc name)
 
+ppr_mbDoc :: Maybe (LHsDoc a) -> SDoc
+ppr_mbDoc (Just doc) = ppr doc
+ppr_mbDoc Nothing    = empty
+
 -- | Haskell Documentation String
 newtype HsDocString = HsDocString FastString
   deriving (Eq, Ord, Show, Data, Semigroup, Monoid)
@@ -114,26 +129,22 @@ instance Binary HsDocString where
   put_ bh (HsDocString fs) = put_ bh fs
   get bh = HsDocString <$> get bh
 
+instance Outputable HsDocString where
+  ppr (HsDocString fs) = char '"' Outputable.<> ftext fs Outputable.<> char '"'
+
 nullHDS :: HsDocString -> Bool
 nullHDS (HsDocString fs) = nullFS fs
 
 lengthHDS :: HsDocString -> Int
 lengthHDS (HsDocString fs) = lengthFS fs
 
--- | Located Haskell Documentation String
-type LHsDocString = Located HsDocString
-
-instance Outputable HsDocString where
-  ppr (HsDocString fs) = char '"' Outputable.<> ftext fs Outputable.<> char '"'
-
 mkHsDocString :: String -> HsDocString
 mkHsDocString = HsDocString . mkFastString
 
-ppr_mbDoc :: Maybe (LHsDoc a) -> SDoc
-ppr_mbDoc (Just doc) = ppr doc
-ppr_mbDoc Nothing    = empty
+-- | Located Haskell Documentation String
+type LHsDocString = Located HsDocString
 
--- | The collected identifiers for a module.
+-- | A collection of identifiers.
 newtype HsDocNamesMap = HsDocNamesMap (Map HsDocString [Name])
   deriving ( Semigroup
              -- ^ Assumes that equal identifiers will correspond to the same names.
@@ -178,6 +189,7 @@ instance Outputable HsDoc' where
          , text "spans:" <+> fsep (punctuate (char ',') (map ppr spans))
          ]
 
+-- | Docs for declarations: functions, data types, instances, methods etc.
 newtype DeclDocMap = DeclDocMap (Map Name HsDoc')
 
 instance Binary DeclDocMap where
@@ -192,6 +204,7 @@ instance Outputable DeclDocMap where
 emptyDeclDocMap :: DeclDocMap
 emptyDeclDocMap = DeclDocMap Map.empty
 
+-- | Docs for arguments. E.g. function arguments, method arguments.
 newtype ArgDocMap = ArgDocMap (Map Name (Map Int HsDoc'))
 
 instance Binary ArgDocMap where
