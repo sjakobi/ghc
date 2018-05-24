@@ -647,4 +647,4 @@ Library
             RtClosureInspect
             DebuggerUtils
             GHCi
-            SeparateDocs
+            ExtractDocs

@@ -1,6 +1,6 @@
 {-# language BangPatterns #-}
 {-# language TypeFamilies #-}
-module SeparateDocs (extractDocs) where
+module ExtractDocs (extractDocs) where
 
 import GhcPrelude
 import Bag

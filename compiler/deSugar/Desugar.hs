@@ -63,7 +63,7 @@ import Coverage
 import Util
 import MonadUtils
 import OrdList
-import SeparateDocs
+import ExtractDocs
 
 import Data.List
 import Data.IORef

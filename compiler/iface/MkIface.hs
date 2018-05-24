@@ -110,7 +110,7 @@ import Fingerprint
 import Exception
 import UniqSet
 import Packages
-import SeparateDocs
+import ExtractDocs
 
 import Control.Monad
 import Data.Function
