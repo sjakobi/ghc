@@ -13,6 +13,7 @@ import HsUtils
 import Name
 import NameSet
 import SrcLoc
+import TcRnTypes
 
 import Control.Applicative
 import Data.List
@@ -22,16 +23,21 @@ import Data.Maybe
 import Data.Semigroup
 import Data.Ord
 
-extractDocs :: Maybe (LHsDoc Name) -- ^ Module header
-            -> Maybe (HsGroup GhcRn) -- ^ Declarations
-            -> [Name] -- ^ Local class and type family instances
+extractDocs :: TcGblEnv
             -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
-extractDocs mb_doc_hdr mb_rn_decls local_insts =
+extractDocs TcGblEnv { tcg_semantic_mod = mod
+                     , tcg_rn_decls = mb_rn_decls
+                     , tcg_insts = insts
+                     , tcg_fam_insts = fam_insts
+                     , tcg_doc_hdr = mb_doc_hdr
+                     } =
     combineDocs mb_doc_hdr doc_map arg_map
   where
     (!doc_map, !arg_map) = fromMaybe (M.empty, M.empty) mb_maps
     mb_maps = mkMaps local_insts <$> mb_decls_with_docs
     mb_decls_with_docs = topDecls <$> mb_rn_decls
+    local_insts = filter (nameIsLocalOrFrom mod)
+                         $ map getName insts ++ map getName fam_insts
 
 combineDocs :: Maybe (LHsDoc Name)
             -> Map Name (HsDoc Name)

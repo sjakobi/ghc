@@ -171,20 +171,15 @@ mkIfaceTc :: HscEnv
           -> IO (ModIface, Bool)
 mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
   tc_result@TcGblEnv{ tcg_mod = this_mod,
-                      tcg_semantic_mod = mod,
                       tcg_src = hsc_src,
                       tcg_imports = imports,
                       tcg_rdr_env = rdr_env,
                       tcg_fix_env = fix_env,
                       tcg_merged = merged,
-                      tcg_rn_decls = mb_rn_decls,
                       tcg_warns = warns,
                       tcg_hpc = other_hpc_info,
                       tcg_th_splice_used = tc_splice_used,
-                      tcg_dependent_files = dependent_files,
-                      tcg_doc_hdr = doc_hdr,
-                      tcg_insts = insts,
-                      tcg_fam_insts = fam_insts
+                      tcg_dependent_files = dependent_files
                     }
   = do
           let used_names = mkUsedNames tc_result
@@ -201,10 +196,7 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
           -- See Note [Identity versus semantic module]
           usages <- mkUsageInfo hsc_env this_mod (imp_mods imports) used_names dep_files merged
 
-          let local_insts = filter (nameIsLocalOrFrom mod)
-                                   $ map getName insts ++ map getName fam_insts
-              (doc_names_map, doc_hdr', doc_map, arg_map) =
-                extractDocs doc_hdr mb_rn_decls local_insts
+          let (doc_names_map, doc_hdr', doc_map, arg_map) = extractDocs tc_result
 
           mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src
