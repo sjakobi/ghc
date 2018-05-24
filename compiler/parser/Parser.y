@@ -3598,7 +3598,7 @@ getSCC lt = do let s = getSTRING lt
                    else return s
 
 lexHsDoc' :: String -> HsDoc RdrName
-lexHsDoc' = lexHsDoc'
+lexHsDoc' = lexHsDoc parseIdentifier
 
 -- Utilities for combining source spans
 comb2 :: Located a -> Located b -> SrcSpan
