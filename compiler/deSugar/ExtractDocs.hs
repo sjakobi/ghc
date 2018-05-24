@@ -21,7 +21,6 @@ import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Semigroup
-import Data.Ord
 
 extractDocs :: TcGblEnv
             -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
@@ -286,7 +285,7 @@ ungroup group_ =
 
 -- | Sort by source location
 sortByLoc :: [Located a] -> [Located a]
-sortByLoc = sortBy (comparing getLoc)
+sortByLoc = sortOn getLoc
 
 -- | Collect docs and attach them to the right declarations.
 collectDocs :: [LHsDecl pass] -> [(LHsDecl pass, [HsDoc (IdP pass)])]
