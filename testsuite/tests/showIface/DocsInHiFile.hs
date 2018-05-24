@@ -2,7 +2,13 @@
 `Unknown',
 '<>', ':=:', 'Bool'
 -}
-module DocsInHiFile where
+module DocsInHiFile
+  ( DocsInHiFile.elem
+  , D(..)
+  , add
+  , P(..)
+  , Show(..)
+  ) where
 
 -- | '()', 'elem'.
 elem :: ()
@@ -12,8 +18,16 @@ elem = ()
 data D
   = D0 -- ^ A constructor for 'D'. '
   | D1 -- ^ Another constructor
+  deriving ( Show -- ^ 'Show' instance
+           )
 
 add :: Int -- ^ First summand for 'add'
     -> Int -- ^ Second summand
     -> Int -- ^ Sum
 add a b = a + b
+
+-- | A class
+class P f where
+  -- | A class method
+  p :: a -- ^ An argument
+    -> f a
