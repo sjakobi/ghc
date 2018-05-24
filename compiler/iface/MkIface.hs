@@ -201,21 +201,17 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
           -- See Note [Identity versus semantic module]
           usages <- mkUsageInfo hsc_env this_mod (imp_mods imports) used_names dep_files merged
 
-          let mb_decls_with_docs = topDecls <$> mb_rn_decls
-              local_insts = filter (nameIsLocalOrFrom mod)
+          let local_insts = filter (nameIsLocalOrFrom mod)
                                    $ map getName insts ++ map getName fam_insts
-              mb_maps = mkMaps local_insts <$> mb_decls_with_docs
-              (!decl_docs, !arg_docs, _, _) =
-                fromMaybe (Map.empty, Map.empty, Map.empty, Map.empty)
-                          mb_maps
-              (doc_names_map, doc_hdr', decl_docs', arg_docs') = combineDocs doc_hdr decl_docs arg_docs
+              (doc_names_map, doc_hdr', doc_map, arg_map) =
+                extractDocs doc_hdr mb_rn_decls local_insts
 
           mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src
                    used_th deps rdr_env
                    fix_env warns hpc_info
                    (imp_trust_own_pkg imports) safe_mode usages
-                   doc_names_map doc_hdr' decl_docs' arg_docs'
+                   doc_names_map doc_hdr' doc_map arg_map
                    mod_details
 
 

@@ -1,6 +1,6 @@
 {-# language BangPatterns #-}
 {-# language TypeFamilies #-}
-module SeparateDocs where
+module SeparateDocs (extractDocs) where
 
 import GhcPrelude
 import Bag
@@ -22,7 +22,16 @@ import Data.Maybe
 import Data.Semigroup
 import Data.Ord
 
-
+extractDocs :: Maybe (LHsDoc Name) -- ^ Module header
+            -> Maybe (HsGroup GhcRn) -- ^ Declarations
+            -> [Name] -- ^ Local class and type family instances
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
+extractDocs mb_doc_hdr mb_rn_decls local_insts =
+    combineDocs mb_doc_hdr doc_map arg_map
+  where
+    (!doc_map, !arg_map) = fromMaybe (M.empty, M.empty) mb_maps
+    mb_maps = mkMaps local_insts <$> mb_decls_with_docs
+    mb_decls_with_docs = topDecls <$> mb_rn_decls
 
 -- | Create doc and arg maps by looping through the declarations. For each declaration,
 -- find its names, its subordinates, and its doc strings. Process doc strings
