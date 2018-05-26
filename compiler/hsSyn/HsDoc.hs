@@ -36,7 +36,6 @@ import Name
 import Outputable hiding ((<>))
 import qualified Outputable
 import SrcLoc
-import FastString
 import Binary
 import Encoding
 import FastFunctions
@@ -44,12 +43,14 @@ import FastFunctions
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import Data.ByteString.Internal (ByteString(..))
+import qualified Data.ByteString.Internal as BS
 import Data.Data
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Semigroup
 import GHC.ForeignPtr
 import GHC.Ptr
+import Foreign
 
 -- | The location of an identifier in a 'HsDocString'.
 
@@ -140,16 +141,24 @@ instance Outputable HsDocString where
   ppr (HsDocString bs) = char '"' Outputable.<> bstext bs Outputable.<> char '"'
     where bstext = text . utf8DecodeByteString
 
+mkHsDocString :: String -> HsDocString
+mkHsDocString = HsDocString . mkByteString
+  where
+    mkByteString :: String -> ByteString
+    mkByteString str =
+      inlinePerformIO $ do
+        let len = utf8EncodedLength str
+        buf <- mallocForeignPtrBytes len
+        withForeignPtr buf $ \ptr -> do
+          utf8EncodeString ptr str
+          pure (BS.fromForeignPtr buf 0 len)
+
 nullHDS :: HsDocString -> Bool
 nullHDS (HsDocString bs) = BS.null bs
 
 lengthHDS :: HsDocString -> Int
 lengthHDS (HsDocString (PS fptr off len)) =
   inlinePerformIO (countUTF8Chars (plusPtr (unsafeForeignPtrToPtr fptr) off) len)
-
-mkHsDocString :: String -> HsDocString
--- TODO: Do this more directly
-mkHsDocString = HsDocString . fastStringToByteString . mkFastString
 
 -- | Located Haskell Documentation String
 type LHsDocString = Located HsDocString
