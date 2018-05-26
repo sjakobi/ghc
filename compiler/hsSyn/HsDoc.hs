@@ -38,11 +38,18 @@ import qualified Outputable
 import SrcLoc
 import FastString
 import Binary
+import Encoding
+import FastFunctions
 
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
+import Data.ByteString.Internal (ByteString(..))
 import Data.Data
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Semigroup
+import GHC.ForeignPtr
+import GHC.Ptr
 
 -- | The location of an identifier in a 'HsDocString'.
 
@@ -122,24 +129,27 @@ ppr_mbDoc (Just doc) = ppr doc
 ppr_mbDoc Nothing    = empty
 
 -- | Haskell Documentation String
-newtype HsDocString = HsDocString FastString
+newtype HsDocString = HsDocString ByteString
   deriving (Eq, Ord, Show, Data, Semigroup, Monoid)
 
 instance Binary HsDocString where
-  put_ bh (HsDocString fs) = put_ bh fs
+  put_ bh (HsDocString bs) = put_ bh bs
   get bh = HsDocString <$> get bh
 
 instance Outputable HsDocString where
-  ppr (HsDocString fs) = char '"' Outputable.<> ftext fs Outputable.<> char '"'
+  ppr (HsDocString bs) = char '"' Outputable.<> bstext bs Outputable.<> char '"'
+    where bstext = text . utf8DecodeByteString
 
 nullHDS :: HsDocString -> Bool
-nullHDS (HsDocString fs) = nullFS fs
+nullHDS (HsDocString bs) = BS.null bs
 
 lengthHDS :: HsDocString -> Int
-lengthHDS (HsDocString fs) = lengthFS fs
+lengthHDS (HsDocString (PS fptr off len)) =
+  inlinePerformIO (countUTF8Chars (plusPtr (unsafeForeignPtrToPtr fptr) off) len)
 
 mkHsDocString :: String -> HsDocString
-mkHsDocString = HsDocString . mkFastString
+-- TODO: Do this more directly
+mkHsDocString = HsDocString . fastStringToByteString . mkFastString
 
 -- | Located Haskell Documentation String
 type LHsDocString = Located HsDocString
