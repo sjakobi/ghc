@@ -43,7 +43,7 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
     local_insts = filter (nameIsLocalOrFrom mod) $ map getName insts ++ map getName fam_insts
 
 -- | Split identifier/'Name' info off module header, declaration docs and
--- argument docs. Only 'HsDocIdentifierSpan's remain with the docstrings.
+-- argument docs. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
 combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> Map Name (HsDoc Name)           -- ^ Declaration docs
             -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
