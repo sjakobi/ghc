@@ -311,6 +311,7 @@ Library
         DsMonad
         DsUsage
         DsUtils
+        ExtractDocs
         Match
         MatchCon
         MatchLit
