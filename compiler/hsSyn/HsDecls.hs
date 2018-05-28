@@ -1265,8 +1265,7 @@ data ConDecl pass
       , con_mb_cxt :: Maybe (LHsContext pass)  -- ^ User-written context (if any)
       , con_args   :: HsConDeclDetails pass    -- ^ Arguments; can be InfixCon
 
-      , con_doc    :: Maybe (LHsDoc (IdP pass))
-          -- ^ A possible Haddock comment.
+      , con_doc    :: Maybe (LHsDoc (IdP pass)) -- ^ A possible Haddock comment.
       }
   | XConDecl (XXConDecl pass)
 
