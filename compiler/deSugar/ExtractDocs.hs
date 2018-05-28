@@ -78,11 +78,6 @@ mkMaps instances decls =
                 , [(Name, Map Int (HsDoc Name))]
                 )
     mappings (L l decl, docStrs) =
-        seqList ns `seq`
-           seqList subNs `seq`
-           doc `seq`
-           seqList subDocs `seq`
-           seqList subArgs `seq`
            (dm, am)
       where
         doc = concatHsDoc docStrs
@@ -147,10 +142,6 @@ getInstLoc (TyFamInstD _ (TyFamInstDecl (HsIB _ (XFamEqn _)))) = error "getInstL
 getInstLoc (XInstDecl _) = error "getInstLoc"
 getInstLoc (DataFamInstD _ (DataFamInstDecl (XHsImplicitBndrs _))) = error "getInstLoc"
 getInstLoc (TyFamInstD _ (TyFamInstDecl (XHsImplicitBndrs _))) = error "getInstLoc"
-
-seqList :: [a] -> ()
-seqList [] = ()
-seqList (x : xs) = x `seq` seqList xs
 
 -- | Get all subordinate declarations inside a declaration, and their docs.
 -- A subordinate declaration is something like the associate type or data
