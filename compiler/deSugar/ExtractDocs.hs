@@ -1,4 +1,3 @@
-{-# language BangPatterns #-}
 {-# language TypeFamilies #-}
 module ExtractDocs (extractDocs) where
 
@@ -32,7 +31,7 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
                      } =
     combineDocs mb_doc_hdr doc_map arg_map
   where
-    (!doc_map, !arg_map) = maybe (M.empty, M.empty) (mkMaps local_insts) mb_decls_with_docs
+    (doc_map, arg_map) = maybe (M.empty, M.empty) (mkMaps local_insts) mb_decls_with_docs
     mb_decls_with_docs = topDecls <$> mb_rn_decls
     local_insts = filter (nameIsLocalOrFrom mod) $ map getName insts ++ map getName fam_insts
 
@@ -223,10 +222,10 @@ declTypeDocs _ = M.empty
 nubByName :: (a -> Name) -> [a] -> [a]
 nubByName f ns = go emptyNameSet ns
   where
-    go !_ [] = []
-    go !s (x:xs)
+    go _ [] = []
+    go s (x:xs)
       | y `elemNameSet` s = go s xs
-      | otherwise         = let !s' = extendNameSet s y
+      | otherwise         = let s' = extendNameSet s y
                             in x : go s' xs
       where
         y = f x
