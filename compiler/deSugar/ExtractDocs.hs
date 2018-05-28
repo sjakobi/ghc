@@ -1,3 +1,4 @@
+-- | Extract docs from the renamer output so they can be be serialized.
 {-# language TypeFamilies #-}
 module ExtractDocs (extractDocs) where
 
@@ -21,8 +22,14 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Semigroup
 
+-- | Extract docs from renamer output.
 extractDocs :: TcGblEnv
             -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
+            -- ^
+            -- 1. Identifiers and corresponding names
+            -- 2. Module header
+            -- 3. Docs on top level declarations
+            -- 4. Docs on arguments
 extractDocs TcGblEnv { tcg_semantic_mod = mod
                      , tcg_rn_decls = mb_rn_decls
                      , tcg_insts = insts
@@ -35,9 +42,11 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
     mb_decls_with_docs = topDecls <$> mb_rn_decls
     local_insts = filter (nameIsLocalOrFrom mod) $ map getName insts ++ map getName fam_insts
 
-combineDocs :: Maybe (LHsDoc Name)
-            -> Map Name (HsDoc Name)
-            -> Map Name (Map Int (HsDoc Name))
+-- | Split identifier/'Name' info off module header, declaration docs and
+-- argument docs. Only 'HsDocIdentifierSpan's remain with the docstrings.
+combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
+            -> Map Name (HsDoc Name)           -- ^ Declaration docs
+            -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
             -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
 combineDocs mb_doc_hdr doc_map arg_map =
   (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map')
@@ -96,12 +105,22 @@ mkMaps instances decls =
     instanceMap = M.fromList [ (getSrcSpan n, n) | n <- instances ]
 
     names :: SrcSpan -> HsDecl GhcRn -> [Name]
-    names l (InstD _ d) = maybeToList (M.lookup loc instanceMap) -- See note [2].
+    names l (InstD _ d) = maybeToList (M.lookup loc instanceMap) -- See Note [1].
       where loc = case d of
               TyFamInstD _ _ -> l -- The CoAx's loc is the whole line, but only for TFs
               _ -> getInstLoc d
-    names l (DerivD {}) = maybeToList (M.lookup l instanceMap) -- See note [2].
+    names l (DerivD {}) = maybeToList (M.lookup l instanceMap) -- See Note [1].
     names _ decl = getMainDeclBinder decl
+
+{-
+Note [1]:
+---------
+We relate ClsInsts to InstDecls and DerivDecls using the SrcSpans buried
+inside them. That should work for normal user-written instances (from
+looking at GHC sources). We can assume that commented instances are
+user-written. This lets us relate Names (from ClsInsts) to comments
+(associated with InstDecls and DerivDecls).
+-}
 
 getMainDeclBinder :: HsDecl pass -> [IdP pass]
 getMainDeclBinder (TyClD _ d) = [tcdName d]
@@ -272,10 +291,7 @@ sortByLoc = sortOn getLoc
 --
 -- A declaration may have multiple doc strings attached to it.
 collectDocs :: [LHsDecl pass] -> [(LHsDecl pass, [HsDoc (IdP pass)])]
--- ^ Cool, right?!
---
--- (Hopefully this changes when
--- https://github.com/haskell/haddock/issues/844 is fixed.)
+-- ^ This is an example.
 collectDocs = go Nothing []
   where
     go Nothing _ [] = []
