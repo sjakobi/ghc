@@ -279,7 +279,10 @@ sortByLoc :: [Located a] -> [Located a]
 sortByLoc = sortOn getLoc
 
 -- | Collect docs and attach them to the right declarations.
+--
+-- A declaration may have multiple doc strings attached to it.
 collectDocs :: [LHsDecl pass] -> [(LHsDecl pass, [HsDoc (IdP pass)])]
+-- ^ Cool, right?!
 collectDocs = go Nothing []
   where
     go Nothing _ [] = []

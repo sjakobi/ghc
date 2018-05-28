@@ -9,6 +9,7 @@ module HsDoc
 
   , HsDocString(..)
   , mkHsDocString
+  , unpackHDS
   , LHsDocString
 
   , HsDocIdentifier(..)
@@ -42,6 +43,7 @@ import FastFunctions
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C8
 import Data.ByteString.Internal (ByteString(..))
 import qualified Data.ByteString.Internal as BS
 import Data.Data
@@ -98,15 +100,17 @@ data HsDoc name = HsDoc
 instance Outputable (HsDoc a) where
   ppr _ = text "<document comment>"
 
+-- | Non-empty docstrings are joined with two newlines in between,
+-- so haddock will treat two joined docstrings as separate paragraphs.
 instance Semigroup (HsDoc a) where
-  -- TODO: Do I need to add an extra '\n' in between?
-  HsDoc s0 ids0 <> HsDoc s1 ids1 =
-    HsDoc (s0 <> s1)
-          (ids0 ++ map (shiftHsDocIdentifier (lengthHDS s0)) ids1)
+  x               <> HsDoc s_y [] | nullHDS s_y = x
+  HsDoc s_x []    <> y            | nullHDS s_x = y
+  HsDoc s_x ids_x <> HsDoc s_y ids_y =
+    HsDoc (s_x <> HsDocString (C8.pack "\n\n") <> s_y)
+          (ids_x ++ map (shiftHsDocIdentifier (lengthHDS s_x + 2)) ids_y)
 
 instance Monoid (HsDoc a) where
   mempty = HsDoc mempty []
-  mappend = (<>)
 
 -- | Concatenate several 'HsDoc's.
 --
@@ -130,6 +134,8 @@ ppr_mbDoc (Just doc) = ppr doc
 ppr_mbDoc Nothing    = empty
 
 -- | Haskell Documentation String
+--
+-- Internally this is a UTF8-encoded 'ByteString'.
 newtype HsDocString = HsDocString ByteString
   deriving (Eq, Ord, Show, Data, Semigroup, Monoid)
 
@@ -152,6 +158,9 @@ mkHsDocString = HsDocString . mkByteString
         withForeignPtr buf $ \ptr -> do
           utf8EncodeString ptr str
           pure (BS.fromForeignPtr buf 0 len)
+
+unpackHDS :: HsDocString -> String
+unpackHDS (HsDocString bs) = utf8DecodeByteString bs
 
 nullHDS :: HsDocString -> Bool
 nullHDS (HsDocString bs) = BS.null bs
