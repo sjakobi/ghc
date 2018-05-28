@@ -63,7 +63,7 @@ splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
 splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
 
--- | Create decl and arg maps by looping through the declarations. For each declaration,
+-- | Create decl and arg doc-maps by looping through the declarations. For each declaration,
 -- find its names, its subordinates, and its doc strings.
 mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
