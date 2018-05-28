@@ -10,6 +10,8 @@ module HsDoc
   , HsDocString(..)
   , mkHsDocString
   , unpackHDS
+  , mkHsDocStringUtf8ByteString
+  , hsDocStringToByteString
   , LHsDocString
 
   , HsDocIdentifier(..)
@@ -144,23 +146,27 @@ instance Binary HsDocString where
   get bh = HsDocString <$> get bh
 
 instance Outputable HsDocString where
-  ppr (HsDocString bs) = char '"' Outputable.<> bstext bs Outputable.<> char '"'
-    where bstext = text . utf8DecodeByteString
+  ppr x = char '"' Outputable.<> text (unpackHDS x) Outputable.<> char '"'
 
 mkHsDocString :: String -> HsDocString
-mkHsDocString = HsDocString . mkByteString
-  where
-    mkByteString :: String -> ByteString
-    mkByteString str =
-      inlinePerformIO $ do
-        let len = utf8EncodedLength str
-        buf <- mallocForeignPtrBytes len
-        withForeignPtr buf $ \ptr -> do
-          utf8EncodeString ptr str
-          pure (BS.fromForeignPtr buf 0 len)
+mkHsDocString s =
+  inlinePerformIO $ do
+    let len = utf8EncodedLength s
+    buf <- mallocForeignPtrBytes len
+    withForeignPtr buf $ \ptr -> do
+      utf8EncodeString ptr s
+      pure (HsDocString (BS.fromForeignPtr buf 0 len))
+
+-- | Create a 'HsDocString' from a UTF8-encoded 'ByteString'.
+mkHsDocStringUtf8ByteString :: ByteString -> HsDocString
+mkHsDocStringUtf8ByteString = HsDocString
 
 unpackHDS :: HsDocString -> String
-unpackHDS (HsDocString bs) = utf8DecodeByteString bs
+unpackHDS = utf8DecodeByteString . hsDocStringToByteString
+
+-- | Return the contents of a 'HsDocString' as a UTF8-encoded 'ByteString'.
+hsDocStringToByteString :: HsDocString -> ByteString
+hsDocStringToByteString (HsDocString bs) = bs
 
 nullHDS :: HsDocString -> Bool
 nullHDS (HsDocString bs) = BS.null bs
@@ -169,7 +175,6 @@ lengthHDS :: HsDocString -> Int
 lengthHDS (HsDocString (PS fptr off len)) =
   inlinePerformIO (countUTF8Chars (plusPtr (unsafeForeignPtrToPtr fptr) off) len)
 
--- | Located Haskell Documentation String
 type LHsDocString = Located HsDocString
 
 -- | A collection of identifiers.
