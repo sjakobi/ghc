@@ -1,3 +1,4 @@
+-- | Types and functions for raw and lexed docstrings.
 {-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
 
 module HsDoc
