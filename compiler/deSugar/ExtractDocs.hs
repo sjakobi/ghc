@@ -283,6 +283,9 @@ sortByLoc = sortOn getLoc
 -- A declaration may have multiple doc strings attached to it.
 collectDocs :: [LHsDecl pass] -> [(LHsDecl pass, [HsDoc (IdP pass)])]
 -- ^ Cool, right?!
+--
+-- (Hopefully this changes when
+-- https://github.com/haskell/haddock/issues/844 is fixed.)
 collectDocs = go Nothing []
   where
     go Nothing _ [] = []
