@@ -75,7 +75,7 @@ mkMaps instances decls =
   where
     (decls', args) = unzip (map mappings decls)
 
-    f :: (Ord a, Monoid b) => [[(a, b)]] -> Map a b
+    f :: (Ord a, Semigroup b) => [[(a, b)]] -> Map a b
     f = M.fromListWith (<>) . concat
 
     filterMapping :: (b -> Bool) ->  [[(a, b)]] -> [[(a, b)]]
