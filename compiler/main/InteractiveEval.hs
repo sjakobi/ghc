@@ -30,6 +30,7 @@ module InteractiveEval (
         exprType,
         typeKind,
         parseName,
+        getDocs,
         showModule,
         moduleIsBootOrNotObjectLinkable,
         parseExpr, compileParsedExpr,
@@ -91,6 +92,8 @@ import Data.Dynamic
 import Data.Either
 import qualified Data.IntMap as IntMap
 import Data.List (find,intercalate)
+import Data.Map (Map)
+import qualified Data.Map as Map
 import StringBuffer (stringToStringBuffer)
 import Control.Monad
 import GHC.Exts
@@ -820,6 +823,23 @@ parseThing parser dflags stmt = do
       loc = mkRealSrcLoc (fsLit "<interactive>") 1 1
 
   Lexer.unP parser (Lexer.mkPState dflags buf loc)
+
+getDocs :: GhcMonad m
+        => Name -- TODO: Also get module headers for module names
+        -> m (HsDocNamesMap, Maybe HsDoc', Map Int HsDoc')
+           -- TODO: What about docs for constructors etc.?
+getDocs name =
+  withSession $ \hsc_env -> do
+     case nameModule_maybe name of
+       Nothing -> error "bad luck" -- TODO: We need to differentiate between the
+                                   -- different kinds of failure
+                                   -- possible. Not like this though
+       Just mod -> do
+         ModIface { mi_doc_names_map = names_map
+                  , mi_decl_docs = DeclDocMap dmap
+                  , mi_arg_docs = ArgDocMap amap
+                  } <- liftIO $ hscGetModuleInterface hsc_env mod
+         return (names_map, Map.lookup name dmap, Map.findWithDefault Map.empty name amap)
 
 -- -----------------------------------------------------------------------------
 -- Getting the type of an expression

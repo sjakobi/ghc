@@ -179,6 +179,7 @@ ghciCommands = map mkCmd [
   ("def",       keepGoing (defineMacro False),  completeExpression),
   ("def!",      keepGoing (defineMacro True),   completeExpression),
   ("delete",    keepGoing deleteCmd,            noCompletion),
+  ("doc",       keepGoing' docCmd,              completeIdentifier),
   ("edit",      keepGoing' editFile,            completeFilename),
   ("etags",     keepGoing createETagsFileCmd,   completeFilename),
   ("force",     keepGoing forceCmd,             completeExpression),
@@ -1604,6 +1605,56 @@ checkModule m = do
           return True
   afterLoad (successIf ok) False
 
+-----------------------------------------------------------------------------
+-- :doc
+
+docCmd :: String -> InputT GHCi ()
+docCmd "" = throwGhcException (CmdLineError "syntax: ':doc <thing-you-want-docs-for>'")
+docCmd s  = do
+  unqual <- GHC.getPrintUnqual
+  dflags <- getDynFlags
+  sdocs  <- mapM docThing (words s)
+  mapM_ (liftIO . putStrLn . showSDocForUser dflags unqual) sdocs
+
+docThing :: GHC.GhcMonad m => String -> m SDoc
+docThing s = do
+  names <- GHC.parseName s
+  _ <- mapM GHC.getDocs names
+  undefined
+
+{-
+   infoThing :: GHC.GhcMonad m => Bool -> String -> m SDoc
+   infoThing allInfo str = do
+       names     <- GHC.parseName str
+       mb_stuffs <- mapM (GHC.getInfo allInfo) names
+       let filtered = filterOutChildren (\(t,_f,_ci,_fi,_sd) -> t)
+                                        (catMaybes mb_stuffs)
+       return $ vcat (intersperse (text "") $ map pprInfo filtered)
+   
+     -- Filter out names whose parent is also there Good
+     -- example is '[]', which is both a type and data
+     -- constructor in the same type
+   filterOutChildren :: (a -> TyThing) -> [a] -> [a]
+   filterOutChildren get_thing xs
+     = filterOut has_parent xs
+     where
+       all_names = mkNameSet (map (getName . get_thing) xs)
+       has_parent x = case tyThingParent_maybe (get_thing x) of
+                        Just p  -> getName p `elemNameSet` all_names
+                        Nothing -> False
+   
+   pprInfo :: (TyThing, Fixity, [GHC.ClsInst], [GHC.FamInst], SDoc) -> SDoc
+   pprInfo (thing, fixity, cls_insts, fam_insts, docs)
+     =  docs
+     $$ pprTyThingInContextLoc thing
+     $$ show_fixity
+     $$ vcat (map GHC.pprInstance cls_insts)
+     $$ vcat (map GHC.pprFamInst  fam_insts)
+     where
+       show_fixity
+           | fixity == GHC.defaultFixity = empty
+           | otherwise                   = ppr fixity <+> pprInfixName (GHC.getName thing)
+-}
 
 -----------------------------------------------------------------------------
 -- :load, :add, :reload
