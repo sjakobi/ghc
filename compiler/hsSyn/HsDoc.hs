@@ -114,6 +114,7 @@ instance Semigroup (HsDoc a) where
 
 instance Monoid (HsDoc a) where
   mempty = HsDoc mempty []
+  mappend = (<>)
 
 -- | Concatenate several 'HsDoc's.
 --

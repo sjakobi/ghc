@@ -95,7 +95,7 @@ mkMaps instances decls =
         subs = subordinates instanceMap decl
 
         (subDocs, subArgs) = unzip (map (\(_, strs, m) -> (concatHsDoc strs, m)) subs)
-         
+
         ns = names l decl
         subNs = [ n | (n, _, _) <- subs ]
         dm = [ (n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs ]
