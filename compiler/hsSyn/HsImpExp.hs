@@ -222,8 +222,10 @@ data IE pass
         -- - 'ApiAnnotation.AnnKeywordId's : 'ApiAnnotation.AnnModule'
 
         -- For details on above see note [Api annotations] in ApiAnnotation
-  | IEGroup             (XIEGroup pass) Int (HsDoc (IdP pass)) -- ^ Doc section heading
-  | IEDoc               (XIEDoc pass) (HsDoc (IdP pass))       -- ^ Some documentation
+  | IEGroup             (XIEGroup pass) Int (HsDoc (IdP pass))
+        -- ^ Doc section heading
+  | IEDoc               (XIEDoc pass) (HsDoc (IdP pass))
+        -- ^ Some documentation
   | IEDocNamed          (XIEDocNamed pass) String    -- ^ Reference to named doc
   | XIE (XXIE pass)
 

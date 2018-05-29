@@ -1,4 +1,5 @@
 -- | Extract docs from the renamer output so they can be be serialized.
+{-# language LambdaCase #-}
 {-# language TypeFamilies #-}
 module ExtractDocs (extractDocs) where
 
@@ -38,9 +39,12 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
                      } =
     combineDocs mb_doc_hdr doc_map arg_map
   where
-    (doc_map, arg_map) = maybe (M.empty, M.empty) (mkMaps local_insts) mb_decls_with_docs
+    (doc_map, arg_map) = maybe (M.empty, M.empty)
+                               (mkMaps local_insts)
+                               mb_decls_with_docs
     mb_decls_with_docs = topDecls <$> mb_rn_decls
-    local_insts = filter (nameIsLocalOrFrom mod) $ map getName insts ++ map getName fam_insts
+    local_insts = filter (nameIsLocalOrFrom mod)
+                         $ map getName insts ++ map getName fam_insts
 
 -- | Split identifier/'Name' info off module header, declaration docs and
 -- argument docs. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
@@ -63,8 +67,8 @@ splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
 splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
 
--- | Create decl and arg doc-maps by looping through the declarations. For each declaration,
--- find its names, its subordinates, and its doc strings.
+-- | Create decl and arg doc-maps by looping through the declarations.
+-- For each declaration, find its names, its subordinates, and its doc strings.
 mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
        -> (Map Name (HsDoc Name), Map Name (Map Int (HsDoc Name)))
@@ -94,20 +98,23 @@ mkMaps instances decls =
         subs :: [(Name, [(HsDoc Name)], Map Int (HsDoc Name))]
         subs = subordinates instanceMap decl
 
-        (subDocs, subArgs) = unzip (map (\(_, strs, m) -> (concatHsDoc strs, m)) subs)
+        (subDocs, subArgs) =
+          unzip (map (\(_, strs, m) -> (concatHsDoc strs, m)) subs)
 
         ns = names l decl
         subNs = [ n | (n, _, _) <- subs ]
-        dm = [ (n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs ]
-        am = [ (n, args) | n <- ns ] ++ zip subNs subArgs
+        dm = [(n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs]
+        am = [(n, args) | n <- ns] ++ zip subNs subArgs
 
     instanceMap :: Map SrcSpan Name
-    instanceMap = M.fromList [ (getSrcSpan n, n) | n <- instances ]
+    instanceMap = M.fromList [(getSrcSpan n, n) | n <- instances]
 
     names :: SrcSpan -> HsDecl GhcRn -> [Name]
-    names l (InstD _ d) = maybeToList (M.lookup loc instanceMap) -- See Note [1].
+    names l (InstD _ d) = maybeToList (M.lookup loc instanceMap) -- See
+                                                                 -- Note [1].
       where loc = case d of
-              TyFamInstD _ _ -> l -- The CoAx's loc is the whole line, but only for TFs
+              TyFamInstD _ _ -> l -- The CoAx's loc is the whole line, but only
+                                  -- for TFs
               _ -> getInstLoc d
     names l (DerivD {}) = maybeToList (M.lookup l instanceMap) -- See Note [1].
     names _ decl = getMainDeclBinder decl
@@ -146,20 +153,22 @@ sigNameNoLoc _                             = []
 -- to correlate InstDecls with their Instance/CoAxiom Names, via the
 -- instanceMap.
 getInstLoc :: InstDecl name -> SrcSpan
-getInstLoc (ClsInstD _ (ClsInstDecl { cid_poly_ty = ty })) = getLoc (hsSigType ty)
-getInstLoc (DataFamInstD _ (DataFamInstDecl
-  { dfid_eqn = HsIB { hsib_body = FamEqn { feqn_tycon = L l _ }}})) = l
-getInstLoc (TyFamInstD _ (TyFamInstDecl
-  -- Since CoAxioms' Names refer to the whole line for type family instances
-  -- in particular, we need to dig a bit deeper to pull out the entire
-  -- equation. This does not happen for data family instances, for some reason.
-  { tfid_eqn = HsIB { hsib_body = FamEqn { feqn_rhs = L l _ }}})) = l
-getInstLoc (ClsInstD _ (XClsInstDecl _)) = error "getInstLoc"
-getInstLoc (DataFamInstD _ (DataFamInstDecl (HsIB _ (XFamEqn _)))) = error "getInstLoc"
-getInstLoc (TyFamInstD _ (TyFamInstDecl (HsIB _ (XFamEqn _)))) = error "getInstLoc"
-getInstLoc (XInstDecl _) = error "getInstLoc"
-getInstLoc (DataFamInstD _ (DataFamInstDecl (XHsImplicitBndrs _))) = error "getInstLoc"
-getInstLoc (TyFamInstD _ (TyFamInstDecl (XHsImplicitBndrs _))) = error "getInstLoc"
+getInstLoc = \case
+  ClsInstD _ (ClsInstDecl { cid_poly_ty = ty }) -> getLoc (hsSigType ty)
+  DataFamInstD _ (DataFamInstDecl
+    { dfid_eqn = HsIB { hsib_body = FamEqn { feqn_tycon = L l _ }}}) -> l
+  TyFamInstD _ (TyFamInstDecl
+    -- Since CoAxioms' Names refer to the whole line for type family instances
+    -- in particular, we need to dig a bit deeper to pull out the entire
+    -- equation. This does not happen for data family instances, for some
+    -- reason.
+    { tfid_eqn = HsIB { hsib_body = FamEqn { feqn_rhs = L l _ }}}) -> l
+  ClsInstD _ (XClsInstDecl _) -> error "getInstLoc"
+  DataFamInstD _ (DataFamInstDecl (HsIB _ (XFamEqn _))) -> error "getInstLoc"
+  TyFamInstD _ (TyFamInstDecl (HsIB _ (XFamEqn _))) -> error "getInstLoc"
+  XInstDecl _ -> error "getInstLoc"
+  DataFamInstD _ (DataFamInstDecl (XHsImplicitBndrs _)) -> error "getInstLoc"
+  TyFamInstD _ (TyFamInstDecl (XHsImplicitBndrs _)) -> error "getInstLoc"
 
 -- | Get all subordinate declarations inside a declaration, and their docs.
 -- A subordinate declaration is something like the associate type or data
@@ -187,7 +196,9 @@ subordinates instMap decl = case decl of
     dataSubs dd = constrs ++ fields ++ derivs
       where
         cons = map unLoc $ (dd_cons dd)
-        constrs = [ (unLoc cname, maybeToList $ fmap unLoc $ con_doc c, conArgDocs c)
+        constrs = [ ( unLoc cname
+                    , maybeToList $ fmap unLoc $ con_doc c
+                    , conArgDocs c)
                   | c <- cons, cname <- getConNames c ]
         fields  = [ (extFieldOcc n, maybeToList $ fmap unLoc doc, M.empty)
                   | RecCon flds <- map getConArgs cons
@@ -231,12 +242,13 @@ classDecls class_ = filterDecls . collectDocs . sortByLoc $ decls
 
 -- | Extract function argument docs from inside top-level decls.
 declTypeDocs :: HsDecl GhcRn -> Map Int (HsDoc Name)
-declTypeDocs (SigD  _ (TypeSig _ _ ty))          = typeDocs (unLoc (hsSigWcType ty))
-declTypeDocs (SigD  _ (ClassOpSig _ _ _ ty))     = typeDocs (unLoc (hsSigType ty))
-declTypeDocs (SigD  _ (PatSynSig _ _ ty))        = typeDocs (unLoc (hsSigType ty))
-declTypeDocs (ForD  _ (ForeignImport _ _ ty _))  = typeDocs (unLoc (hsSigType ty))
-declTypeDocs (TyClD _ (SynDecl { tcdRhs = ty })) = typeDocs (unLoc ty)
-declTypeDocs _ = M.empty
+declTypeDocs = \case
+  SigD  _ (TypeSig _ _ ty)          -> typeDocs (unLoc (hsSigWcType ty))
+  SigD  _ (ClassOpSig _ _ _ ty)     -> typeDocs (unLoc (hsSigType ty))
+  SigD  _ (PatSynSig _ _ ty)        -> typeDocs (unLoc (hsSigType ty))
+  ForD  _ (ForeignImport _ _ ty _)  -> typeDocs (unLoc (hsSigType ty))
+  TyClD _ (SynDecl { tcdRhs = ty }) -> typeDocs (unLoc ty)
+  _                                 -> M.empty
 
 nubByName :: (a -> Name) -> [a] -> [a]
 nubByName f ns = go emptyNameSet ns
@@ -255,7 +267,8 @@ typeDocs = go 0
   where
     go n (HsForAllTy { hst_body = ty }) = go n (unLoc ty)
     go n (HsQualTy   { hst_body = ty }) = go n (unLoc ty)
-    go n (HsFunTy _ (L _ (HsDocTy _ _ (L _ x))) (L _ ty)) = M.insert n x $ go (n+1) ty
+    go n (HsFunTy _ (L _ (HsDocTy _ _ (L _ x))) (L _ ty)) =
+       M.insert n x $ go (n+1) ty
     go n (HsFunTy _ _ ty) = go (n+1) (unLoc ty)
     go n (HsDocTy _ _ (L _ doc)) = M.singleton n doc
     go _ _ = M.empty
@@ -280,7 +293,8 @@ ungroup group_ =
     typesigs (XValBindsLR (NValBinds _ sigs)) = filter (isUserSig . unLoc) sigs
     typesigs _ = error "expected ValBindsOut"
 
-    valbinds (XValBindsLR (NValBinds binds _)) = concatMap bagToList . snd . unzip $ binds
+    valbinds (XValBindsLR (NValBinds binds _)) =
+      concatMap bagToList . snd . unzip $ binds
     valbinds _ = error "expected ValBindsOut"
 
 -- | Sort by source location
@@ -299,7 +313,8 @@ collectDocs = go Nothing []
     go prev docs (L _ (DocD _ (DocCommentNext str)) : ds)
       | Nothing <- prev = go Nothing (str:docs) ds
       | Just decl <- prev = finished decl docs (go Nothing [str] ds)
-    go prev docs (L _ (DocD _ (DocCommentPrev str)) : ds) = go prev (str:docs) ds
+    go prev docs (L _ (DocD _ (DocCommentPrev str)) : ds) =
+      go prev (str:docs) ds
     go Nothing docs (d:ds) = go (Just d) docs ds
     go (Just prev) docs (d:ds) = finished prev docs (go (Just d) [] ds)
 
@@ -326,7 +341,8 @@ filterClasses decls = [ if isClassD d then (L loc (filterClass d), doc) else x
                       | x@(L loc d, doc) <- decls ]
   where
     filterClass (TyClD x c) =
-      TyClD x $ c { tcdSigs = filter (liftA2 (||) (isUserSig . unLoc) isMinimalLSig) $ tcdSigs c }
+      TyClD x $ c { tcdSigs =
+        filter (liftA2 (||) (isUserSig . unLoc) isMinimalLSig) (tcdSigs c) }
     filterClass _ = error "expected TyClD"
 
 -- | Was this signature given by the user?

@@ -38,9 +38,12 @@ lexHsDoc identParser s =
     plausibleIdents =
       either (error . show)
              id
-             (P.runParser (setOffset 0
-                           *> identsWith (delimited (withOffsets plausibleIdent)))
-                          () "" s)
+             (P.runParser parser () "" s)
+
+    parser :: Stream s m Char => ParsecT s u m [(Int, String, Int)]
+    parser = do
+      setOffset 0
+      identsWith (delimited (withOffsets plausibleIdent))
 
 identsWith :: Stream s m Char => ParsecT s u m a -> ParsecT s u m [a]
 identsWith p =
@@ -76,7 +79,8 @@ plausibleIdent = do
       c <- P.lookAhead P.anyChar
       case c of
         '`' -> return vs
-        '\'' -> P.try ((\x -> vs ++ "'" ++ x) <$> (P.char '\'' *> p)) <|> return vs
+        '\'' -> P.try ((\x -> vs ++ "'" ++ x) <$> (P.char '\'' *> p))
+                  <|> return vs
         _ -> fail "Not a delimiter"
 
     identStart = P.letter <|> P.char '_' <|> symbol

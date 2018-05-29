@@ -1340,8 +1340,9 @@ data ModGuts
                                                 -- own package for Safe Haskell?
                                                 -- See Note [RnNames . Trust Own Package]
 
-        mg_doc_names_map :: !HsDocNamesMap,  -- ^ Identifiers that were found in docstrings
-                                             -- and the 'Names' they might correspond to.
+        mg_doc_names_map :: !HsDocNamesMap,  -- ^ Identifiers that were found
+                                             -- in docstrings and the 'Names'
+                                             -- they might correspond to.
         mg_doc_hdr       :: !(Maybe HsDoc'), -- ^ Module header.
         mg_decl_docs     :: !DeclDocMap,     -- ^ Docs on declarations.
         mg_arg_docs      :: !ArgDocMap       -- ^ Docs on arguments.

@@ -27,7 +27,9 @@ rnHsDoc (HsDoc s ids) = do
   gre <- tcg_rdr_env <$> getGblEnv
   pure (HsDoc s (rnHsDocIdentifier gre <$> ids))
 
-rnHsDocIdentifier :: GlobalRdrEnv -> HsDocIdentifier RdrName -> HsDocIdentifier Name
+rnHsDocIdentifier :: GlobalRdrEnv
+                  -> HsDocIdentifier RdrName
+                  -> HsDocIdentifier Name
 rnHsDocIdentifier gre (HsDocIdentifier span s rdr_names) =
   -- TODO: Add a check that there should be exactly 1 RdrName in the identifier?
   HsDocIdentifier span s names

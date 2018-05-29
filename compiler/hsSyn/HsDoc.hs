@@ -1,5 +1,8 @@
 -- | Types and functions for raw and lexed docstrings.
-{-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module HsDoc
   ( HsDoc(..)
@@ -77,7 +80,8 @@ instance Binary HsDocIdentifierSpan where
     return (HsDocIdentifierSpan a b)
 
 instance Outputable HsDocIdentifierSpan where
-  ppr (HsDocIdentifierSpan a b) = int a Outputable.<> char '-' Outputable.<> int b
+  ppr (HsDocIdentifierSpan a b) =
+    int a Outputable.<> char '-' Outputable.<> int b
 
 shiftHsDocIdentifierSpan :: Int -> HsDocIdentifierSpan -> HsDocIdentifierSpan
 shiftHsDocIdentifierSpan n (HsDocIdentifierSpan a b) =
@@ -175,14 +179,16 @@ nullHDS (HsDocString bs) = BS.null bs
 
 lengthHDS :: HsDocString -> Int
 lengthHDS (HsDocString (PS fptr off len)) =
-  inlinePerformIO (countUTF8Chars (plusPtr (unsafeForeignPtrToPtr fptr) off) len)
+  inlinePerformIO $
+    countUTF8Chars (plusPtr (unsafeForeignPtrToPtr fptr) off) len
 
 type LHsDocString = Located HsDocString
 
 -- | A collection of identifiers.
 newtype HsDocNamesMap = HsDocNamesMap (Map HsDocString [Name])
   deriving ( Semigroup
-             -- ^ Assumes that equal identifiers will correspond to the same names.
+             -- ^ Assumes that equal identifiers will correspond to the same
+             -- names.
            , Monoid
            )
 
@@ -193,7 +199,8 @@ instance Binary HsDocNamesMap where
 instance Outputable HsDocNamesMap where
   ppr (HsDocNamesMap m) = vcat (map pprPair (Map.toAscList m))
     where
-      pprPair (s, names) = ppr s Outputable.<> colon $$ nest 2 (vcat (map pprName' names))
+      pprPair (s, names) =
+        ppr s Outputable.<> colon $$ nest 2 (vcat (map pprName' names))
       pprName' n = ppr (nameOccName n) <+> text "from" <+> ppr (nameModule n)
 
 emptyHsDocNamesMap :: HsDocNamesMap
@@ -244,12 +251,14 @@ newtype ArgDocMap = ArgDocMap (Map Name (Map Int HsDoc'))
 
 instance Binary ArgDocMap where
   put_ bh (ArgDocMap m) = put_ bh (Map.toAscList (Map.toAscList <$> m))
-  get bh = ArgDocMap . fmap Map.fromDistinctAscList . Map.fromDistinctAscList <$> get bh
+  get bh = ArgDocMap . fmap Map.fromDistinctAscList . Map.fromDistinctAscList
+             <$> get bh
 
 instance Outputable ArgDocMap where
   ppr (ArgDocMap m) = vcat (map pprPair (Map.toAscList m))
     where
-      pprPair (name, int_map) = ppr name Outputable.<> colon $$ nest 2 (pprIntMap int_map)
+      pprPair (name, int_map) =
+        ppr name Outputable.<> colon $$ nest 2 (pprIntMap int_map)
       pprIntMap im = vcat (map pprIPair (Map.toAscList im))
       pprIPair (i, doc) = ppr i Outputable.<> colon $$ nest 2 (ppr doc)
 

@@ -144,7 +144,8 @@ data HsDecl p
   | VectD      (XVectD p)      (VectDecl p)      -- ^ Vectorise declaration
   | SpliceD    (XSpliceD p)    (SpliceDecl p)    -- ^ Splice declaration
                                                  -- (Includes quasi-quotes)
-  | DocD       (XDocD p)       (DocDecl p)       -- ^ Documentation comment declaration
+  | DocD       (XDocD p)       (DocDecl p)       -- ^ Documentation comment
+                                                 -- declaration
   | RoleAnnotD (XRoleAnnotD p) (RoleAnnotDecl p) -- ^Role annotation declaration
   | XHsDecl    (XXHsDecl p)
 
@@ -1250,7 +1251,8 @@ data ConDecl pass
       , con_args    :: HsConDeclDetails pass   -- ^ Arguments; never InfixCon
       , con_res_ty  :: LHsType pass            -- ^ Result type
 
-      , con_doc     :: Maybe (LHsDoc (IdP pass)) -- ^ A possible Haddock comment.
+      , con_doc     :: Maybe (LHsDoc (IdP pass)) -- ^ A possible Haddock
+                                                 -- comment.
       }
 
   | ConDeclH98
