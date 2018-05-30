@@ -216,7 +216,7 @@ mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> HscSource
          -> SafeHaskellMode
          -> [Usage]
          -> HsDocNamesMap
-         -> Maybe HsDoc'
+         -> Maybe HsDocString
          -> DeclDocMap
          -> ArgDocMap
          -> ModDetails

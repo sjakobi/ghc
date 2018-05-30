@@ -249,7 +249,7 @@ rnList f xs = mapFvRn (wrapLocFstM f) xs
 *********************************************************
 -}
 
-rnDocDecl :: DocDecl GhcPs -> RnM (DocDecl GhcRn)
+rnDocDecl :: DocDecl -> RnM DocDecl
 rnDocDecl (DocCommentNext doc) = do
   rn_doc <- rnHsDoc doc
   return (DocCommentNext rn_doc)

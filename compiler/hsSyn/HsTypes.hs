@@ -592,7 +592,7 @@ data HsType pass
       -- For details on above see note [Api annotations] in ApiAnnotation
 
   | HsDocTy             (XDocTy pass)
-                        (LHsType pass) (LHsDoc (IdP pass)) -- A documented type
+                        (LHsType pass) LHsDocString -- A documented type
       -- ^ - 'ApiAnnotation.AnnKeywordId' : None
 
       -- For details on above see note [Api annotations] in ApiAnnotation
@@ -874,7 +874,7 @@ data ConDeclField pass  -- Record fields have Haddoc docs on them
                    cd_fld_names :: [LFieldOcc pass],
                                    -- ^ See Note [ConDeclField passs]
                    cd_fld_type :: LBangType pass,
-                   cd_fld_doc  :: Maybe (LHsDoc (IdP pass))}
+                   cd_fld_doc  :: Maybe LHsDocString }
       -- ^ - 'ApiAnnotation.AnnKeywordId' : 'ApiAnnotation.AnnDcolon'
 
       -- For details on above see note [Api annotations] in ApiAnnotation
