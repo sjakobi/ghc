@@ -1195,7 +1195,6 @@ emptyModIface mod
                mi_trust       = noIfaceTrustInfo,
                mi_trust_pkg   = False,
                mi_complete_sigs = [],
-               mi_doc_names_map = emptyHsDocNamesMap,
                mi_doc_hdr     = Nothing,
                mi_decl_docs   = emptyDeclDocMap,
                mi_arg_docs    = emptyArgDocMap }

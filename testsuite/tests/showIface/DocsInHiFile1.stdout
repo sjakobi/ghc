@@ -1,73 +1,31 @@
-doc names map:
-  ":=:":
-  "<>":
-    <> from GHC.Base
-  "Bool":
-    Bool from GHC.Types
-  "D":
-    D from DocsInHiFile
-  "Show":
-    Show from GHC.Show
-  "Unknown":
-  "add":
-    add from DocsInHiFile
-  "elem":
-    elem from Data.Foldable
-    elem from DocsInHiFile
-  "print":
-    print from System.IO
 module header:
-  Just text:
-         " `elem`, 'print',
+  Just " `elem`, 'print',
 `Unknown',
 '<>', ':=:', 'Bool'
 "
-       spans: 2-6, 10-15, 19-26, 30-32, 36-39, 43-47
 declaration docs:
   P:
-    text:
-      " A class"
-    spans:
+    " A class"
   p:
-    text:
-      " A class method"
-    spans:
+    " A class method"
   D:
-    text:
-      " A datatype."
-    spans:
+    " A datatype."
   D0:
-    text:
-      " A constructor for 'D'. '"
-    spans: 20-21
+    " A constructor for 'D'. '"
   D1:
-    text:
-      " Another constructor"
-    spans:
+    " Another constructor"
   elem:
-    text:
-      " '()', 'elem'."
-    spans: 8-12
+    " '()', 'elem'."
   $fShowD:
-    text:
-      " 'Show' instance"
-    spans: 2-6
+    " 'Show' instance"
 arg docs:
   p:
     0:
-      text:
-        " An argument"
-      spans:
+      " An argument"
   add:
     0:
-      text:
-        " First summand for 'add'"
-      spans: 20-23
+      " First summand for 'add'"
     1:
-      text:
-        " Second summand"
-      spans:
+      " Second summand"
     2:
-      text:
-        " Sum"
-      spans:
+      " Sum"
