@@ -52,7 +52,6 @@ Library
     Build-Depends: base       >= 4.9 && < 5,
                    deepseq    >= 1.4 && < 1.5,
                    directory  >= 1   && < 1.4,
-                   parsec,
                    process    >= 1   && < 1.7,
                    bytestring >= 0.9 && < 0.11,
                    binary     == 0.8.*,
@@ -380,7 +379,6 @@ Library
         Elf
         TidyPgm
         Ctype
-        HaddockLex
         HaddockUtils
         Lexer
         OptCoercion
