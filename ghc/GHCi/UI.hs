@@ -48,6 +48,7 @@ import GhcMonad ( modifySession )
 import qualified GHC
 import GHC ( LoadHowMuch(..), Target(..),  TargetId(..), InteractiveImport(..),
              TyThing(..), Phase, BreakIndex, Resume, SingleStep, Ghc,
+             NoDocsFoundAtAll(..),
              getModuleGraph, handleSourceError )
 import HsImpExp
 import HsSyn
@@ -99,6 +100,7 @@ import Data.List ( find, group, intercalate, intersperse, isPrefixOf, nub,
                    partition, sort, sortBy )
 import qualified Data.Set as S
 import Data.Maybe
+import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Time.LocalTime ( getZonedTime )
 import Data.Time.Format ( formatTime, defaultTimeLocale )
@@ -1611,50 +1613,29 @@ checkModule m = do
 docCmd :: String -> InputT GHCi ()
 docCmd "" = throwGhcException (CmdLineError "syntax: ':doc <thing-you-want-docs-for>'")
 docCmd s  = do
+  names <- GHC.parseName s
+  e_docss <- mapM GHC.getDocs names
+  sdocs <- mapM (either handleNoDocsFoundAtAll (pure . pprDocs)) e_docss
+  let sdocs' = vcat (intersperse (text "") sdocs)
   unqual <- GHC.getPrintUnqual
   dflags <- getDynFlags
-  sdocs  <- mapM docThing (words s)
-  mapM_ (liftIO . putStrLn . showSDocForUser dflags unqual) sdocs
+  (liftIO . putStrLn . showSDocForUser dflags unqual) sdocs'
 
-docThing :: GHC.GhcMonad m => String -> m SDoc
-docThing s = do
-  names <- GHC.parseName s
-  _ <- mapM GHC.getDocs names
-  undefined
+-- TODO: also print arg docs.
+pprDocs :: (HsDocNamesMap, Maybe HsDoc', Map Int HsDoc') -> SDoc
+pprDocs (_names_map, mb_decl_docs, _arg_docs) =
+  maybe
+    (text "<has no documentation>")
+    (text . unpackHDS . hsDoc'String)
+    mb_decl_docs
 
-{-
-   infoThing :: GHC.GhcMonad m => Bool -> String -> m SDoc
-   infoThing allInfo str = do
-       names     <- GHC.parseName str
-       mb_stuffs <- mapM (GHC.getInfo allInfo) names
-       let filtered = filterOutChildren (\(t,_f,_ci,_fi,_sd) -> t)
-                                        (catMaybes mb_stuffs)
-       return $ vcat (intersperse (text "") $ map pprInfo filtered)
-   
-     -- Filter out names whose parent is also there Good
-     -- example is '[]', which is both a type and data
-     -- constructor in the same type
-   filterOutChildren :: (a -> TyThing) -> [a] -> [a]
-   filterOutChildren get_thing xs
-     = filterOut has_parent xs
-     where
-       all_names = mkNameSet (map (getName . get_thing) xs)
-       has_parent x = case tyThingParent_maybe (get_thing x) of
-                        Just p  -> getName p `elemNameSet` all_names
-                        Nothing -> False
-   
-   pprInfo :: (TyThing, Fixity, [GHC.ClsInst], [GHC.FamInst], SDoc) -> SDoc
-   pprInfo (thing, fixity, cls_insts, fam_insts, docs)
-     =  docs
-     $$ pprTyThingInContextLoc thing
-     $$ show_fixity
-     $$ vcat (map GHC.pprInstance cls_insts)
-     $$ vcat (map GHC.pprFamInst  fam_insts)
-     where
-       show_fixity
-           | fixity == GHC.defaultFixity = empty
-           | otherwise                   = ppr fixity <+> pprInfixName (GHC.getName thing)
--}
+handleNoDocsFoundAtAll :: GHC.GhcMonad m => NoDocsFoundAtAll -> m SDoc
+handleNoDocsFoundAtAll no_docs = do
+  dflags <- getDynFlags
+  let msg = showPpr dflags no_docs
+  throwGhcException $ case no_docs of
+    NameHasNoModule {} -> Sorry msg
+    NoDocsInIface {} -> InstallationError msg
 
 -----------------------------------------------------------------------------
 -- :load, :add, :reload

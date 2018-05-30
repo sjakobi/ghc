@@ -133,7 +133,7 @@ module GHC (
         compileExprRemote, compileParsedExprRemote,
 
         -- ** Docs
-        getDocs,
+        getDocs, NoDocsFoundAtAll(..),
 
         -- ** Other
         runTcInteractive,   -- Desired by some clients (Trac #8878)

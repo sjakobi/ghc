@@ -31,6 +31,7 @@ module InteractiveEval (
         typeKind,
         parseName,
         getDocs,
+        NoDocsFoundAtAll(..),
         showModule,
         moduleIsBootOrNotObjectLinkable,
         parseExpr, compileParsedExpr,
@@ -824,22 +825,64 @@ parseThing parser dflags stmt = do
 
   Lexer.unP parser (Lexer.mkPState dflags buf loc)
 
+{- TODO: Improve handling of the following cases:
+λ f = ()
+λ :doc f
+ghc-stage2: Can't find any documentation for Ghci1.
+This is probably because the module was compiled without '-haddock',
+but it's also possible that the module contains no documentation.
+
+λ :load src/Options/Generic.hs
+[1 of 1] Compiling Options.Generic  ( src/Options/Generic.hs, interpreted )
+Ok, one module loaded.
+λ :doc getRecord
+ghc-stage2: Can't find any documentation for Options.Generic.
+This is probably because the module was compiled without '-haddock',
+but it's also possible that the module contains no documentation.
+
+This one probably has to do with {-# OPTIONS_HADDOCK hide #-}:
+λ :doc Num
+ghc-stage2: Can't find any documentation for GHC.Num.
+This is probably because the module was compiled without '-haddock',
+but it's also possible that the module contains no documentation.
+-}
 getDocs :: GhcMonad m
         => Name -- TODO: Also get module headers for module names
-        -> m (HsDocNamesMap, Maybe HsDoc', Map Int HsDoc')
+        -> m (Either NoDocsFoundAtAll (HsDocNamesMap, Maybe HsDoc', Map Int HsDoc'))
            -- TODO: What about docs for constructors etc.?
 getDocs name =
   withSession $ \hsc_env -> do
      case nameModule_maybe name of
-       Nothing -> error "bad luck" -- TODO: We need to differentiate between the
-                                   -- different kinds of failure
-                                   -- possible. Not like this though
+       Nothing -> pure (Left (NameHasNoModule name))
        Just mod -> do
-         ModIface { mi_doc_names_map = names_map
+         ModIface { mi_doc_names_map = names_map@(HsDocNamesMap nmap)
+                  , mi_doc_hdr = mb_doc_hdr -- TODO: Give access to module header too.
                   , mi_decl_docs = DeclDocMap dmap
                   , mi_arg_docs = ArgDocMap amap
                   } <- liftIO $ hscGetModuleInterface hsc_env mod
-         return (names_map, Map.lookup name dmap, Map.findWithDefault Map.empty name amap)
+         if Map.null nmap && isNothing mb_doc_hdr && Map.null dmap && Map.null amap
+           then pure (Left (NoDocsInIface mod))
+           else pure (Right ( names_map
+                            , Map.lookup name dmap
+                            , Map.findWithDefault Map.empty name amap))
+
+-- | Failure modes for 'getDocs'.
+data NoDocsFoundAtAll
+  = NameHasNoModule Name
+    -- ^ 'nameModule_maybe' returned 'Nothing'.
+  | NoDocsInIface Module
+    -- ^ This is probably because the module was compiled without @-haddock@,
+    -- but it's also possible that the entire module contains no documentation.
+  deriving Eq
+
+instance Outputable NoDocsFoundAtAll where
+  ppr (NameHasNoModule name) =
+    quotes (ppr name) <+> text "has no module where we could look for docs."
+  ppr (NoDocsInIface mod) = vcat
+    [ text "Can't find any documentation for" <+> ppr mod <> char '.'
+    , text "This is probably because the module was compiled without '-haddock',"
+    , text "but it's also possible that the module contains no documentation."
+    ]
 
 -- -----------------------------------------------------------------------------
 -- Getting the type of an expression
