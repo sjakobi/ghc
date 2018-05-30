@@ -964,7 +964,20 @@ data ModIface
                 -- itself) but imports some trustworthy modules from its own
                 -- package (which does require its own package be trusted).
                 -- See Note [RnNames . Trust Own Package]
-        mi_complete_sigs :: [IfaceCompleteMatch]
+        mi_complete_sigs :: [IfaceCompleteMatch],
+
+        mi_doc_names_map :: HsDocNamesMap,
+                -- ^ Identifiers that were found in docstrings and the 'Names'
+                -- they might correspond to.
+
+        mi_doc_hdr :: Maybe HsDoc',
+                -- ^ Module header.
+
+        mi_decl_docs :: DeclDocMap,
+                -- ^ Docs on declarations.
+
+        mi_arg_docs :: ArgDocMap
+                -- ^ Docs on arguments.
      }
 
 -- | Old-style accessor for whether or not the ModIface came from an hs-boot
@@ -1042,7 +1055,11 @@ instance Binary ModIface where
                  mi_hpc       = hpc_info,
                  mi_trust     = trust,
                  mi_trust_pkg = trust_pkg,
-                 mi_complete_sigs = complete_sigs }) = do
+                 mi_complete_sigs = complete_sigs,
+                 mi_doc_names_map = doc_names_map,
+                 mi_doc_hdr   = doc_hdr,
+                 mi_decl_docs = decl_docs,
+                 mi_arg_docs  = arg_docs }) = do
         put_ bh mod
         put_ bh sig_of
         put_ bh hsc_src
@@ -1071,6 +1088,10 @@ instance Binary ModIface where
         put_ bh trust
         put_ bh trust_pkg
         put_ bh complete_sigs
+        lazyPut bh doc_names_map
+        lazyPut bh doc_hdr
+        lazyPut bh decl_docs
+        lazyPut bh arg_docs
 
    get bh = do
         mod         <- get bh
@@ -1101,6 +1122,10 @@ instance Binary ModIface where
         trust       <- get bh
         trust_pkg   <- get bh
         complete_sigs <- get bh
+        doc_names_map <- lazyGet bh
+        doc_hdr     <- lazyGet bh
+        decl_docs   <- lazyGet bh
+        arg_docs    <- lazyGet bh
         return (ModIface {
                  mi_module      = mod,
                  mi_sig_of      = sig_of,
@@ -1134,7 +1159,11 @@ instance Binary ModIface where
                  mi_warn_fn     = mkIfaceWarnCache warns,
                  mi_fix_fn      = mkIfaceFixCache fixities,
                  mi_hash_fn     = mkIfaceHashCache decls,
-                 mi_complete_sigs = complete_sigs })
+                 mi_complete_sigs = complete_sigs,
+                 mi_doc_names_map = doc_names_map,
+                 mi_doc_hdr     = doc_hdr,
+                 mi_decl_docs   = decl_docs,
+                 mi_arg_docs    = arg_docs })
 
 -- | The original names declared of a certain module that are exported
 type IfaceExport = AvailInfo
@@ -1173,7 +1202,11 @@ emptyModIface mod
                mi_hpc         = False,
                mi_trust       = noIfaceTrustInfo,
                mi_trust_pkg   = False,
-               mi_complete_sigs = [] }
+               mi_complete_sigs = [],
+               mi_doc_names_map = emptyHsDocNamesMap,
+               mi_doc_hdr     = Nothing,
+               mi_decl_docs   = emptyDeclDocMap,
+               mi_arg_docs    = emptyArgDocMap }
 
 
 -- | Constructs cache for the 'mi_hash_fn' field of a 'ModIface'
@@ -1303,9 +1336,16 @@ data ModGuts
                                                 -- one); c.f. 'tcg_fam_inst_env'
 
         mg_safe_haskell :: SafeHaskellMode,     -- ^ Safe Haskell mode
-        mg_trust_pkg    :: Bool                 -- ^ Do we need to trust our
+        mg_trust_pkg    :: Bool,                -- ^ Do we need to trust our
                                                 -- own package for Safe Haskell?
                                                 -- See Note [RnNames . Trust Own Package]
+
+        mg_doc_names_map :: !HsDocNamesMap,  -- ^ Identifiers that were found
+                                             -- in docstrings and the 'Names'
+                                             -- they might correspond to.
+        mg_doc_hdr       :: !(Maybe HsDoc'), -- ^ Module header.
+        mg_decl_docs     :: !DeclDocMap,     -- ^ Docs on declarations.
+        mg_arg_docs      :: !ArgDocMap       -- ^ Docs on arguments.
     }
 
 -- The ModGuts takes on several slightly different forms:

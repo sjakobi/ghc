@@ -680,7 +680,7 @@ data TcGblEnv
         tcg_vects     :: [LVectDecl GhcTc],   -- ...Vectorisation declarations
         tcg_patsyns   :: [PatSyn],            -- ...Pattern synonyms
 
-        tcg_doc_hdr   :: Maybe LHsDocString, -- ^ Maybe Haddock header docs
+        tcg_doc_hdr   :: Maybe (LHsDoc Name), -- ^ Maybe Haddock header docs
         tcg_hpc       :: !AnyHpcUsage,       -- ^ @True@ if any part of the
                                              --  prog uses hpc instrumentation.
            -- NB. BangPattern is to fix a leak, see #15111

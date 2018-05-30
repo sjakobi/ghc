@@ -144,7 +144,8 @@ data HsDecl p
   | VectD      (XVectD p)      (VectDecl p)      -- ^ Vectorise declaration
   | SpliceD    (XSpliceD p)    (SpliceDecl p)    -- ^ Splice declaration
                                                  -- (Includes quasi-quotes)
-  | DocD       (XDocD p)       (DocDecl)  -- ^ Documentation comment declaration
+  | DocD       (XDocD p)       (DocDecl p)       -- ^ Documentation comment
+                                                 -- declaration
   | RoleAnnotD (XRoleAnnotD p) (RoleAnnotDecl p) -- ^Role annotation declaration
   | XHsDecl    (XXHsDecl p)
 
@@ -206,7 +207,7 @@ data HsGroup p
         hs_ruleds :: [LRuleDecls p],
         hs_vects  :: [LVectDecl p],
 
-        hs_docs   :: [LDocDecl]
+        hs_docs   :: [LDocDecl p]
     }
   | XHsGroup (XXHsGroup p)
 
@@ -552,7 +553,7 @@ data TyClDecl pass
                 tcdATs     :: [LFamilyDecl pass],       -- ^ Associated types;
                 tcdATDefs  :: [LTyFamDefltEqn pass],
                                                    -- ^ Associated type defaults
-                tcdDocs    :: [LDocDecl]                -- ^ Haddock docs
+                tcdDocs    :: [LDocDecl pass]           -- ^ Haddock docs
     }
         -- ^ - 'ApiAnnotation.AnnKeywordId' : 'ApiAnnotation.AnnClass',
         --           'ApiAnnotation.AnnWhere','ApiAnnotation.AnnOpen',
@@ -1250,8 +1251,8 @@ data ConDecl pass
       , con_args    :: HsConDeclDetails pass   -- ^ Arguments; never InfixCon
       , con_res_ty  :: LHsType pass            -- ^ Result type
 
-      , con_doc     :: Maybe LHsDocString
-          -- ^ A possible Haddock comment.
+      , con_doc     :: Maybe (LHsDoc (IdP pass)) -- ^ A possible Haddock
+                                                 -- comment.
       }
 
   | ConDeclH98
@@ -1266,8 +1267,7 @@ data ConDecl pass
       , con_mb_cxt :: Maybe (LHsContext pass)  -- ^ User-written context (if any)
       , con_args   :: HsConDeclDetails pass    -- ^ Arguments; can be InfixCon
 
-      , con_doc       :: Maybe LHsDocString
-          -- ^ A possible Haddock comment.
+      , con_doc    :: Maybe (LHsDoc (IdP pass)) -- ^ A possible Haddock comment.
       }
   | XConDecl (XXConDecl pass)
 
@@ -2243,21 +2243,22 @@ instance (p ~ GhcPass pass, OutputableBndrId p)
 -}
 
 -- | Located Documentation comment Declaration
-type LDocDecl = Located (DocDecl)
+type LDocDecl name = Located (DocDecl name)
 
 -- | Documentation comment Declaration
-data DocDecl
-  = DocCommentNext HsDocString
-  | DocCommentPrev HsDocString
-  | DocCommentNamed String HsDocString
-  | DocGroup Int HsDocString
-  deriving Data
+data DocDecl pass
+  = DocCommentNext (HsDoc (IdP pass))
+  | DocCommentPrev (HsDoc (IdP pass))
+  | DocCommentNamed String (HsDoc (IdP pass))
+  | DocGroup Int (HsDoc (IdP pass))
+
+deriving instance (Data pass, Data (IdP pass)) => Data (DocDecl pass)
 
 -- Okay, I need to reconstruct the document comments, but for now:
-instance Outputable DocDecl where
+instance Outputable (DocDecl name) where
   ppr _ = text "<document comment>"
 
-docDeclDoc :: DocDecl -> HsDocString
+docDeclDoc :: DocDecl pass -> HsDoc (IdP pass)
 docDeclDoc (DocCommentNext d) = d
 docDeclDoc (DocCommentPrev d) = d
 docDeclDoc (DocCommentNamed _ d) = d
