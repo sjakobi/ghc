@@ -873,7 +873,8 @@ data GetDocsFailure
     -- but it's also possible that the entire module contains no documentation.
   | NoDocsInIface
       Module
-      Bool -- ^ 'True': The module was compiled. 'False': The module was :loaded.
+      Bool -- ^ 'True': The module was compiled.
+           -- 'False': The module was :loaded.
 
     -- | The 'Name' was defined interactively.
   | InteractiveName
