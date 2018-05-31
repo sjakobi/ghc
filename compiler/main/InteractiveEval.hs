@@ -825,15 +825,6 @@ parseThing parser dflags stmt = do
 
   Lexer.unP parser (Lexer.mkPState dflags buf loc)
 
-{- TODO: Improve handling of the following cases:
-λ :load src/Options/Generic.hs
-[1 of 1] Compiling Options.Generic  ( src/Options/Generic.hs, interpreted )
-Ok, one module loaded.
-λ :doc getRecord
-ghc-stage2: Can't find any documentation for Options.Generic.
-This is probably because the module was compiled without '-haddock',
-but it's also possible that the module contains no documentation.
--}
 getDocs :: GhcMonad m
         => Name
         -> m (Either GetDocsFailure (Maybe HsDocString, Map Int HsDocString))
