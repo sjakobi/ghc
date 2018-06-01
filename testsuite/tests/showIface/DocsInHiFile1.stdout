@@ -4,6 +4,10 @@ module header:
 '<>', ':=:', 'Bool'
 "
 declaration docs:
+  D':
+    " Another datatype...
+
+ ...with two docstrings."
   P:
     " A class"
   p:
@@ -29,3 +33,4 @@ arg docs:
       " Second summand"
     2:
       " Sum"
+

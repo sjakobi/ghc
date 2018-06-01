@@ -9,8 +9,10 @@ module HsDoc
   , mkHsDocStringUtf8ByteString
   , unpackHDS
   , hsDocStringToByteString
-  , concatHsDocString
   , ppr_mbDoc
+
+  , appendDocs
+  , concatDocs
 
   , DeclDocMap(..)
   , emptyDeclDocMap
@@ -32,17 +34,25 @@ import SrcLoc
 
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as C8
 import qualified Data.ByteString.Internal as BS
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Data
+import Data.Foldable
 import Foreign
 
 -- | Haskell Documentation String
 --
 -- Internally this is a UTF8-Encoded 'ByteString'.
 newtype HsDocString = HsDocString ByteString
-  deriving (Eq, Show, Data, Semigroup, Monoid)
+  -- There are at least two plausible Semigroup instances for this type:
+  --
+  -- 1. Simple string concatenation.
+  -- 2. Concatenation as documentation paragraphs with newlines in between.
+  --
+  -- To avoid confusion, we pass on defining an instance at all.
+  deriving (Eq, Show, Data)
 
 -- | Located Haskell Documentation String
 type LHsDocString = Located HsDocString
@@ -74,15 +84,28 @@ unpackHDS = utf8DecodeByteString . hsDocStringToByteString
 hsDocStringToByteString :: HsDocString -> ByteString
 hsDocStringToByteString (HsDocString bs) = bs
 
-concatHsDocString :: [HsDocString] -> Maybe HsDocString
-concatHsDocString xs =
-  case mconcat xs of
-    HsDocString bs | BS.null bs -> Nothing
-    x -> Just x
-
 ppr_mbDoc :: Maybe LHsDocString -> SDoc
 ppr_mbDoc (Just doc) = ppr doc
 ppr_mbDoc Nothing    = empty
+
+-- | Join two docstrings.
+--
+-- Non-empty docstrings are joined with two newlines in between,
+-- resulting in separate paragraphs.
+appendDocs :: HsDocString -> HsDocString -> HsDocString
+appendDocs x@(HsDocString bs_x) y@(HsDocString bs_y)
+  | BS.null bs_x = y
+  | BS.null bs_y = x
+  | otherwise = HsDocString (mconcat [bs_x, C8.pack "\n\n", bs_y])
+
+-- | Concat docstrings with 'appendDocs'.
+--
+-- Returns 'Nothing' if all inputs are empty.
+concatDocs :: [HsDocString] -> Maybe HsDocString
+concatDocs xs =
+  case foldl' appendDocs (HsDocString mempty) xs of
+    HsDocString bs | BS.null bs -> Nothing
+    x -> Just x
 
 -- | Docs for declarations: functions, data types, instances, methods etc.
 newtype DeclDocMap = DeclDocMap (Map Name HsDocString)

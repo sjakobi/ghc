@@ -51,14 +51,17 @@ mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDocString])]
        -> (Map Name (HsDocString), Map Name (Map Int (HsDocString)))
 mkMaps instances decls =
-    ( f (map (nubByName fst) decls')
-    , f (filterMapping (not . M.null) args)
+    ( f' (map (nubByName fst) decls')
+    , f  (filterMapping (not . M.null) args)
     )
   where
     (decls', args) = unzip (map mappings decls)
 
     f :: (Ord a, Semigroup b) => [[(a, b)]] -> Map a b
     f = M.fromListWith (<>) . concat
+
+    f' :: Ord a => [[(a, HsDocString)]] -> Map a HsDocString
+    f' = M.fromListWith appendDocs . concat
 
     filterMapping :: (b -> Bool) ->  [[(a, b)]] -> [[(a, b)]]
     filterMapping p = map (filter (p . snd))
@@ -70,14 +73,14 @@ mkMaps instances decls =
     mappings (L l decl, docStrs) =
            (dm, am)
       where
-        doc = concatHsDocString docStrs
+        doc = concatDocs docStrs
         args = declTypeDocs decl
 
         subs :: [(Name, [(HsDocString)], Map Int (HsDocString))]
         subs = subordinates instanceMap decl
 
         (subDocs, subArgs) =
-          unzip (map (\(_, strs, m) -> (concatHsDocString strs, m)) subs)
+          unzip (map (\(_, strs, m) -> (concatDocs strs, m)) subs)
 
         ns = names l decl
         subNs = [ n | (n, _, _) <- subs ]

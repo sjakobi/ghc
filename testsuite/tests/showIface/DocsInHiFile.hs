@@ -31,3 +31,7 @@ class P f where
   -- | A class method
   p :: a -- ^ An argument
     -> f a
+
+-- | Another datatype...
+data D'
+-- ^ ...with two docstrings.
