@@ -4,19 +4,26 @@
 module ExtractDocs (extractDocs) where
 
 import GhcPrelude
+
+import Avail
 import Bag
 import HsBinds
 import HsDoc
 import HsDecls
 import HsExtension
+import HsImpExp
 import HsTypes
 import HsUtils
 import Name
 import NameSet
+import Outputable hiding ((<>))
+import Panic
 import SrcLoc
 import TcRnTypes
 
 import Control.Applicative
+import Control.Arrow
+import Data.Foldable
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -25,19 +32,26 @@ import Data.Semigroup
 
 -- | Extract docs from renamer output.
 extractDocs :: TcGblEnv
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap,
+                DocStructure, NamedChunks)
             -- ^
             -- 1. Identifiers and corresponding names
             -- 2. Module header
             -- 3. Docs on top level declarations
             -- 4. Docs on arguments
+            -- 5. Documentation structure
+            -- 6. Named chunks
 extractDocs TcGblEnv { tcg_semantic_mod = mod
+                       -- TODO: Why are the exports in reverse order?
+                       -- Maybe fix this?!
+                     , tcg_rn_exports = mb_rn_exports
+                     , tcg_exports = all_exports
                      , tcg_rn_decls = mb_rn_decls
                      , tcg_insts = insts
                      , tcg_fam_insts = fam_insts
                      , tcg_doc_hdr = mb_doc_hdr
                      } =
-    combineDocs mb_doc_hdr doc_map arg_map
+    combineDocs mb_doc_hdr doc_map arg_map doc_structure named_chunks
   where
     (doc_map, arg_map) = maybe (M.empty, M.empty)
                                (mkMaps local_insts)
@@ -45,28 +59,125 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
     mb_decls_with_docs = topDecls <$> mb_rn_decls
     local_insts = filter (nameIsLocalOrFrom mod)
                          $ map getName insts ++ map getName fam_insts
+    doc_structure = mkDocStructure mb_rn_exports mb_rn_decls all_exports
+    -- TODO: We probably have no use for the named chunks section when
+    -- there is no explicit export list. Maybe leave it empty in that case.
+    named_chunks = getNamedChunks mb_rn_decls
 
--- | Split identifier/'Name' info off module header, declaration docs and
--- argument docs. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
+-- | Split identifier/'Name' info off doc structures and collect it in a
+-- 'HsDocNamesMap'. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
 combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> Map Name (HsDoc Name)           -- ^ Declaration docs
             -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
-combineDocs mb_doc_hdr doc_map arg_map =
-  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map')
-  where names_map = hdr_names_map <> doc_map_names_map <> arg_map_names_map
+            -> (HsDocNamesMap, DocStructure)   -- ^ Docs from section headings
+                                               -- and doc chunks
+            -> Map String (HsDoc Name)         -- ^ Named chunks
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap,
+                DocStructure, NamedChunks)
+combineDocs mb_doc_hdr doc_map arg_map (names_map0, doc_structure)
+            named_chunks =
+    (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map',
+     doc_structure, NamedChunks named_chunks')
+  where names_map = names_map0 <> hdr_names_map <> doc_map_names_map
+                    <> arg_map_names_map <> named_chunks_names
+
         (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
+
         doc_map_names_map = foldMap fst split_doc_map
         doc_map' = snd <$> split_doc_map
         split_doc_map = splitHsDoc <$> doc_map
+
         arg_map_names_map = foldMap (foldMap fst) split_arg_map
         arg_map' = fmap snd <$> split_arg_map
         split_arg_map = fmap splitHsDoc <$> arg_map
+
+        named_chunks_names = foldMap fst split_named_chunks
+        named_chunks' = snd <$> split_named_chunks
+        split_named_chunks = splitHsDoc <$> named_chunks
 
 splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
 splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
 
+-- | If we have an explicit export list, we can easily extract the
+-- documentation structure from that.
+-- Otherwise we make do with the renamed exports and declarations.
+mkDocStructure :: Maybe [(Located (IE GhcRn), Avails)] -- ^ Renamed exports
+               -> Maybe (HsGroup GhcRn)
+               -> [AvailInfo]                          -- ^ All exports
+               -> (HsDocNamesMap, DocStructure)
+mkDocStructure mb_rn_exports mb_rn_decls all_exports =
+  fromMaybe
+    (emptyHsDocNamesMap, [])
+    (asum
+      [ mkDocStructureFromExportList <$> mb_rn_exports
+      , mkDocStructureFromDecls all_exports <$> mb_rn_decls
+      ])
+
+mkDocStructureFromExportList :: [(Located (IE GhcRn), Avails)]
+                             -> (HsDocNamesMap, DocStructure)
+mkDocStructureFromExportList rn_exports =
+    (foldMap fst items, map snd items)
+  where
+    items = map (getDsi . first unLoc) (reverse rn_exports)
+
+    getDsi :: (IE GhcRn, Avails) -> (HsDocNamesMap, DocStructureItem)
+    getDsi = \case
+      (IEModuleContents _ lmn, _) -> noDocs (DsiModExport (unLoc lmn))
+      (IEGroup _ level doc, _)    -> DsiSectionHeading level <$> splitHsDoc doc
+      (IEDoc _ doc, _)            -> DsiDocChunk <$> splitHsDoc doc
+      (IEDocNamed _ name, _)      -> noDocs (DsiNamedChunkRef name)
+      (_, avails)                 -> noDocs (DsiExports (nubAvails avails))
+
+    noDocs x = (emptyHsDocNamesMap, x)
+
+-- | Figure out the documentation structure by correlating
+-- the module exports with the located declarations.
+mkDocStructureFromDecls :: [AvailInfo] -- ^ All exports, unordered
+                        -> HsGroup GhcRn
+                        -> (HsDocNamesMap, DocStructure)
+mkDocStructureFromDecls all_exports decls = (names, items)
+  where
+    names = foldMap fst split_docs
+    items = map unLoc (sortByLoc (docs ++ avails))
+    docs = map snd split_docs
+
+    avails :: [Located DocStructureItem]
+    avails = flip fmap all_exports $ \avail ->
+      case M.lookup (availName avail) name_locs of
+        Just loc -> L loc (DsiExports [avail])
+        Nothing -> panicDoc "mkDocStructureFromDecls: No loc found for"
+                            (ppr avail)
+
+    split_docs = mapMaybe structuralDoc (hs_docs decls)
+
+    structuralDoc :: LDocDecl GhcRn
+                  -> Maybe (HsDocNamesMap, Located DocStructureItem)
+    structuralDoc = \case
+      L loc (DocCommentNamed _name doc) ->
+        -- TODO: Is this correct?
+        -- NB: There is no export list where we could reference the named chunk.
+        Just (L loc . DsiDocChunk <$> splitHsDoc doc)
+
+      L loc (DocGroup level doc) ->
+        Just (L loc . DsiSectionHeading level <$> splitHsDoc doc)
+
+      _ -> Nothing
+
+    name_locs = M.fromList (concatMap ldeclNames (ungroup decls))
+    ldeclNames (L loc d) = zip (getMainDeclBinder d) (repeat loc)
+
+getNamedChunks :: Maybe (HsGroup GhcRn) -> Map String (HsDoc Name)
+getNamedChunks =
+  \case
+    Nothing    -> M.empty
+    Just decls -> M.fromList $ flip mapMaybe (unLoc <$> hs_docs decls) $
+      \case
+        DocCommentNamed name doc -> Just (name, doc)
+        _                        -> Nothing
+
+-- | Create decl and arg doc-maps by looping through the declarations.
+-- For each declaration, find its names, its subordinates, and its doc strings.
 mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
        -> (Map Name (HsDoc Name), Map Name (Map Int (HsDoc Name)))

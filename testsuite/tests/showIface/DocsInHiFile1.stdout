@@ -77,4 +77,34 @@ arg docs:
       text:
         " Sum"
       spans:
+documentation structure:
+  section heading, level 1:
+    text:
+      " First section heading"
+    spans:
+  documentation chunk:
+    text:
+      " A small chunk of documentation"
+    spans:
+  avails:
+    [elem]
+  reference to named chunk: namedchunk
+  avails:
+    [D{D, D0, D1;}]
+  avails:
+    [add]
+  section heading, level 1:
+    text:
+      " Another section heading"
+    spans:
+  avails:
+    [P{P, p;}]
+  avails:
+    [Show{Show, show, showList, showsPrec;}]
+named chunks:
+  "namedchunk":
+    text:
+      "
+ This chunk of documentation is named "namedchunk"."
+    spans:
 

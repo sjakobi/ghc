@@ -3,6 +3,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 
 module HsDoc
   ( HsDoc(..)
@@ -34,15 +35,23 @@ module HsDoc
 
   , ArgDocMap(..)
   , emptyArgDocMap
+
+  , DocStructureItem(..)
+  , DocStructure
+
+  , NamedChunks(..)
+  , emptyNamedChunks
   ) where
 
 #include "HsVersions.h"
 
 import GhcPrelude
 
+import Avail
 import Binary
 import Encoding
 import FastFunctions
+import Module
 import Name
 import Outputable
 import SrcLoc
@@ -274,3 +283,75 @@ instance Outputable ArgDocMap where
 
 emptyArgDocMap :: ArgDocMap
 emptyArgDocMap = ArgDocMap Map.empty
+
+-- | A simplified version of 'HsImpExp.IE'.
+data DocStructureItem
+  = DsiSectionHeading Int HsDoc'
+  | DsiDocChunk HsDoc'
+  | DsiNamedChunkRef String
+  | DsiExports Avails
+  | DsiModExport ModuleName
+
+instance Binary DocStructureItem where
+  put_ bh = \case
+    DsiSectionHeading level doc -> do
+      putByte bh 0
+      put_ bh level
+      put_ bh doc
+    DsiDocChunk doc -> do
+      putByte bh 1
+      put_ bh doc
+    DsiNamedChunkRef name -> do
+      putByte bh 2
+      put_ bh name
+    DsiExports avails -> do
+      putByte bh 3
+      put_ bh avails
+    DsiModExport mod_name -> do
+      putByte bh 4
+      put_ bh mod_name
+
+  get bh = do
+    tag <- getByte bh
+    case tag of
+      0 -> DsiSectionHeading <$> get bh <*> get bh
+      1 -> DsiDocChunk <$> get bh
+      2 -> DsiNamedChunkRef <$> get bh
+      3 -> DsiExports <$> get bh
+      4 -> DsiModExport <$> get bh
+      _ -> fail "instance Binary DocStructureItem: Invalid tag"
+
+instance Outputable DocStructureItem where
+  ppr = \case
+    DsiSectionHeading level doc -> vcat
+      [ text "section heading, level" <+> ppr level Outputable.<> colon
+      , nest 2 (ppr doc)
+      ]
+    DsiDocChunk doc -> vcat
+      [ text "documentation chunk:"
+      , nest 2 (ppr doc)
+      ]
+    DsiNamedChunkRef name ->
+      text "reference to named chunk:" <+> text name
+    DsiExports avails ->
+      text "avails:" $$ nest 2 (ppr avails)
+    DsiModExport mod_name ->
+      text "re-exported module:" <+> ppr mod_name
+
+type DocStructure = [DocStructureItem]
+
+-- | A collection of named chunks as a map from names to doc chunks.
+newtype NamedChunks = NamedChunks (Map String HsDoc')
+
+instance Binary NamedChunks where
+  put_ bh (NamedChunks m) = put_ bh (Map.toAscList m)
+  get bh = NamedChunks . Map.fromDistinctAscList <$> get bh
+
+instance Outputable NamedChunks where
+  ppr (NamedChunks m) = vcat (map pprPair (Map.toAscList m))
+    where
+      pprPair (name, doc) =
+        doubleQuotes (text name) Outputable.<> colon $$ nest 2 (ppr doc)
+
+emptyNamedChunks :: NamedChunks
+emptyNamedChunks = NamedChunks Map.empty

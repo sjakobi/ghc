@@ -7,3 +7,7 @@ test('DocsInHiFile1',
      extra_files(['DocsInHiFile.hs']),
      run_command,
      ['$MAKE -s --no-print-directory DocsInHiFile1'])
+test('NoExportList',
+     normal,
+     run_command,
+     ['$MAKE -s --no-print-directory NoExportList'])
