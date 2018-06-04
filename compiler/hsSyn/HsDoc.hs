@@ -271,6 +271,7 @@ instance Outputable ArgDocMap where
 emptyArgDocMap :: ArgDocMap
 emptyArgDocMap = ArgDocMap Map.empty
 
+-- | A simplified version of 'HsImpExp.IE'.
 data DocStructureItem
   = DsiSectionHeading Int HsDoc'
   | DsiDocChunk HsDoc'
