@@ -4,11 +4,14 @@
 module ExtractDocs (extractDocs) where
 
 import GhcPrelude
+
+import Avail
 import Bag
 import HsBinds
 import HsDoc
 import HsDecls
 import HsExtension
+import HsImpExp
 import HsTypes
 import HsUtils
 import Name
@@ -17,6 +20,7 @@ import SrcLoc
 import TcRnTypes
 
 import Control.Applicative
+import Control.Arrow
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -25,19 +29,21 @@ import Data.Semigroup
 
 -- | Extract docs from renamer output.
 extractDocs :: TcGblEnv
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap, [HaddockItem])
             -- ^
             -- 1. Identifiers and corresponding names
             -- 2. Module header
             -- 3. Docs on top level declarations
             -- 4. Docs on arguments
+            -- 5. Documentation structure
 extractDocs TcGblEnv { tcg_semantic_mod = mod
+                     , tcg_rn_exports = mb_exports
                      , tcg_rn_decls = mb_rn_decls
                      , tcg_insts = insts
                      , tcg_fam_insts = fam_insts
                      , tcg_doc_hdr = mb_doc_hdr
                      } =
-    combineDocs mb_doc_hdr doc_map arg_map
+    combineDocs mb_doc_hdr doc_map arg_map hdk_items
   where
     (doc_map, arg_map) = maybe (M.empty, M.empty)
                                (mkMaps local_insts)
@@ -45,16 +51,20 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
     mb_decls_with_docs = topDecls <$> mb_rn_decls
     local_insts = filter (nameIsLocalOrFrom mod)
                          $ map getName insts ++ map getName fam_insts
+    hdk_items = mkHaddockItems mb_exports
 
 -- | Split identifier/'Name' info off module header, declaration docs and
 -- argument docs. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
 combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> Map Name (HsDoc Name)           -- ^ Declaration docs
             -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap)
-combineDocs mb_doc_hdr doc_map arg_map =
-  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map')
-  where names_map = hdr_names_map <> doc_map_names_map <> arg_map_names_map
+            -> (HsDocNamesMap, [HaddockItem])  -- ^ Docs from section headings
+                                               -- and doc chunks
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap, [HaddockItem])
+combineDocs mb_doc_hdr doc_map arg_map (names_map0, hdk_items) =
+  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map', hdk_items)
+  where names_map = names_map0 <> hdr_names_map
+                    <> doc_map_names_map <> arg_map_names_map
         (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
         doc_map_names_map = foldMap fst split_doc_map
         doc_map' = snd <$> split_doc_map
@@ -66,6 +76,26 @@ combineDocs mb_doc_hdr doc_map arg_map =
 splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
 splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
+
+-- TODO: Extract exports from declarations if there's no export list
+mkHaddockItems :: Maybe [(Located (IE GhcRn), Avails)]
+               -> (HsDocNamesMap, [HaddockItem])
+mkHaddockItems = maybe (emptyHsDocNamesMap, []) mkHaddockItems'
+
+mkHaddockItems' :: [(Located (IE GhcRn), Avails)]
+                -> (HsDocNamesMap, [HaddockItem])
+mkHaddockItems' exps = (foldMap fst items, map snd items)
+  where
+    items = map (getHI . first unLoc) (reverse exps)
+
+    getHI = \case
+      (IEModuleContents _ lmn, _) -> noDocs (HaddockModule (unLoc lmn))
+      (IEGroup _ level doc, _)    -> HaddockSection level <$> splitHsDoc doc
+      (IEDoc _ doc, _)            -> HaddockDoc <$> splitHsDoc doc
+      (IEDocNamed _ name, _)      -> noDocs (HaddockDocNamed name)
+      (_, avails)                 -> noDocs (HaddockAvails (nubAvails avails))
+
+    noDocs x = (emptyHsDocNamesMap, x)
 
 -- | Create decl and arg doc-maps by looping through the declarations.
 -- For each declaration, find its names, its subordinates, and its doc strings.

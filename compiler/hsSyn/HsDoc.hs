@@ -33,12 +33,16 @@ module HsDoc
 
   , ArgDocMap(..)
   , emptyArgDocMap
+
+  , HaddockItem(..)
   ) where
 
 #include "HsVersions.h"
 
 import GhcPrelude
 
+import Avail
+import Module
 import Name
 import Outputable hiding ((<>))
 import qualified Outputable
@@ -264,3 +268,17 @@ instance Outputable ArgDocMap where
 
 emptyArgDocMap :: ArgDocMap
 emptyArgDocMap = ArgDocMap Map.empty
+
+data HaddockItem
+  = HaddockAvails Avails
+  | HaddockModule ModuleName
+  | HaddockSection Int HsDoc'
+  | HaddockDoc HsDoc'
+  | HaddockDocNamed String
+
+instance Binary HaddockItem where
+  put_ = undefined
+  get = undefined
+
+instance Outputable HaddockItem where
+  ppr = undefined

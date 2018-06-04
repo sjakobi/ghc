@@ -976,8 +976,11 @@ data ModIface
         mi_decl_docs :: DeclDocMap,
                 -- ^ Docs on declarations.
 
-        mi_arg_docs :: ArgDocMap
+        mi_arg_docs :: ArgDocMap,
                 -- ^ Docs on arguments.
+
+        mi_haddock_items :: [HaddockItem]
+                -- ^ Documentation structure.
      }
 
 -- | Old-style accessor for whether or not the ModIface came from an hs-boot
@@ -1059,7 +1062,8 @@ instance Binary ModIface where
                  mi_doc_names_map = doc_names_map,
                  mi_doc_hdr   = doc_hdr,
                  mi_decl_docs = decl_docs,
-                 mi_arg_docs  = arg_docs }) = do
+                 mi_arg_docs  = arg_docs,
+                 mi_haddock_items = hdk_items }) = do
         put_ bh mod
         put_ bh sig_of
         put_ bh hsc_src
@@ -1092,6 +1096,7 @@ instance Binary ModIface where
         lazyPut bh doc_hdr
         lazyPut bh decl_docs
         lazyPut bh arg_docs
+        lazyPut bh hdk_items
 
    get bh = do
         mod         <- get bh
@@ -1126,6 +1131,7 @@ instance Binary ModIface where
         doc_hdr     <- lazyGet bh
         decl_docs   <- lazyGet bh
         arg_docs    <- lazyGet bh
+        hdk_items   <- lazyGet bh
         return (ModIface {
                  mi_module      = mod,
                  mi_sig_of      = sig_of,
@@ -1163,7 +1169,8 @@ instance Binary ModIface where
                  mi_doc_names_map = doc_names_map,
                  mi_doc_hdr     = doc_hdr,
                  mi_decl_docs   = decl_docs,
-                 mi_arg_docs    = arg_docs })
+                 mi_arg_docs    = arg_docs,
+                 mi_haddock_items = hdk_items })
 
 -- | The original names declared of a certain module that are exported
 type IfaceExport = AvailInfo
@@ -1206,7 +1213,8 @@ emptyModIface mod
                mi_doc_names_map = emptyHsDocNamesMap,
                mi_doc_hdr     = Nothing,
                mi_decl_docs   = emptyDeclDocMap,
-               mi_arg_docs    = emptyArgDocMap }
+               mi_arg_docs    = emptyArgDocMap,
+               mi_haddock_items = [] }
 
 
 -- | Constructs cache for the 'mi_hash_fn' field of a 'ModIface'
@@ -1345,7 +1353,9 @@ data ModGuts
                                              -- they might correspond to.
         mg_doc_hdr       :: !(Maybe HsDoc'), -- ^ Module header.
         mg_decl_docs     :: !DeclDocMap,     -- ^ Docs on declarations.
-        mg_arg_docs      :: !ArgDocMap       -- ^ Docs on arguments.
+        mg_arg_docs      :: !ArgDocMap,      -- ^ Docs on arguments.
+        mg_haddock_items :: ![HaddockItem]   -- ^ Ordered exports including
+                                             -- doc sections
     }
 
 -- The ModGuts takes on several slightly different forms:
