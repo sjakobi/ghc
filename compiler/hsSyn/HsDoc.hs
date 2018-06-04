@@ -3,6 +3,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase #-}
 
 module HsDoc
   ( HsDoc(..)
@@ -270,15 +271,54 @@ emptyArgDocMap :: ArgDocMap
 emptyArgDocMap = ArgDocMap Map.empty
 
 data HaddockItem
-  = HaddockAvails Avails
-  | HaddockModule ModuleName
-  | HaddockSection Int HsDoc'
+  = HaddockSection Int HsDoc'
   | HaddockDoc HsDoc'
   | HaddockDocNamed String
+  | HaddockAvails Avails
+  | HaddockModule ModuleName
 
 instance Binary HaddockItem where
-  put_ = undefined
-  get = undefined
+  put_ bh = \case
+    HaddockSection level doc -> do
+      putByte bh 0
+      put_ bh level
+      put_ bh doc
+    HaddockDoc doc -> do
+      putByte bh 1
+      put_ bh doc
+    HaddockDocNamed name -> do
+      putByte bh 2
+      put_ bh name
+    HaddockAvails avails -> do
+      putByte bh 3
+      put_ bh avails
+    HaddockModule mod_name -> do
+      putByte bh 4
+      put_ bh mod_name
+
+  get bh = do
+    tag <- getByte bh
+    case tag of
+      0 -> HaddockSection <$> get bh <*> get bh
+      1 -> HaddockDoc <$> get bh
+      2 -> HaddockDocNamed <$> get bh
+      3 -> HaddockAvails <$> get bh
+      4 -> HaddockModule <$> get bh
+      _ -> fail "instance Binary HaddockItem: Invalid tag"
 
 instance Outputable HaddockItem where
-  ppr = undefined
+  ppr = \case
+    HaddockSection level doc -> vcat
+      [ text "section heading, level" <+> ppr level Outputable.<> colon
+      , nest 2 (ppr doc)
+      ]
+    HaddockDoc doc -> vcat
+      [ text "documentation chunk:"
+      , nest 2 (ppr doc)
+      ]
+    HaddockDocNamed name ->
+      text "reference to named chunk:" <+> text name
+    HaddockAvails avails ->
+      text "avails:" $$ nest 2 (ppr avails)
+    HaddockModule mod_name ->
+      text "re-exported module:" <+> ppr mod_name
