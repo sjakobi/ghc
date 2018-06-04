@@ -184,7 +184,7 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
-        ; let (doc_names_map, doc_hdr, decl_docs, arg_docs, haddock_items) =
+        ; let (doc_names_map, doc_hdr, decl_docs, arg_docs, doc_structure) =
                 extractDocs tcg_env
 
         ; let mod_guts = ModGuts {
@@ -220,7 +220,7 @@ deSugar hsc_env
                 mg_doc_hdr      = doc_hdr,
                 mg_decl_docs    = decl_docs,
                 mg_arg_docs     = arg_docs,
-                mg_haddock_items = haddock_items
+                mg_doc_structure = doc_structure
               }
         ; return (msgs, Just mod_guts)
         }}}}

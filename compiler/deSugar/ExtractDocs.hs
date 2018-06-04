@@ -32,7 +32,7 @@ import Data.Semigroup
 
 -- | Extract docs from renamer output.
 extractDocs :: TcGblEnv
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap, [HaddockItem])
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap, DocStructure)
             -- ^
             -- 1. Identifiers and corresponding names
             -- 2. Module header
@@ -47,7 +47,7 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
                      , tcg_fam_insts = fam_insts
                      , tcg_doc_hdr = mb_doc_hdr
                      } =
-    combineDocs mb_doc_hdr doc_map arg_map hdk_items
+    combineDocs mb_doc_hdr doc_map arg_map doc_structure
   where
     (doc_map, arg_map) = maybe (M.empty, M.empty)
                                (mkMaps local_insts)
@@ -55,18 +55,18 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
     mb_decls_with_docs = topDecls <$> mb_rn_decls
     local_insts = filter (nameIsLocalOrFrom mod)
                          $ map getName insts ++ map getName fam_insts
-    hdk_items = mkHaddockItems mb_rn_exports mb_rn_decls all_exports
+    doc_structure = mkDocStructure mb_rn_exports mb_rn_decls all_exports
 
 -- | Split identifier/'Name' info off module header, declaration docs and
 -- argument docs. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
 combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> Map Name (HsDoc Name)           -- ^ Declaration docs
             -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
-            -> (HsDocNamesMap, [HaddockItem])  -- ^ Docs from section headings
+            -> (HsDocNamesMap, DocStructure)  -- ^ Docs from section headings
                                                -- and doc chunks
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap, [HaddockItem])
-combineDocs mb_doc_hdr doc_map arg_map (names_map0, hdk_items) =
-  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map', hdk_items)
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap, DocStructure)
+combineDocs mb_doc_hdr doc_map arg_map (names_map0, doc_structure) =
+  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map', doc_structure)
   where names_map = names_map0 <> hdr_names_map
                     <> doc_map_names_map <> arg_map_names_map
         (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
@@ -81,63 +81,63 @@ splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
 splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
 
-mkHaddockItems :: Maybe [(Located (IE GhcRn), Avails)]
+mkDocStructure :: Maybe [(Located (IE GhcRn), Avails)]
                -> Maybe (HsGroup GhcRn)
                -> [AvailInfo] -- Exports
-               -> (HsDocNamesMap, [HaddockItem])
-mkHaddockItems mb_rn_exports mb_rn_decls all_exports =
+               -> (HsDocNamesMap, DocStructure)
+mkDocStructure mb_rn_exports mb_rn_decls all_exports =
   fromMaybe
     (emptyHsDocNamesMap, [])
     (asum
-      [ mkHaddockItemsFromExports <$> mb_rn_exports
-      , mkHaddockItemsFromDecls all_exports <$> mb_rn_decls
+      [ mkDocStructureFromExportList <$> mb_rn_exports
+      , mkDocStructureFromDecls all_exports <$> mb_rn_decls
       ])
 
-mkHaddockItemsFromExports :: [(Located (IE GhcRn), Avails)]
-                          -> (HsDocNamesMap, [HaddockItem])
-mkHaddockItemsFromExports exps = (foldMap fst items, map snd items)
+mkDocStructureFromExportList :: [(Located (IE GhcRn), Avails)]
+                             -> (HsDocNamesMap, DocStructure)
+mkDocStructureFromExportList exps = (foldMap fst items, map snd items)
   where
     items = map (getHI . first unLoc) (reverse exps)
 
     getHI = \case
-      (IEModuleContents _ lmn, _) -> noDocs (HaddockModule (unLoc lmn))
-      (IEGroup _ level doc, _)    -> HaddockSection level <$> splitHsDoc doc
-      (IEDoc _ doc, _)            -> HaddockDoc <$> splitHsDoc doc
-      (IEDocNamed _ name, _)      -> noDocs (HaddockDocNamed name)
-      (_, avails)                 -> noDocs (HaddockAvails (nubAvails avails))
+      (IEModuleContents _ lmn, _) -> noDocs (DsiModExport (unLoc lmn))
+      (IEGroup _ level doc, _)    -> DsiSectionHeading level <$> splitHsDoc doc
+      (IEDoc _ doc, _)            -> DsiDocChunk <$> splitHsDoc doc
+      (IEDocNamed _ name, _)      -> noDocs (DsiNamedChunkRef name)
+      (_, avails)                 -> noDocs (DsiExports (nubAvails avails))
 
     noDocs x = (emptyHsDocNamesMap, x)
 
-mkHaddockItemsFromDecls :: [AvailInfo]
+mkDocStructureFromDecls :: [AvailInfo]
                         -> HsGroup GhcRn
-                        -> (HsDocNamesMap, [HaddockItem])
-mkHaddockItemsFromDecls exports decls = (names, items)
+                        -> (HsDocNamesMap, DocStructure)
+mkDocStructureFromDecls exports decls = (names, items)
   where
     items = map unLoc (sortByLoc (docs ++ avails))
     names = foldMap fst split_docs
     docs = map snd split_docs
 
-    split_docs :: [(HsDocNamesMap, Located HaddockItem)]
+    split_docs :: [(HsDocNamesMap, Located DocStructureItem)]
     split_docs = mapMaybe structuralDoc (hs_docs decls)
 
     structuralDoc = \case
       L loc (DocCommentNamed _name doc) ->
         -- TODO: Is this correct?
         -- NB: There is no export list where we could reference the named chunk.
-        Just (L loc . HaddockDoc <$> splitHsDoc doc)
+        Just (L loc . DsiDocChunk <$> splitHsDoc doc)
       L loc (DocGroup level doc) ->
-        Just (L loc . HaddockSection level <$> splitHsDoc doc)
+        Just (L loc . DsiSectionHeading level <$> splitHsDoc doc)
       _ -> Nothing
 
     nameLocs = M.fromList (concatMap ldeclNames decls')
     decls' = ungroup decls
     ldeclNames (L loc d) = zip (getMainDeclBinder d) (repeat loc)
 
-    avails :: [Located HaddockItem]
+    avails :: [Located DocStructureItem]
     avails = flip fmap exports $ \avail ->
       case M.lookup (availName avail) nameLocs of
-        Just loc -> L loc (HaddockAvails [avail])
-        Nothing -> panicDoc "mkHaddockItemsFromDecls: No loc found for"
+        Just loc -> L loc (DsiExports [avail])
+        Nothing -> panicDoc "mkDocStructureFromDecls: No loc found for"
                             (ppr avail)
 
 -- | Create decl and arg doc-maps by looping through the declarations.

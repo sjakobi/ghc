@@ -35,7 +35,8 @@ module HsDoc
   , ArgDocMap(..)
   , emptyArgDocMap
 
-  , HaddockItem(..)
+  , DocStructureItem(..)
+  , DocStructure
   ) where
 
 #include "HsVersions.h"
@@ -270,55 +271,57 @@ instance Outputable ArgDocMap where
 emptyArgDocMap :: ArgDocMap
 emptyArgDocMap = ArgDocMap Map.empty
 
-data HaddockItem
-  = HaddockSection Int HsDoc'
-  | HaddockDoc HsDoc'
-  | HaddockDocNamed String
-  | HaddockAvails Avails
-  | HaddockModule ModuleName
+data DocStructureItem
+  = DsiSectionHeading Int HsDoc'
+  | DsiDocChunk HsDoc'
+  | DsiNamedChunkRef String
+  | DsiExports Avails
+  | DsiModExport ModuleName
 
-instance Binary HaddockItem where
+instance Binary DocStructureItem where
   put_ bh = \case
-    HaddockSection level doc -> do
+    DsiSectionHeading level doc -> do
       putByte bh 0
       put_ bh level
       put_ bh doc
-    HaddockDoc doc -> do
+    DsiDocChunk doc -> do
       putByte bh 1
       put_ bh doc
-    HaddockDocNamed name -> do
+    DsiNamedChunkRef name -> do
       putByte bh 2
       put_ bh name
-    HaddockAvails avails -> do
+    DsiExports avails -> do
       putByte bh 3
       put_ bh avails
-    HaddockModule mod_name -> do
+    DsiModExport mod_name -> do
       putByte bh 4
       put_ bh mod_name
 
   get bh = do
     tag <- getByte bh
     case tag of
-      0 -> HaddockSection <$> get bh <*> get bh
-      1 -> HaddockDoc <$> get bh
-      2 -> HaddockDocNamed <$> get bh
-      3 -> HaddockAvails <$> get bh
-      4 -> HaddockModule <$> get bh
-      _ -> fail "instance Binary HaddockItem: Invalid tag"
+      0 -> DsiSectionHeading <$> get bh <*> get bh
+      1 -> DsiDocChunk <$> get bh
+      2 -> DsiNamedChunkRef <$> get bh
+      3 -> DsiExports <$> get bh
+      4 -> DsiModExport <$> get bh
+      _ -> fail "instance Binary DocStructureItem: Invalid tag"
 
-instance Outputable HaddockItem where
+instance Outputable DocStructureItem where
   ppr = \case
-    HaddockSection level doc -> vcat
+    DsiSectionHeading level doc -> vcat
       [ text "section heading, level" <+> ppr level Outputable.<> colon
       , nest 2 (ppr doc)
       ]
-    HaddockDoc doc -> vcat
+    DsiDocChunk doc -> vcat
       [ text "documentation chunk:"
       , nest 2 (ppr doc)
       ]
-    HaddockDocNamed name ->
+    DsiNamedChunkRef name ->
       text "reference to named chunk:" <+> text name
-    HaddockAvails avails ->
+    DsiExports avails ->
       text "avails:" $$ nest 2 (ppr avails)
-    HaddockModule mod_name ->
+    DsiModExport mod_name ->
       text "re-exported module:" <+> ppr mod_name
+
+type DocStructure = [DocStructureItem]

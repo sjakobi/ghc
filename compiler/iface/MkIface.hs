@@ -153,13 +153,13 @@ mkIface hsc_env maybe_old_fingerprint mod_details
                       mg_doc_hdr      = doc_hdr,
                       mg_decl_docs    = decl_docs,
                       mg_arg_docs     = arg_docs,
-                      mg_haddock_items = hdk_items
+                      mg_doc_structure = doc_structure
                     }
         = mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src used_th deps rdr_env fix_env
                    warns hpc_info self_trust
                    safe_mode usages
-                   doc_names_map doc_hdr decl_docs arg_docs hdk_items
+                   doc_names_map doc_hdr decl_docs arg_docs doc_structure
                    mod_details
 
 -- | make an interface from the results of typechecking only.  Useful
@@ -198,7 +198,7 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
           -- See Note [Identity versus semantic module]
           usages <- mkUsageInfo hsc_env this_mod (imp_mods imports) used_names dep_files merged
 
-          let (doc_names_map, doc_hdr', doc_map, arg_map, hdk_items) =
+          let (doc_names_map, doc_hdr', doc_map, arg_map, doc_structure) =
                 extractDocs tc_result
 
           mkIface_ hsc_env maybe_old_fingerprint
@@ -206,7 +206,7 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
                    used_th deps rdr_env
                    fix_env warns hpc_info
                    (imp_trust_own_pkg imports) safe_mode usages
-                   doc_names_map doc_hdr' doc_map arg_map hdk_items
+                   doc_names_map doc_hdr' doc_map arg_map doc_structure
                    mod_details
 
 
@@ -220,13 +220,13 @@ mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> HscSource
          -> Maybe HsDoc'
          -> DeclDocMap
          -> ArgDocMap
-         -> [HaddockItem]
+         -> [DocStructureItem]
          -> ModDetails
          -> IO (ModIface, Bool)
 mkIface_ hsc_env maybe_old_fingerprint
          this_mod hsc_src used_th deps rdr_env fix_env src_warns
          hpc_info pkg_trust_req safe_mode usages
-         doc_names_map doc_hdr decl_docs arg_docs hdk_items
+         doc_names_map doc_hdr decl_docs arg_docs doc_structure
          ModDetails{  md_insts     = insts,
                       md_fam_insts = fam_insts,
                       md_rules     = rules,
@@ -322,7 +322,7 @@ mkIface_ hsc_env maybe_old_fingerprint
               mi_doc_hdr     = doc_hdr,
               mi_decl_docs   = decl_docs,
               mi_arg_docs    = arg_docs,
-              mi_haddock_items = hdk_items }
+              mi_doc_structure = doc_structure }
 
     (new_iface, no_change_at_all)
           <- {-# SCC "versioninfo" #-}
