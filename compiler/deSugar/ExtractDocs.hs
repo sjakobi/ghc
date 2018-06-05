@@ -32,13 +32,15 @@ import Data.Semigroup
 
 -- | Extract docs from renamer output.
 extractDocs :: TcGblEnv
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap, DocStructure)
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap,
+                DocStructure, NamedChunks)
             -- ^
             -- 1. Identifiers and corresponding names
             -- 2. Module header
             -- 3. Docs on top level declarations
             -- 4. Docs on arguments
             -- 5. Documentation structure
+            -- 6. Named chunks
 extractDocs TcGblEnv { tcg_semantic_mod = mod
                        -- TODO: Why are the exports in reverse order?
                        -- Maybe fix this?!
@@ -49,7 +51,7 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
                      , tcg_fam_insts = fam_insts
                      , tcg_doc_hdr = mb_doc_hdr
                      } =
-    combineDocs mb_doc_hdr doc_map arg_map doc_structure
+    combineDocs mb_doc_hdr doc_map arg_map doc_structure named_chunks
   where
     (doc_map, arg_map) = maybe (M.empty, M.empty)
                                (mkMaps local_insts)
@@ -58,6 +60,9 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
     local_insts = filter (nameIsLocalOrFrom mod)
                          $ map getName insts ++ map getName fam_insts
     doc_structure = mkDocStructure mb_rn_exports mb_rn_decls all_exports
+    -- TODO: We probably have no use for the named chunks section when
+    -- there is no explicit export list. Maybe leave it empty in that case.
+    named_chunks = getNamedChunks mb_rn_decls
 
 -- | Split identifier/'Name' info off module header, declaration docs and
 -- argument docs. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
@@ -66,18 +71,29 @@ combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
             -> (HsDocNamesMap, DocStructure)   -- ^ Docs from section headings
                                                -- and doc chunks
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap, DocStructure)
-combineDocs mb_doc_hdr doc_map arg_map (names_map0, doc_structure) =
-  (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map', doc_structure)
-  where names_map = names_map0 <> hdr_names_map
-                    <> doc_map_names_map <> arg_map_names_map
+            -> Map String (HsDoc Name)         -- ^ Named chunks
+            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap,
+                DocStructure, NamedChunks)
+combineDocs mb_doc_hdr doc_map arg_map (names_map0, doc_structure)
+            named_chunks =
+    (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map',
+     doc_structure, NamedChunks named_chunks')
+  where names_map = names_map0 <> hdr_names_map <> doc_map_names_map
+                    <> arg_map_names_map <> named_chunks_names
+
         (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
+
         doc_map_names_map = foldMap fst split_doc_map
         doc_map' = snd <$> split_doc_map
         split_doc_map = splitHsDoc <$> doc_map
+
         arg_map_names_map = foldMap (foldMap fst) split_arg_map
         arg_map' = fmap snd <$> split_arg_map
         split_arg_map = fmap splitHsDoc <$> arg_map
+
+        named_chunks_names = foldMap fst split_named_chunks
+        named_chunks' = snd <$> split_named_chunks
+        split_named_chunks = splitHsDoc <$> named_chunks
 
 splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
 splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
@@ -150,6 +166,15 @@ mkDocStructureFromDecls all_exports decls = (names, items)
 
     name_locs = M.fromList (concatMap ldeclNames (ungroup decls))
     ldeclNames (L loc d) = zip (getMainDeclBinder d) (repeat loc)
+
+getNamedChunks :: Maybe (HsGroup GhcRn) -> Map String (HsDoc Name)
+getNamedChunks =
+  \case
+    Nothing    -> M.empty
+    Just decls -> M.fromList $ flip mapMaybe (unLoc <$> hs_docs decls) $
+      \case
+        DocCommentNamed name doc -> Just (name, doc)
+        _                        -> Nothing
 
 -- | Create decl and arg doc-maps by looping through the declarations.
 -- For each declaration, find its names, its subordinates, and its doc strings.

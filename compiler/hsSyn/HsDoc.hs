@@ -37,6 +37,9 @@ module HsDoc
 
   , DocStructureItem(..)
   , DocStructure
+
+  , NamedChunks(..)
+  , emptyNamedChunks
   ) where
 
 #include "HsVersions.h"
@@ -326,3 +329,19 @@ instance Outputable DocStructureItem where
       text "re-exported module:" <+> ppr mod_name
 
 type DocStructure = [DocStructureItem]
+
+-- | A collection of named chunks as a map from names to doc chunks.
+newtype NamedChunks = NamedChunks (Map String HsDoc')
+
+instance Binary NamedChunks where
+  put_ bh (NamedChunks m) = put_ bh (Map.toAscList m)
+  get bh = NamedChunks . Map.fromDistinctAscList <$> get bh
+
+instance Outputable NamedChunks where
+  ppr (NamedChunks m) = vcat (map pprPair (Map.toAscList m))
+    where
+      pprPair (name, doc) =
+        doubleQuotes (text name) Outputable.<> colon $$ nest 2 (ppr doc)
+
+emptyNamedChunks :: NamedChunks
+emptyNamedChunks = NamedChunks Map.empty

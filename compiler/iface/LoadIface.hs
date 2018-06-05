@@ -1096,6 +1096,7 @@ pprModIface iface
         , text "declaration docs:" $$ nest 2 (ppr (mi_decl_docs iface))
         , text "arg docs:" $$ nest 2 (ppr (mi_arg_docs iface))
         , text "documentation structure:" $$ nest 2 (vcat (map ppr (mi_doc_structure iface)))
+        , text "named chunks:" $$ nest 2 (ppr (mi_named_chunks iface))
         ]
   where
     pp_hsc_src HsBootFile = text "[boot]"

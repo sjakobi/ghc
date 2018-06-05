@@ -40,4 +40,17 @@ documentation structure:
     spans:
   avails:
     [add]
+named chunks:
+  "functions":
+    text:
+      "
+
+ We have them too."
+    spans:
+  "types":
+    text:
+      "
+
+ Actually we have only one type."
+    spans:
 

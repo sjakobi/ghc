@@ -95,4 +95,10 @@ documentation structure:
     [P{P, p;}]
   avails:
     [Show{Show, show, showList, showsPrec;}]
+named chunks:
+  "namedchunk":
+    text:
+      "
+ This chunk of documentation is named "namedchunk"."
+    spans:
 
