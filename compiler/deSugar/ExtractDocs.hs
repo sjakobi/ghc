@@ -64,8 +64,8 @@ extractDocs TcGblEnv { tcg_semantic_mod = mod
     -- there is no explicit export list. Maybe leave it empty in that case.
     named_chunks = getNamedChunks mb_rn_decls
 
--- | Split identifier/'Name' info off module header, declaration docs and
--- argument docs. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
+-- | Split identifier/'Name' info off doc structures and collect it in a
+-- 'HsDocNamesMap'. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
 combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> Map Name (HsDoc Name)           -- ^ Declaration docs
             -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
