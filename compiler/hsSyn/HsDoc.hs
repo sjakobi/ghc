@@ -24,23 +24,15 @@ module HsDoc
 
   , HsDocIdentifierSpan(..)
 
-  , HsDocNamesMap(..)
-  , emptyHsDocNamesMap
+  , HsDocNamesMap
   , hsDocIdentifierNamesMap
 
   , HsDoc'(..)
 
-  , DeclDocMap(..)
-  , emptyDeclDocMap
-
-  , ArgDocMap(..)
-  , emptyArgDocMap
-
   , DocStructureItem(..)
   , DocStructure
 
-  , NamedChunks(..)
-  , emptyNamedChunks
+  , Docs(..)
   ) where
 
 #include "HsVersions.h"
@@ -203,31 +195,11 @@ concatHDS = HsDocString . BS.concat . map hsDocStringToByteString
 
 type LHsDocString = Located HsDocString
 
--- | A collection of identifiers.
-newtype HsDocNamesMap = HsDocNamesMap (Map HsDocString [Name])
-  deriving ( Semigroup
-             -- ^ Assumes that equal identifiers will correspond to the same
-             -- names.
-           , Monoid
-           )
-
-instance Binary HsDocNamesMap where
-  put_ bh (HsDocNamesMap m) = put_ bh (Map.toAscList m)
-  get bh = HsDocNamesMap . Map.fromDistinctAscList <$> get bh
-
-instance Outputable HsDocNamesMap where
-  ppr (HsDocNamesMap m) = vcat (map pprPair (Map.toAscList m))
-    where
-      pprPair (s, names) =
-        ppr s Outputable.<> colon $$ nest 2 (vcat (map pprName' names))
-      pprName' n = ppr (nameOccName n) <+> text "from" <+> ppr (nameModule n)
-
-emptyHsDocNamesMap :: HsDocNamesMap
-emptyHsDocNamesMap = HsDocNamesMap Map.empty
+type HsDocNamesMap = Map HsDocString [Name]
 
 hsDocIdentifierNamesMap :: HsDocIdentifier Name -> HsDocNamesMap
 hsDocIdentifierNamesMap (HsDocIdentifier _span s names) =
-  HsDocNamesMap (Map.singleton s names)
+  Map.singleton s names
 
 -- | A version of 'HsDoc' intended for serialization.
 data HsDoc' = HsDoc'
@@ -249,40 +221,6 @@ instance Outputable HsDoc' where
     vcat [ text "text:" $$ nest 2 (ppr s)
          , text "spans:" <+> fsep (punctuate (char ',') (map ppr spans))
          ]
-
--- | Docs for declarations: functions, data types, instances, methods etc.
-newtype DeclDocMap = DeclDocMap (Map Name HsDoc')
-
-instance Binary DeclDocMap where
-  put_ bh (DeclDocMap m) = put_ bh (Map.toAscList m)
-  get bh = DeclDocMap . Map.fromDistinctAscList <$> get bh
-
-instance Outputable DeclDocMap where
-  ppr (DeclDocMap m) = vcat (map pprPair (Map.toAscList m))
-    where
-      pprPair (name, doc) = ppr name Outputable.<> colon $$ nest 2 (ppr doc)
-
-emptyDeclDocMap :: DeclDocMap
-emptyDeclDocMap = DeclDocMap Map.empty
-
--- | Docs for arguments. E.g. function arguments, method arguments.
-newtype ArgDocMap = ArgDocMap (Map Name (Map Int HsDoc'))
-
-instance Binary ArgDocMap where
-  put_ bh (ArgDocMap m) = put_ bh (Map.toAscList (Map.toAscList <$> m))
-  get bh = ArgDocMap . fmap Map.fromDistinctAscList . Map.fromDistinctAscList
-             <$> get bh
-
-instance Outputable ArgDocMap where
-  ppr (ArgDocMap m) = vcat (map pprPair (Map.toAscList m))
-    where
-      pprPair (name, int_map) =
-        ppr name Outputable.<> colon $$ nest 2 (pprIntMap int_map)
-      pprIntMap im = vcat (map pprIPair (Map.toAscList im))
-      pprIPair (i, doc) = ppr i Outputable.<> colon $$ nest 2 (ppr doc)
-
-emptyArgDocMap :: ArgDocMap
-emptyArgDocMap = ArgDocMap Map.empty
 
 -- | A simplified version of 'HsImpExp.IE'.
 data DocStructureItem
@@ -340,18 +278,55 @@ instance Outputable DocStructureItem where
 
 type DocStructure = [DocStructureItem]
 
--- | A collection of named chunks as a map from names to doc chunks.
-newtype NamedChunks = NamedChunks (Map String HsDoc')
+data Docs = Docs
+  { docs_id_env       :: HsDocNamesMap
+    -- ^ Identifiers and the names they may correspond to.
+  , docs_mod_hdr      :: Maybe HsDoc'
+    -- ^ Module header.
+  , docs_decls        :: Map Name HsDoc'
+    -- ^ Docs for declarations: functions, data types, instances, methods etc.
+  , docs_args         :: Map Name (Map Int HsDoc')
+    -- ^ Docs for arguments. E.g. function arguments, method arguments.
+  , docs_structure    :: DocStructure
+  , docs_named_chunks :: Map String HsDoc'
+    -- ^ Map from chunk name to content.
+  }
 
-instance Binary NamedChunks where
-  put_ bh (NamedChunks m) = put_ bh (Map.toAscList m)
-  get bh = NamedChunks . Map.fromDistinctAscList <$> get bh
+instance Binary Docs where
+  put_ bh docs = do
+    put_ bh (docs_id_env docs)
+    put_ bh (docs_mod_hdr docs)
+    put_ bh (docs_decls docs)
+    put_ bh (docs_args docs)
+    put_ bh (docs_structure docs)
+    put_ bh (docs_named_chunks docs)
+  get bh = do
+    id_env <- get bh
+    mod_hdr <- get bh
+    decls <- get bh
+    args <- get bh
+    structure <- get bh
+    named_chunks <- get bh
+    pure (Docs id_env mod_hdr decls args structure named_chunks)
 
-instance Outputable NamedChunks where
-  ppr (NamedChunks m) = vcat (map pprPair (Map.toAscList m))
+instance Outputable Docs where
+  ppr docs =
+      vcat
+        [ pprField (pprMap ppr (vcat . map pprName')) "identifier env"
+                   docs_id_env
+        , pprField ppr "module header" docs_mod_hdr
+        , pprField (pprMap ppr ppr) "declaration docs" docs_decls
+        , pprField (pprMap ppr (pprMap ppr ppr)) "arg docs" docs_args
+        , pprField (vcat . map ppr) "documentation structure" docs_structure
+        , pprField (pprMap (doubleQuotes . text) ppr) "named chunks"
+                   docs_named_chunks
+        ]
     where
-      pprPair (name, doc) =
-        doubleQuotes (text name) Outputable.<> colon $$ nest 2 (ppr doc)
-
-emptyNamedChunks :: NamedChunks
-emptyNamedChunks = NamedChunks Map.empty
+      pprField ppr' heading lbl =
+        text heading Outputable.<> colon $$ nest 2 (ppr' (lbl docs))
+      pprMap pprKey pprVal m =
+        vcat $ flip map (Map.toList m) $ \(k, v) ->
+          pprKey k Outputable.<> colon $$ nest 2 (pprVal v)
+      pprName' n =
+        -- TODO: This looks a bit awkward.
+        ppr (nameOccName n) <+> text "from" <+> ppr (nameModule n)

@@ -7,6 +7,7 @@ import GhcPrelude
 
 import Avail
 import Bag
+import DynFlags
 import HsBinds
 import HsDoc
 import HsDecls
@@ -31,26 +32,22 @@ import Data.Maybe
 import Data.Semigroup
 
 -- | Extract docs from renamer output.
-extractDocs :: TcGblEnv
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap,
-                DocStructure, NamedChunks)
-            -- ^
-            -- 1. Identifiers and corresponding names
-            -- 2. Module header
-            -- 3. Docs on top level declarations
-            -- 4. Docs on arguments
-            -- 5. Documentation structure
-            -- 6. Named chunks
-extractDocs TcGblEnv { tcg_semantic_mod = mod
-                       -- TODO: Why are the exports in reverse order?
-                       -- Maybe fix this?!
-                     , tcg_rn_exports = mb_rn_exports
-                     , tcg_exports = all_exports
-                     , tcg_rn_decls = mb_rn_decls
-                     , tcg_insts = insts
-                     , tcg_fam_insts = fam_insts
-                     , tcg_doc_hdr = mb_doc_hdr
-                     } =
+extractDocs :: DynFlags -> TcGblEnv -> Maybe Docs
+extractDocs dflags tc_gbl_env
+  | gopt Opt_Haddock dflags = Just (extractDocs' tc_gbl_env)
+  | otherwise               = Nothing
+
+extractDocs' :: TcGblEnv -> Docs
+extractDocs' TcGblEnv { tcg_semantic_mod = mod
+                        -- TODO: Why are the exports in reverse order?
+                        -- Maybe fix this?!
+                      , tcg_rn_exports = mb_rn_exports
+                      , tcg_exports = all_exports
+                      , tcg_rn_decls = mb_rn_decls
+                      , tcg_insts = insts
+                      , tcg_fam_insts = fam_insts
+                      , tcg_doc_hdr = mb_doc_hdr
+                      } =
     combineDocs mb_doc_hdr doc_map arg_map doc_structure named_chunks
   where
     (doc_map, arg_map) = maybe (M.empty, M.empty)
@@ -72,12 +69,10 @@ combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> (HsDocNamesMap, DocStructure)   -- ^ Docs from section headings
                                                -- and doc chunks
             -> Map String (HsDoc Name)         -- ^ Named chunks
-            -> (HsDocNamesMap, Maybe HsDoc', DeclDocMap, ArgDocMap,
-                DocStructure, NamedChunks)
+            -> Docs
 combineDocs mb_doc_hdr doc_map arg_map (names_map0, doc_structure)
             named_chunks =
-    (names_map, mb_doc_hdr', DeclDocMap doc_map', ArgDocMap arg_map',
-     doc_structure, NamedChunks named_chunks')
+    Docs names_map mb_doc_hdr' doc_map' arg_map' doc_structure named_chunks'
   where names_map = names_map0 <> hdr_names_map <> doc_map_names_map
                     <> arg_map_names_map <> named_chunks_names
 
@@ -96,7 +91,7 @@ combineDocs mb_doc_hdr doc_map arg_map (names_map0, doc_structure)
         split_named_chunks = splitHsDoc <$> named_chunks
 
 splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
-splitMbHsDoc Nothing = (emptyHsDocNamesMap, Nothing)
+splitMbHsDoc Nothing = (M.empty, Nothing)
 splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
 
 -- | If we have an explicit export list, we can easily extract the
@@ -108,7 +103,7 @@ mkDocStructure :: Maybe [(Located (IE GhcRn), Avails)] -- ^ Renamed exports
                -> (HsDocNamesMap, DocStructure)
 mkDocStructure mb_rn_exports mb_rn_decls all_exports =
   fromMaybe
-    (emptyHsDocNamesMap, [])
+    (M.empty, [])
     (asum
       [ mkDocStructureFromExportList <$> mb_rn_exports
       , mkDocStructureFromDecls all_exports <$> mb_rn_decls
@@ -129,7 +124,7 @@ mkDocStructureFromExportList rn_exports =
       (IEDocNamed _ name, _)      -> noDocs (DsiNamedChunkRef name)
       (_, avails)                 -> noDocs (DsiExports (nubAvails avails))
 
-    noDocs x = (emptyHsDocNamesMap, x)
+    noDocs x = (M.empty, x)
 
 -- | Figure out the documentation structure by correlating
 -- the module exports with the located declarations.

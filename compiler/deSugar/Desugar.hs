@@ -168,8 +168,8 @@ deSugar hsc_env
 
         ; let used_names = mkUsedNames tcg_env
               pluginModules =
-                map lpModule (plugins (hsc_dflags hsc_env))
-        ; deps <- mkDependencies (thisInstalledUnitId (hsc_dflags hsc_env))
+                map lpModule (plugins dflags)
+        ; deps <- mkDependencies (thisInstalledUnitId dflags)
                                  pluginModules tcg_env
 
         ; used_th <- readIORef tc_splice_used
@@ -184,8 +184,7 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
-        ; let (doc_names_map, doc_hdr, decl_docs, arg_docs, doc_structure,
-               named_chunks) = extractDocs tcg_env
+        ; let docs = extractDocs dflags tcg_env
 
         ; let mod_guts = ModGuts {
                 mg_module       = mod,
@@ -214,12 +213,7 @@ deSugar hsc_env
                 mg_safe_haskell = safe_mode,
                 mg_trust_pkg    = imp_trust_own_pkg imports,
                 mg_complete_sigs = complete_matches,
-                mg_doc_names_map = doc_names_map,
-                mg_doc_hdr      = doc_hdr,
-                mg_decl_docs    = decl_docs,
-                mg_arg_docs     = arg_docs,
-                mg_doc_structure = doc_structure,
-                mg_named_chunks = named_chunks
+                mg_docs         = docs
               }
         ; return (msgs, Just mod_guts)
         }}}}

@@ -952,24 +952,7 @@ data ModIface
                 -- See Note [RnNames . Trust Own Package]
         mi_complete_sigs :: [IfaceCompleteMatch],
 
-        mi_doc_names_map :: HsDocNamesMap,
-                -- ^ Identifiers that were found in docstrings and the 'Names'
-                -- they might correspond to.
-
-        mi_doc_hdr :: Maybe HsDoc',
-                -- ^ Module header.
-
-        mi_decl_docs :: DeclDocMap,
-                -- ^ Docs on declarations.
-
-        mi_arg_docs :: ArgDocMap,
-                -- ^ Docs on arguments.
-
-        mi_doc_structure :: DocStructure,
-                -- ^ Documentation structure.
-
-        mi_named_chunks :: NamedChunks
-                -- ^ Named documentation chunks.
+        mi_docs      :: Maybe Docs
      }
 
 -- | Old-style accessor for whether or not the ModIface came from an hs-boot
@@ -1048,12 +1031,7 @@ instance Binary ModIface where
                  mi_trust     = trust,
                  mi_trust_pkg = trust_pkg,
                  mi_complete_sigs = complete_sigs,
-                 mi_doc_names_map = doc_names_map,
-                 mi_doc_hdr   = doc_hdr,
-                 mi_decl_docs = decl_docs,
-                 mi_arg_docs  = arg_docs,
-                 mi_doc_structure = doc_structure,
-                 mi_named_chunks = named_chunks }) = do
+                 mi_docs      = docs }) = do
         put_ bh mod
         put_ bh sig_of
         put_ bh hsc_src
@@ -1082,12 +1060,7 @@ instance Binary ModIface where
         put_ bh trust
         put_ bh trust_pkg
         put_ bh complete_sigs
-        lazyPut bh doc_names_map
-        lazyPut bh doc_hdr
-        lazyPut bh decl_docs
-        lazyPut bh arg_docs
-        lazyPut bh doc_structure
-        lazyPut bh named_chunks
+        lazyPut bh docs
 
    get bh = do
         mod         <- get bh
@@ -1118,12 +1091,7 @@ instance Binary ModIface where
         trust       <- get bh
         trust_pkg   <- get bh
         complete_sigs <- get bh
-        doc_names_map <- lazyGet bh
-        doc_hdr     <- lazyGet bh
-        decl_docs   <- lazyGet bh
-        arg_docs    <- lazyGet bh
-        doc_structure <- lazyGet bh
-        named_chunks <- lazyGet bh
+        docs        <- lazyGet bh
         return (ModIface {
                  mi_module      = mod,
                  mi_sig_of      = sig_of,
@@ -1158,12 +1126,7 @@ instance Binary ModIface where
                  mi_fix_fn      = mkIfaceFixCache fixities,
                  mi_hash_fn     = mkIfaceHashCache decls,
                  mi_complete_sigs = complete_sigs,
-                 mi_doc_names_map = doc_names_map,
-                 mi_doc_hdr     = doc_hdr,
-                 mi_decl_docs   = decl_docs,
-                 mi_arg_docs    = arg_docs,
-                 mi_doc_structure = doc_structure,
-                 mi_named_chunks = named_chunks })
+                 mi_docs        = docs })
 
 -- | The original names declared of a certain module that are exported
 type IfaceExport = AvailInfo
@@ -1203,13 +1166,7 @@ emptyModIface mod
                mi_trust       = noIfaceTrustInfo,
                mi_trust_pkg   = False,
                mi_complete_sigs = [],
-               mi_doc_names_map = emptyHsDocNamesMap,
-               mi_doc_hdr     = Nothing,
-               mi_decl_docs   = emptyDeclDocMap,
-               mi_arg_docs    = emptyArgDocMap,
-               mi_doc_structure = [],
-               mi_named_chunks = emptyNamedChunks }
-
+               mi_docs        = Nothing }
 
 -- | Constructs cache for the 'mi_hash_fn' field of a 'ModIface'
 mkIfaceHashCache :: [(Fingerprint,IfaceDecl)]
@@ -1337,14 +1294,7 @@ data ModGuts
                                                 -- own package for Safe Haskell?
                                                 -- See Note [RnNames . Trust Own Package]
 
-        mg_doc_names_map :: !HsDocNamesMap,  -- ^ Identifiers that were found
-                                             -- in docstrings and the 'Names'
-                                             -- they might correspond to.
-        mg_doc_hdr       :: !(Maybe HsDoc'), -- ^ Module header.
-        mg_decl_docs     :: !DeclDocMap,     -- ^ Docs on declarations.
-        mg_arg_docs      :: !ArgDocMap,      -- ^ Docs on arguments.
-        mg_doc_structure :: !DocStructure,   -- ^ Documentation structure.
-        mg_named_chunks  :: !NamedChunks     -- ^ Named documentation chunks.
+        mg_docs         :: !(Maybe Docs)        -- ^ Documentation.
     }
 
 -- The ModGuts takes on several slightly different forms:

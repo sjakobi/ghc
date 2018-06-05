@@ -78,6 +78,8 @@ import qualified Data.ByteString.Internal as BS
 import qualified Data.ByteString.Unsafe   as BS
 import Data.IORef
 import Data.Char                ( ord, chr )
+import Data.Map                 ( Map )
+import qualified Data.Map as Map
 import Data.Time
 import Type.Reflection
 import Type.Reflection.Unsafe
@@ -1173,3 +1175,11 @@ instance Binary SourceText where
         s <- get bh
         return (SourceText s)
       _ -> panic $ "Binary SourceText:" ++ show h
+
+--------------------------------------------------------------------------------
+-- Instances for the containers package
+--------------------------------------------------------------------------------
+
+instance (Binary k, Binary v) => Binary (Map k v) where
+  put_ bh m = put_ bh (Map.toAscList m)
+  get bh = Map.fromDistinctAscList <$> get bh
