@@ -62,35 +62,34 @@ extractDocs' TcGblEnv { tcg_semantic_mod = mod
     named_chunks = getNamedChunks mb_rn_decls
 
 -- | Split identifier/'Name' info off doc structures and collect it in a
--- 'HsDocNamesMap'. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
+-- 'DocIdEnv'. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
 combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> Map Name (HsDoc Name)           -- ^ Declaration docs
             -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
-            -> (HsDocNamesMap, DocStructure)   -- ^ Docs from section headings
+            -> (DocIdEnv, DocStructure)        -- ^ Docs from section headings
                                                -- and doc chunks
             -> Map String (HsDoc Name)         -- ^ Named chunks
             -> Docs
-combineDocs mb_doc_hdr doc_map arg_map (names_map0, doc_structure)
-            named_chunks =
-    Docs names_map mb_doc_hdr' doc_map' arg_map' doc_structure named_chunks'
-  where names_map = names_map0 <> hdr_names_map <> doc_map_names_map
-                    <> arg_map_names_map <> named_chunks_names
+combineDocs mb_doc_hdr doc_map arg_map (id_env0, doc_structure) named_chunks =
+    Docs id_env mb_doc_hdr' doc_map' arg_map' doc_structure named_chunks'
+  where id_env = M.unions [id_env0, hdr_id_env, doc_map_id_env,
+                           arg_map_id_env, named_chunks_id_env]
 
-        (hdr_names_map, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
+        (hdr_id_env, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
 
-        doc_map_names_map = foldMap fst split_doc_map
+        doc_map_id_env = foldMap fst split_doc_map
         doc_map' = snd <$> split_doc_map
         split_doc_map = splitHsDoc <$> doc_map
 
-        arg_map_names_map = foldMap (foldMap fst) split_arg_map
+        arg_map_id_env = foldMap (foldMap fst) split_arg_map
         arg_map' = fmap snd <$> split_arg_map
         split_arg_map = fmap splitHsDoc <$> arg_map
 
-        named_chunks_names = foldMap fst split_named_chunks
+        named_chunks_id_env = foldMap fst split_named_chunks
         named_chunks' = snd <$> split_named_chunks
         split_named_chunks = splitHsDoc <$> named_chunks
 
-splitMbHsDoc :: Maybe (HsDoc Name) -> (HsDocNamesMap, Maybe HsDoc')
+splitMbHsDoc :: Maybe (HsDoc Name) -> (DocIdEnv, Maybe HsDoc')
 splitMbHsDoc Nothing = (M.empty, Nothing)
 splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
 
@@ -100,7 +99,7 @@ splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
 mkDocStructure :: Maybe [(Located (IE GhcRn), Avails)] -- ^ Renamed exports
                -> Maybe (HsGroup GhcRn)
                -> [AvailInfo]                          -- ^ All exports
-               -> (HsDocNamesMap, DocStructure)
+               -> (DocIdEnv, DocStructure)
 mkDocStructure mb_rn_exports mb_rn_decls all_exports =
   fromMaybe
     (M.empty, [])
@@ -110,13 +109,13 @@ mkDocStructure mb_rn_exports mb_rn_decls all_exports =
       ])
 
 mkDocStructureFromExportList :: [(Located (IE GhcRn), Avails)]
-                             -> (HsDocNamesMap, DocStructure)
+                             -> (DocIdEnv, DocStructure)
 mkDocStructureFromExportList rn_exports =
     (foldMap fst items, map snd items)
   where
     items = map (getDsi . first unLoc) (reverse rn_exports)
 
-    getDsi :: (IE GhcRn, Avails) -> (HsDocNamesMap, DocStructureItem)
+    getDsi :: (IE GhcRn, Avails) -> (DocIdEnv, DocStructureItem)
     getDsi = \case
       (IEModuleContents _ lmn, _) -> noDocs (DsiModExport (unLoc lmn))
       (IEGroup _ level doc, _)    -> DsiSectionHeading level <$> splitHsDoc doc
@@ -130,10 +129,10 @@ mkDocStructureFromExportList rn_exports =
 -- the module exports with the located declarations.
 mkDocStructureFromDecls :: [AvailInfo] -- ^ All exports, unordered
                         -> HsGroup GhcRn
-                        -> (HsDocNamesMap, DocStructure)
-mkDocStructureFromDecls all_exports decls = (names, items)
+                        -> (DocIdEnv, DocStructure)
+mkDocStructureFromDecls all_exports decls = (id_env, items)
   where
-    names = foldMap fst split_docs
+    id_env = foldMap fst split_docs
     items = map unLoc (sortByLoc (docs ++ avails))
     docs = map snd split_docs
 
@@ -147,7 +146,7 @@ mkDocStructureFromDecls all_exports decls = (names, items)
     split_docs = mapMaybe structuralDoc (hs_docs decls)
 
     structuralDoc :: LDocDecl GhcRn
-                  -> Maybe (HsDocNamesMap, Located DocStructureItem)
+                  -> Maybe (DocIdEnv, Located DocStructureItem)
     structuralDoc = \case
       L loc (DocCommentNamed _name doc) ->
         -- TODO: Is this correct?
