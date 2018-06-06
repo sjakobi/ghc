@@ -13,6 +13,7 @@ import Outputable
 import HsImpExp
 import HsDecls
 import HsDoc
+import Name
 
 plugin :: Plugin
 plugin = defaultPlugin { parsedResultAction = parsedPlugin
@@ -30,7 +31,7 @@ parsedPlugin opts _ pm
 
 renamedAction :: [CommandLineOption] -> ModSummary
                     -> ( HsGroup GhcRn, [LImportDecl GhcRn]
-                       , Maybe [(LIE GhcRn, Avails)], Maybe LHsDocString )
+                       , Maybe [(LIE GhcRn, Avails)], Maybe (LHsDoc Name) )
                     -> Hsc ()
 renamedAction _ _ ( gr, _, _, _ )
   = liftIO $ putStrLn "typeCheckPlugin (rn)"
