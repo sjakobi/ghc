@@ -24,8 +24,8 @@ module HsDoc
 
   , HsDocIdentifierSpan(..)
 
-  , HsDocNamesMap
-  , hsDocIdentifierNamesMap
+  , DocIdEnv
+  , hsDocIdentifierIdEnv
 
   , HsDoc'(..)
 
@@ -131,11 +131,11 @@ concatHsDoc xs =
     HsDoc s [] | nullHDS s -> Nothing
     x -> Just x
 
-splitHsDoc :: HsDoc Name -> (HsDocNamesMap, HsDoc')
-splitHsDoc (HsDoc s ids) = (names, hsDoc')
+splitHsDoc :: HsDoc Name -> (DocIdEnv, HsDoc')
+splitHsDoc (HsDoc s ids) = (id_env, hsDoc')
   where
     hsDoc' = HsDoc' s (hsDocIdentifierSpan <$> ids)
-    names = foldMap hsDocIdentifierNamesMap ids
+    id_env = foldMap hsDocIdentifierIdEnv ids
 
 type LHsDoc name = Located (HsDoc name)
 
@@ -195,10 +195,11 @@ concatHDS = HsDocString . BS.concat . map hsDocStringToByteString
 
 type LHsDocString = Located HsDocString
 
-type HsDocNamesMap = Map HsDocString [Name]
+-- | Identifiers and the names they may correspond to.
+type DocIdEnv = Map HsDocString [Name]
 
-hsDocIdentifierNamesMap :: HsDocIdentifier Name -> HsDocNamesMap
-hsDocIdentifierNamesMap (HsDocIdentifier _span s names) =
+hsDocIdentifierIdEnv :: HsDocIdentifier Name -> DocIdEnv
+hsDocIdentifierIdEnv (HsDocIdentifier _span s names) =
   Map.singleton s names
 
 -- | A version of 'HsDoc' intended for serialization.
@@ -279,7 +280,7 @@ instance Outputable DocStructureItem where
 type DocStructure = [DocStructureItem]
 
 data Docs = Docs
-  { docs_id_env       :: HsDocNamesMap
+  { docs_id_env       :: DocIdEnv
     -- ^ Identifiers and the names they may correspond to.
   , docs_mod_hdr      :: Maybe HsDoc'
     -- ^ Module header.
