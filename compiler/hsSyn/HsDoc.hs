@@ -291,6 +291,9 @@ data Docs = Docs
   , docs_structure    :: DocStructure
   , docs_named_chunks :: Map String HsDoc'
     -- ^ Map from chunk name to content.
+    --
+    -- This map will be empty unless we have an explicit export list from which
+    -- we can reference the chunks.
   }
 
 instance Binary Docs where

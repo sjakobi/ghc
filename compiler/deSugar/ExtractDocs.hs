@@ -59,7 +59,7 @@ extractDocs' TcGblEnv { tcg_semantic_mod = mod
     doc_structure = mkDocStructure mb_rn_exports mb_rn_decls all_exports
     -- TODO: We probably have no use for the named chunks section when
     -- there is no explicit export list. Maybe leave it empty in that case.
-    named_chunks = getNamedChunks mb_rn_decls
+    named_chunks = getNamedChunks (isJust mb_rn_exports) mb_rn_decls
 
 -- | Split identifier/'Name' info off doc structures and collect it in a
 -- 'DocIdEnv'. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
@@ -161,14 +161,14 @@ mkDocStructureFromDecls all_exports decls = (id_env, items)
     name_locs = M.fromList (concatMap ldeclNames (ungroup decls))
     ldeclNames (L loc d) = zip (getMainDeclBinder d) (repeat loc)
 
-getNamedChunks :: Maybe (HsGroup GhcRn) -> Map String (HsDoc Name)
-getNamedChunks =
-  \case
-    Nothing    -> M.empty
-    Just decls -> M.fromList $ flip mapMaybe (unLoc <$> hs_docs decls) $
-      \case
-        DocCommentNamed name doc -> Just (name, doc)
-        _                        -> Nothing
+getNamedChunks :: Bool -- ^ Do we have an explicit export list?
+               -> Maybe (HsGroup GhcRn)
+               -> Map String (HsDoc Name)
+getNamedChunks True (Just decls) =
+  M.fromList $ flip mapMaybe (unLoc <$> hs_docs decls) $ \case
+    DocCommentNamed name doc -> Just (name, doc)
+    _                        -> Nothing
+getNamedChunks _ _ = M.empty
 
 -- | Create decl and arg doc-maps by looping through the declarations.
 -- For each declaration, find its names, its subordinates, and its doc strings.
