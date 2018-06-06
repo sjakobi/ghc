@@ -104,8 +104,10 @@ data HsDoc name = HsDoc
   , hsDocIdentifiers :: ![HsDocIdentifier name]
   } deriving (Eq, Show, Data)
 
+-- | For compatibility with the existing @-ddump-parsed' output, we only show
+-- the docstring.
 instance Outputable (HsDoc a) where
-  ppr _ = text "<document comment>"
+  ppr (HsDoc s _ids) = ppr s
 
 emptyHsDoc :: HsDoc a
 emptyHsDoc = HsDoc (HsDocString BS.empty) []
