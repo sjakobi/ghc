@@ -25,6 +25,7 @@ import RdrName
 import RnTypes
 import RnBinds
 import RnEnv
+import RnHsDoc
 import RnUtils          ( HsDocContext(..), mapFvRn, bindLocalNames
                         , checkDupRdrNames, inHsDocContext, bindLocalNamesFV
                         , checkShadowedRdrNames, warnUnusedTypePatterns
@@ -274,7 +275,7 @@ gather them together.
 -}
 
 -- checks that the deprecations are defined locally, and that there are no duplicates
-rnSrcWarnDecls :: NameSet -> [LWarnDecls GhcPs] -> RnM Warnings
+rnSrcWarnDecls :: NameSet -> [LWarnDecls GhcPs] -> RnM (Warnings (LHsDoc Name))
 rnSrcWarnDecls _ []
   = return NoWarnings
 
@@ -294,7 +295,8 @@ rnSrcWarnDecls bndr_set decls'
        -- ensures that the names are defined locally
      = do { names <- concatMapM (lookupLocalTcNames sig_ctxt what . unLoc)
                                 rdr_names
-          ; return [(rdrNameOcc rdr, txt) | (rdr, _) <- names] }
+          ; txt' <- traverse rnLHsDoc txt
+          ; return [(rdrNameOcc rdr, txt') | (rdr, _) <- names] }
    rn_deprec (XWarnDecl _) = panic "rnSrcWarnDecls"
 
    what = text "deprecation"

@@ -178,7 +178,6 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
                       tcg_rdr_env = rdr_env,
                       tcg_fix_env = fix_env,
                       tcg_merged = merged,
-                      tcg_warns = warns,
                       tcg_hpc = other_hpc_info,
                       tcg_th_splice_used = tc_splice_used,
                       tcg_dependent_files = dependent_files
@@ -203,7 +202,7 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
           -- See Note [Identity versus semantic module]
           usages <- mkUsageInfo hsc_env this_mod (imp_mods imports) used_names dep_files merged
 
-          let docs = extractDocs dflags tc_result
+          let (warns, docs) = extractDocs dflags tc_result
 
           mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src
@@ -214,7 +213,7 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
 
 mkIface_ :: HscEnv -> Maybe Fingerprint -> Module -> HscSource
          -> Bool -> Dependencies -> GlobalRdrEnv
-         -> NameEnv FixItem -> Warnings -> HpcInfo
+         -> NameEnv FixItem -> Warnings HsDoc' -> HpcInfo
          -> Bool
          -> SafeHaskellMode
          -> [Usage]

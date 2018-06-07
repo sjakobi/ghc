@@ -17,3 +17,7 @@ DocsInHiFile1:
 NoExportList:
 	'$(TEST_HC)' $(TEST_HC_OPTS) -c -haddock NoExportList.hs
 	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface NoExportList.hi | grep -A 100 'docs:'
+
+PragmaDocs:
+	'$(TEST_HC)' $(TEST_HC_OPTS) -c -haddock PragmaDocs.hs
+	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface PragmaDocs.hi | grep -A 100 'Warnings:'

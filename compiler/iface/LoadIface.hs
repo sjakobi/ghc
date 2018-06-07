@@ -1166,16 +1166,6 @@ pprTrustInfo trust = text "trusted:" <+> ppr trust
 pprTrustPkg :: Bool -> SDoc
 pprTrustPkg tpkg = text "require own pkg trusted:" <+> ppr tpkg
 
-instance Outputable Warnings where
-    ppr = pprWarns
-
-pprWarns :: Warnings -> SDoc
-pprWarns NoWarnings         = Outputable.empty
-pprWarns (WarnAll txt)  = text "Warn all" <+> ppr txt
-pprWarns (WarnSome prs) = text "Warnings"
-                        <+> vcat (map pprWarning prs)
-    where pprWarning (name, txt) = ppr name <+> ppr txt
-
 pprIfaceAnnotation :: IfaceAnnotation -> SDoc
 pprIfaceAnnotation (IfaceAnnotation { ifAnnotatedTarget = target, ifAnnotatedValue = serialized })
   = ppr target <+> text "annotated by" <+> ppr serialized

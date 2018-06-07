@@ -242,10 +242,12 @@ tcRnModuleTcRnM hsc_env hsc_src
           -- If the whole module is warned about or deprecated
           -- (via mod_deprec) record that in tcg_warns. If we do thereby add
           -- a WarnAll, it will override any subsequent deprecations added to tcg_warns
-        let { tcg_env1 = case mod_deprec of
-                         Just (L _ txt) -> tcg_env { tcg_warns = WarnAll txt }
-                         Nothing        -> tcg_env
-            } ;
+        mb_warn_txt <- traverse (traverse rnLHsDoc) (unLoc <$> mod_deprec) ;
+        let { tcg_env1 = maybe
+                           tcg_env
+                           (\txt -> tcg_env { tcg_warns = WarnAll txt })
+                           mb_warn_txt
+            };
 
         setGblEnv tcg_env1 $ do {
 

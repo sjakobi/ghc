@@ -760,12 +760,16 @@ missing_module_keyword :: { () }
 implicit_top :: { () }
         : {- empty -}                           {% pushModuleContext }
 
-maybemodwarning :: { Maybe (Located WarningTxt) }
+maybemodwarning :: { Maybe (Located (WarningTxt (LHsDoc RdrName))) }
     : '{-# DEPRECATED' strings '#-}'
-                      {% ajs (Just (sLL $1 $> $ DeprecatedTxt (sL1 $1 (getDEPRECATED_PRAGs $1)) (snd $ unLoc $2)))
+                      {% ajs (Just (sLL $1 $> $ WarningTxt WsDeprecated
+                                                           (sL1 $1 (getDEPRECATED_PRAGs $1))
+                                                           (map stringLiteralToHsDoc (snd $ unLoc $2))))
                              (mo $1:mc $3: (fst $ unLoc $2)) }
     | '{-# WARNING' strings '#-}'
-                         {% ajs (Just (sLL $1 $> $ WarningTxt (sL1 $1 (getWARNING_PRAGs $1)) (snd $ unLoc $2)))
+                         {% ajs (Just (sLL $1 $> $ WarningTxt WsWarning
+                                                              (sL1 $1 (getWARNING_PRAGs $1))
+                                                              (map stringLiteralToHsDoc (snd $ unLoc $2))))
                                 (mo $1:mc $3 : (fst $ unLoc $2)) }
     |  {- empty -}                  { Nothing }
 
@@ -1658,7 +1662,9 @@ warnings :: { OrdList (LWarnDecl GhcPs) }
 -- SUP: TEMPORARY HACK, not checking for `module Foo'
 warning :: { OrdList (LWarnDecl GhcPs) }
         : namelist strings
-                {% amsu (sLL $1 $> (Warning noExt (unLoc $1) (WarningTxt (noLoc NoSourceText) $ snd $ unLoc $2)))
+                {% amsu (sLL $1 $> (Warning noExt (unLoc $1) (WarningTxt WsWarning
+                                                                         (noLoc NoSourceText)
+                                                                         (map stringLiteralToHsDoc $ snd $ unLoc $2))))
                      (fst $ unLoc $2) }
 
 deprecations :: { OrdList (LWarnDecl GhcPs) }
@@ -1673,7 +1679,9 @@ deprecations :: { OrdList (LWarnDecl GhcPs) }
 -- SUP: TEMPORARY HACK, not checking for `module Foo'
 deprecation :: { OrdList (LWarnDecl GhcPs) }
         : namelist strings
-             {% amsu (sLL $1 $> $ (Warning noExt (unLoc $1) (DeprecatedTxt (noLoc NoSourceText) $ snd $ unLoc $2)))
+             {% amsu (sLL $1 $> $ (Warning noExt (unLoc $1) (WarningTxt WsDeprecated
+                                                                        (noLoc NoSourceText)
+                                                                        (map stringLiteralToHsDoc $ snd $ unLoc $2))))
                      (fst $ unLoc $2) }
 
 strings :: { Located ([AddAnn],[Located StringLiteral]) }
@@ -3561,6 +3569,9 @@ getSCC lt = do let s = getSTRING lt
 
 lexHsDoc' :: String -> HsDoc RdrName
 lexHsDoc' = lexHsDoc parseIdentifier
+
+stringLiteralToHsDoc :: Located StringLiteral -> LHsDoc RdrName
+stringLiteralToHsDoc = fmap (lexHsDoc' . unpackFS . sl_fs)
 
 -- Utilities for combining source spans
 comb2 :: Located a -> Located b -> SrcSpan

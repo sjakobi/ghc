@@ -88,7 +88,7 @@ data HsModule pass
         -- downstream.
       hsmodDecls :: [LHsDecl pass],
         -- ^ Type, class, value, and interface signature decls
-      hsmodDeprecMessage :: Maybe (Located WarningTxt),
+      hsmodDeprecMessage :: Maybe (Located (WarningTxt (LHsDoc (IdP pass)))),
         -- ^ reason\/explanation for warning/deprecation of this module
         --
         --  - 'ApiAnnotation.AnnKeywordId's : 'ApiAnnotation.AnnOpen'

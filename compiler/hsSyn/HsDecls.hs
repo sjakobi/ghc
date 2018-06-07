@@ -2203,7 +2203,7 @@ type instance XXWarnDecls    (GhcPass _) = NoExt
 type LWarnDecl pass = Located (WarnDecl pass)
 
 -- | Warning pragma Declaration
-data WarnDecl pass = Warning (XWarning pass) [Located (IdP pass)] WarningTxt
+data WarnDecl pass = Warning (XWarning pass) [Located (IdP pass)] (WarningTxt (LHsDoc (IdP pass)))
                    | XWarnDecl (XXWarnDecl pass)
 
 type instance XWarning      (GhcPass _) = NoExt

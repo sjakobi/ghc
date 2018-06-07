@@ -11,3 +11,7 @@ test('NoExportList',
      normal,
      run_command,
      ['$MAKE -s --no-print-directory NoExportList'])
+test('PragmaDocs',
+     normal,
+     run_command,
+     ['$MAKE -s --no-print-directory PragmaDocs'])

@@ -4,6 +4,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE LambdaCase #-}
 
 {-# OPTIONS_GHC -O2 -funbox-strict-fields #-}
 -- We always optimise this, otherwise performance of a non-optimised
@@ -72,6 +73,7 @@ import BasicTypes
 import SrcLoc
 
 import Foreign
+import Control.Applicative
 import Data.Array
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS
@@ -1087,25 +1089,24 @@ instance Binary Fixity where
           ab <- get bh
           return (Fixity src aa ab)
 
-instance Binary WarningTxt where
-    put_ bh (WarningTxt s w) = do
-            putByte bh 0
-            put_ bh s
-            put_ bh w
-    put_ bh (DeprecatedTxt s d) = do
-            putByte bh 1
-            put_ bh s
-            put_ bh d
+-- | Ignores the 'wt_label' field.
+instance Binary text => Binary (WarningTxt text) where
+  put_ bh (WarningTxt sort_ _lbl txt_) = do
+    put_ bh sort_
+    put_ bh txt_
+  get bh = liftA3 WarningTxt (get bh) (pure (noLoc NoSourceText)) (get bh)
 
-    get bh = do
-            h <- getByte bh
-            case h of
-              0 -> do s <- get bh
-                      w <- get bh
-                      return (WarningTxt s w)
-              _ -> do s <- get bh
-                      d <- get bh
-                      return (DeprecatedTxt s d)
+instance Binary WarningSort where
+  put_ bh =
+    \case
+      WsWarning -> putByte bh 0
+      WsDeprecated -> putByte bh 1
+  get bh = do
+    tag <- getByte bh
+    case tag of
+      0 -> pure WsWarning
+      1 -> pure WsDeprecated
+      _ -> fail "instance Binary WarningSort: Bad tag"
 
 instance Binary StringLiteral where
   put_ bh (StringLiteral st fs) = do

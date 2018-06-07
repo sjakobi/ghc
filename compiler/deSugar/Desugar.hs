@@ -94,7 +94,6 @@ deSugar hsc_env
                             tcg_inst_env     = inst_env,
                             tcg_fam_inst_env = fam_inst_env,
                             tcg_merged       = merged,
-                            tcg_warns        = warns,
                             tcg_anns         = anns,
                             tcg_binds        = binds,
                             tcg_imp_specs    = imp_specs,
@@ -184,7 +183,7 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
-        ; let docs = extractDocs dflags tcg_env
+        ; let (warns, docs) = extractDocs dflags tcg_env
 
         ; let mod_guts = ModGuts {
                 mg_module       = mod,
