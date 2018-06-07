@@ -1049,7 +1049,7 @@ showIface hsc_env filename = do
        readBinIface IgnoreHiWay TraceBinIFaceReading filename
    let dflags = hsc_dflags hsc_env
    putLogMsg dflags NoReason SevDump noSrcSpan
-      (defaultDumpStyle dflags) (pprModIface iface)
+      (mkDumpStyle dflags alwaysQualify) (pprModIface iface)
 
 -- Show a ModIface but don't display details; suitable for ModIfaces stored in
 -- the EPT.

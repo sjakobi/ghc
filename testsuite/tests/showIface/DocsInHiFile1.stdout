@@ -4,29 +4,29 @@ module header:
 '<>', ':=:', 'Bool'
 "
 declaration docs:
-  D':
+  DocsInHiFile.D':
     " Another datatype...
 
  ...with two docstrings."
-  P:
+  DocsInHiFile.P:
     " A class"
-  p:
+  DocsInHiFile.p:
     " A class method"
-  D:
+  DocsInHiFile.D:
     " A datatype."
-  D0:
+  DocsInHiFile.D0:
     " A constructor for 'D'. '"
-  D1:
+  DocsInHiFile.D1:
     " Another constructor"
-  elem:
+  DocsInHiFile.elem:
     " '()', 'elem'."
-  $fShowD:
+  DocsInHiFile.$fShowD:
     " 'Show' instance"
 arg docs:
-  p:
+  DocsInHiFile.p:
     0:
       " An argument"
-  add:
+  DocsInHiFile.add:
     0:
       " First summand for 'add'"
     1:
