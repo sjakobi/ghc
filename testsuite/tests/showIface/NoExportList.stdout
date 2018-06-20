@@ -42,4 +42,5 @@ docs:
          avails:
            [add]
        named chunks:
+       haddock options:
 
