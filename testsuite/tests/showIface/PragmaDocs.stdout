@@ -25,4 +25,5 @@ docs:
          avails:
            [y]
        named chunks:
+       haddock options:
 

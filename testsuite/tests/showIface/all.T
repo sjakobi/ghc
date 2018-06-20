@@ -15,3 +15,7 @@ test('PragmaDocs',
      normal,
      run_command,
      ['$MAKE -s --no-print-directory PragmaDocs'])
+test('HaddockOpts',
+     normal,
+     run_command,
+     ['$MAKE -s --no-print-directory HaddockOpts'])

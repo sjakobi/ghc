@@ -108,4 +108,5 @@ docs:
              "
  This chunk of documentation is named "namedchunk"."
            spans:
+       haddock options:
 
