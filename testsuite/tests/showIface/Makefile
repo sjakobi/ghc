@@ -21,3 +21,7 @@ NoExportList:
 PragmaDocs:
 	'$(TEST_HC)' $(TEST_HC_OPTS) -c -haddock PragmaDocs.hs
 	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface PragmaDocs.hi | grep -A 100 'Warnings:'
+
+HaddockOpts:
+	'$(TEST_HC)' $(TEST_HC_OPTS) -c -haddock HaddockOpts.hs
+	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface HaddockOpts.hi | grep -A 100 'docs:'

@@ -33,6 +33,7 @@ module HsDoc
   , DocStructure
 
   , Docs(..)
+  , emptyDocs
   ) where
 
 #include "HsVersions.h"
@@ -296,6 +297,8 @@ data Docs = Docs
     --
     -- This map will be empty unless we have an explicit export list from which
     -- we can reference the chunks.
+  , docs_haddock_opts :: Maybe String
+    -- ^ Haddock options from @OPTIONS_HADDOCK@ or from @-haddock-opts@.
   }
 
 instance Binary Docs where
@@ -306,6 +309,7 @@ instance Binary Docs where
     put_ bh (docs_args docs)
     put_ bh (docs_structure docs)
     put_ bh (docs_named_chunks docs)
+    put_ bh (docs_haddock_opts docs)
   get bh = do
     id_env <- get bh
     mod_hdr <- get bh
@@ -313,7 +317,8 @@ instance Binary Docs where
     args <- get bh
     structure <- get bh
     named_chunks <- get bh
-    pure (Docs id_env mod_hdr decls args structure named_chunks)
+    haddock_opts <- get bh
+    pure (Docs id_env mod_hdr decls args structure named_chunks haddock_opts)
 
 instance Outputable Docs where
   ppr docs =
@@ -326,6 +331,7 @@ instance Outputable Docs where
         , pprField (vcat . map ppr) "documentation structure" docs_structure
         , pprField (pprMap (doubleQuotes . text) ppr) "named chunks"
                    docs_named_chunks
+        , pprField pprMbString "haddock options" docs_haddock_opts
         ]
     where
       pprField ppr' heading lbl =
@@ -336,3 +342,16 @@ instance Outputable Docs where
       pprName' n =
         -- TODO: This looks a bit awkward.
         ppr (nameOccName n) <+> text "from" <+> ppr (nameModule n)
+      pprMbString Nothing = empty
+      pprMbString (Just s) = text s
+
+emptyDocs :: Docs
+emptyDocs = Docs
+  { docs_id_env = Map.empty
+  , docs_mod_hdr = Nothing
+  , docs_decls = Map.empty
+  , docs_args = Map.empty
+  , docs_structure = []
+  , docs_named_chunks = Map.empty
+  , docs_haddock_opts = Nothing
+  }

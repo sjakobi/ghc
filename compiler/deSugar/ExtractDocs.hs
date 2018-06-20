@@ -37,11 +37,14 @@ import Data.Tuple
 -- | Extract docs from renamer output.
 extractDocs :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Maybe Docs)
 extractDocs dflags tc_gbl_env
-  | gopt Opt_Haddock dflags = Just <$> (extractDocs' tc_gbl_env)
-  | otherwise               = Nothing <$ extractDocs' tc_gbl_env
+  | gopt Opt_Haddock dflags = (warns, Just docs)
+  | otherwise               = (warns, Nothing)
+  where
+    (warns, docs) = extractDocs' dflags tc_gbl_env
 
-extractDocs' :: TcGblEnv -> (Warnings HsDoc', Docs)
-extractDocs' TcGblEnv { tcg_semantic_mod = mod
+extractDocs' :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Docs)
+extractDocs' dflags
+             TcGblEnv { tcg_semantic_mod = mod
                         -- TODO: Why are the exports in reverse order?
                         -- Maybe fix this?!
                       , tcg_rn_exports = mb_rn_exports
@@ -52,8 +55,13 @@ extractDocs' TcGblEnv { tcg_semantic_mod = mod
                       , tcg_fam_insts = fam_insts
                       , tcg_doc_hdr = mb_doc_hdr
                       } =
-    combineDocs mb_doc_hdr doc_map arg_map doc_structure named_chunks warns
+    ( warns'
+    , combined_docs { docs_haddock_opts = haddockOptions dflags }
+    )
   where
+    (warns', combined_docs) = combineDocs mb_doc_hdr doc_map arg_map
+                                          doc_structure named_chunks warns
+
     (doc_map, arg_map) = maybe (M.empty, M.empty)
                                (mkMaps local_insts)
                                mb_decls_with_docs
@@ -78,7 +86,13 @@ combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
 combineDocs mb_doc_hdr doc_map arg_map (id_env0, doc_structure) named_chunks
             warns =
     ( warns'
-    , Docs id_env mb_doc_hdr' doc_map' arg_map' doc_structure named_chunks'
+    , emptyDocs { docs_id_env = id_env
+                , docs_mod_hdr =  mb_doc_hdr'
+                , docs_decls = doc_map'
+                , docs_args =  arg_map'
+                , docs_structure = doc_structure
+                , docs_named_chunks = named_chunks'
+                }
     )
   where id_env = M.unions [id_env0, hdr_id_env, doc_map_id_env,
                            arg_map_id_env, named_chunks_id_env, warns_id_env]
