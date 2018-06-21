@@ -7,8 +7,8 @@ docs:
        documentation structure:
        named chunks:
        haddock options:
-         not-home, show-extensions
        language:
-         Nothing
+         Just Haskell98
        language extensions:
+         PatternGuards
 

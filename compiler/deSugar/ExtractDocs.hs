@@ -8,6 +8,7 @@ import GhcPrelude
 import Avail
 import Bag
 import DynFlags
+import qualified EnumSet
 import HsBinds
 import HsDoc
 import HsDecls
@@ -56,9 +57,16 @@ extractDocs' dflags
                       , tcg_doc_hdr = mb_doc_hdr
                       } =
     ( warns'
-    , combined_docs { docs_haddock_opts = haddockOptions dflags }
+    , combined_docs { docs_haddock_opts = haddockOptions dflags
+                    , docs_language = language_
+                    , docs_extensions = exts
+                    }
     )
   where
+    exts = EnumSet.difference (extensionFlags dflags)
+                              (EnumSet.fromList (languageExtensions language_))
+    language_ = language dflags
+
     (warns', combined_docs) = combineDocs mb_doc_hdr doc_map arg_map
                                           doc_structure named_chunks warns
 
