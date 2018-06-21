@@ -42,7 +42,10 @@ import GhcPrelude
 
 import Avail
 import Binary
+import DynFlags
 import Encoding
+import EnumSet (EnumSet)
+import qualified EnumSet
 import FastFunctions
 import Module
 import Name
@@ -60,6 +63,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Foreign
 import GHC.ForeignPtr
+import GHC.LanguageExtensions.Type
 
 -- | The location of an identifier in a 'HsDocString'.
 
@@ -299,6 +303,11 @@ data Docs = Docs
     -- we can reference the chunks.
   , docs_haddock_opts :: Maybe String
     -- ^ Haddock options from @OPTIONS_HADDOCK@ or from @-haddock-opts@.
+  , docs_language     :: Maybe Language
+    -- ^ The 'Language' used in the module, for example 'Haskell2010'.
+  , docs_extensions   :: EnumSet Extension
+    -- ^ The language extensions used in the module. Any extensions implied by
+    -- 'docs_language' are excluded.
   }
 
 instance Binary Docs where
@@ -310,6 +319,8 @@ instance Binary Docs where
     put_ bh (docs_structure docs)
     put_ bh (docs_named_chunks docs)
     put_ bh (docs_haddock_opts docs)
+    put_ bh (docs_language docs)
+    put_ bh (docs_extensions docs)
   get bh = do
     id_env <- get bh
     mod_hdr <- get bh
@@ -318,7 +329,18 @@ instance Binary Docs where
     structure <- get bh
     named_chunks <- get bh
     haddock_opts <- get bh
-    pure (Docs id_env mod_hdr decls args structure named_chunks haddock_opts)
+    language <- get bh
+    exts <- get bh
+    pure Docs { docs_id_env = id_env
+              , docs_mod_hdr = mod_hdr
+              , docs_decls =  decls
+              , docs_args = args
+              , docs_structure = structure
+              , docs_named_chunks = named_chunks
+              , docs_haddock_opts = haddock_opts
+              , docs_language = language
+              , docs_extensions = exts
+              }
 
 instance Outputable Docs where
   ppr docs =
@@ -332,6 +354,9 @@ instance Outputable Docs where
         , pprField (pprMap (doubleQuotes . text) ppr) "named chunks"
                    docs_named_chunks
         , pprField pprMbString "haddock options" docs_haddock_opts
+        , pprField ppr "language" docs_language
+        , pprField (vcat . map ppr . EnumSet.toList) "language extensions"
+                   docs_extensions
         ]
     where
       pprField ppr' heading lbl =
@@ -354,4 +379,6 @@ emptyDocs = Docs
   , docs_structure = []
   , docs_named_chunks = Map.empty
   , docs_haddock_opts = Nothing
+  , docs_language = Nothing
+  , docs_extensions = EnumSet.empty
   }
