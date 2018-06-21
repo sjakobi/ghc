@@ -19,3 +19,7 @@ test('HaddockOpts',
      normal,
      run_command,
      ['$MAKE -s --no-print-directory HaddockOpts'])
+test('LanguageExts',
+     normal,
+     run_command,
+     ['$MAKE -s --no-print-directory LanguageExts'])
