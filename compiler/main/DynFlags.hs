@@ -178,6 +178,8 @@ module DynFlags (
 
 import GhcPrelude
 
+import Binary (Binary)
+import qualified Binary
 import Platform
 import PlatformConstants
 import Module
@@ -812,6 +814,10 @@ data WarningFlag =
 
 data Language = Haskell98 | Haskell2010
    deriving (Eq, Enum, Show)
+
+instance Binary Language where
+  put_ bh = Binary.put_ bh . fromEnum
+  get bh = toEnum <$> Binary.get bh
 
 instance Outputable Language where
     ppr = text . show

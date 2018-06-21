@@ -43,4 +43,7 @@ docs:
            [add]
        named chunks:
        haddock options:
+       language:
+         Nothing
+       language extensions:
 
