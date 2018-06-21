@@ -26,4 +26,7 @@ docs:
            [y]
        named chunks:
        haddock options:
+       language:
+         Nothing
+       language extensions:
 
