@@ -18,6 +18,7 @@ module HsDoc
   , mkHsDocStringUtf8ByteString
   , unpackHDS
   , hsDocStringToByteString
+  , appendHDSAsParagraphs
   , LHsDocString
 
   , HsDocIdentifier(..)
@@ -120,10 +121,9 @@ emptyHsDoc = HsDoc (HsDocString BS.empty) []
 -- | Non-empty docstrings are joined with two newlines in between,
 -- so haddock will treat two joined docstrings as separate paragraphs.
 appendHsDoc :: HsDoc a -> HsDoc a -> HsDoc a
-appendHsDoc x              (HsDoc s_y []) | nullHDS s_y = x
-appendHsDoc (HsDoc s_x []) y              | nullHDS s_x = y
+appendHsDoc (HsDoc s_x [])    y                 | nullHDS s_x = y
 appendHsDoc (HsDoc s_x ids_x) (HsDoc s_y ids_y) =
-  HsDoc (concatHDS [s_x, HsDocString (C8.pack "\n\n"), s_y])
+  HsDoc (appendHDSAsParagraphs s_x s_y)
         (ids_x ++ map (shiftHsDocIdentifier (lengthHDS s_x + 2)) ids_y)
 
 -- | Concatenate several 'HsDoc's with 'appendHsDoc'.
@@ -199,6 +199,14 @@ lengthHDS (HsDocString (PS fptr off len)) =
 
 concatHDS :: [HsDocString] -> HsDocString
 concatHDS = HsDocString . BS.concat . map hsDocStringToByteString
+
+-- | Non-empty docstrings are joined with two newlines in between,
+-- so haddock will treat two joined docstrings as separate paragraphs.
+appendHDSAsParagraphs :: HsDocString -> HsDocString -> HsDocString
+appendHDSAsParagraphs a b
+  | nullHDS a = b
+  | nullHDS b = a
+  | otherwise = concatHDS [a, HsDocString (C8.pack "\n\n"), b]
 
 type LHsDocString = Located HsDocString
 
