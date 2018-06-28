@@ -60,6 +60,7 @@ extractDocs' dflags
     , combined_docs { docs_haddock_opts = haddockOptions dflags
                     , docs_language = language_
                     , docs_extensions = exts
+                    , docs_locations = locs_map
                     }
     )
   where
@@ -70,7 +71,7 @@ extractDocs' dflags
     (warns', combined_docs) = combineDocs mb_doc_hdr doc_map arg_map
                                           doc_structure named_chunks warns
 
-    (doc_map, arg_map) = maybe (M.empty, M.empty)
+    (doc_map, arg_map, locs_map) = maybe (M.empty, M.empty, M.empty)
                                (mkMaps local_insts)
                                mb_decls_with_docs
     mb_decls_with_docs = topDecls <$> mb_rn_decls
@@ -211,13 +212,17 @@ getNamedChunks _ _ = M.empty
 -- For each declaration, find its names, its subordinates, and its doc strings.
 mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
-       -> (Map Name (HsDoc Name), Map Name (Map Int (HsDoc Name)))
+       -> ( Map Name (HsDoc Name)
+          , Map Name (Map Int (HsDoc Name))
+          , Map Name (SrcSpan, Bool)
+          )
 mkMaps instances decls =
     ( f' (map (nubByName fst) decls')
     , f (filterMapping (not . M.null) args)
+    , f'' locs
     )
   where
-    (decls', args) = unzip (map mappings decls)
+    (decls', args, locs) = unzip3 (map mappings decls)
 
     f :: (Ord a, Semigroup b) => [[(a, b)]] -> Map a b
     f = M.fromListWith (<>) . concat
@@ -225,15 +230,19 @@ mkMaps instances decls =
     f' :: Ord a => [[(a, HsDoc Name)]] -> Map a (HsDoc Name)
     f' = M.fromListWith appendHsDoc . concat
 
+    f'' :: [[(Name, (SrcSpan, Bool))]] -> Map Name (SrcSpan, Bool)
+    f'' = M.fromListWith (\(sp0, b0) (sp1, b1) -> (combineSrcSpans sp0 sp1, b0 || b1)) . concat
+
     filterMapping :: (b -> Bool) ->  [[(a, b)]] -> [[(a, b)]]
     filterMapping p = map (filter (p . snd))
 
     mappings :: (LHsDecl GhcRn, [HsDoc Name])
              -> ( [(Name, HsDoc Name)]
                 , [(Name, Map Int (HsDoc Name))]
+                , [(Name, (SrcSpan, Bool))]
                 )
     mappings (L l decl, docStrs) =
-           (dm, am)
+           (dm, am, lm)
       where
         doc = concatHsDoc docStrs
         args = declTypeDocs decl
@@ -248,6 +257,11 @@ mkMaps instances decls =
         subNs = [ n | (n, _, _) <- subs ]
         dm = [(n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs]
         am = [(n, args) | n <- ns] ++ zip subNs subArgs
+        lm = [(n, (l, isSplice)) | n <- ns ++ subNs]
+
+        isSplice = case decl of
+          SpliceD {} -> True
+          _ -> False
 
     instanceMap :: Map SrcSpan Name
     instanceMap = M.fromList [(getSrcSpan n, n) | n <- instances]
