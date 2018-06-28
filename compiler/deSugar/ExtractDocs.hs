@@ -135,6 +135,8 @@ mkDocStructure :: Maybe [(Located (IE GhcRn), Avails)] -- ^ Renamed exports
                -> Maybe (HsGroup GhcRn)
                -> [AvailInfo]                          -- ^ All exports
                -> (DocIdEnv, DocStructure)
+-- TODO: Can we respect {-# OPTIONS_HADDOCK ignore-exports #-} here, e.g.
+-- include section headings from the module body?
 mkDocStructure mb_rn_exports mb_rn_decls all_exports =
   fromMaybe
     (M.empty, [])
