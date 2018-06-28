@@ -294,6 +294,7 @@ instance Outputable DocStructureItem where
 
 type DocStructure = [DocStructureItem]
 
+-- TODO: Maybe combine the various @(Map Name X)@s to a single map.
 data Docs = Docs
   { docs_id_env       :: DocIdEnv
     -- ^ Identifiers and the names they may correspond to.
