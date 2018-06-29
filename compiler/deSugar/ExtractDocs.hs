@@ -55,6 +55,7 @@ extractDocs' dflags
                       , tcg_insts = insts
                       , tcg_fam_insts = fam_insts
                       , tcg_doc_hdr = mb_doc_hdr
+                      , tcg_th_top_level_locs = ref_splices
                       } =
     ( warns'
     , combined_docs { docs_haddock_opts = haddockOptions dflags
