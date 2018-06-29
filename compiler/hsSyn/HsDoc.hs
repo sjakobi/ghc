@@ -62,6 +62,8 @@ import Data.Data
 import Data.Foldable
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Foreign
 import GHC.ForeignPtr
 import GHC.LanguageExtensions.Type
@@ -317,9 +319,10 @@ data Docs = Docs
   , docs_extensions   :: EnumSet Extension
     -- ^ The language extensions used in the module. Any extensions implied by
     -- 'docs_language' are excluded.
-  , docs_locations    :: Map Name (SrcSpan, Bool)
-    -- ^ Locations of declarations. The 'Bool' reveals whether the declaration is
-    -- from a TH splice.
+  , docs_locations    :: Map Name SrcSpan
+    -- ^ Locations of declarations.
+  , docs_splices      :: Set RealSrcSpan
+    -- ^ Locations of TH splices.
   }
 
 instance Binary Docs where
@@ -334,6 +337,7 @@ instance Binary Docs where
     put_ bh (docs_language docs)
     put_ bh (docs_extensions docs)
     put_ bh (docs_locations docs)
+    put_ bh (docs_splices docs)
   get bh = do
     id_env <- get bh
     mod_hdr <- get bh
@@ -345,6 +349,7 @@ instance Binary Docs where
     language <- get bh
     exts <- get bh
     locations <- get bh
+    splices <- get bh
     pure Docs { docs_id_env = id_env
               , docs_mod_hdr = mod_hdr
               , docs_decls =  decls
@@ -355,6 +360,7 @@ instance Binary Docs where
               , docs_language = language
               , docs_extensions = exts
               , docs_locations = locations
+              , docs_splices = splices
               }
 
 instance Outputable Docs where
@@ -373,6 +379,7 @@ instance Outputable Docs where
         , pprField (vcat . map ppr . EnumSet.toList) "language extensions"
                    docs_extensions
         , pprField (pprMap ppr ppr) "declaration locations" docs_locations
+        , pprField (vcat . map ppr . Set.toList) "splice locations" docs_splices
         ]
     where
       pprField ppr' heading lbl =
@@ -398,4 +405,5 @@ emptyDocs = Docs
   , docs_language = Nothing
   , docs_extensions = EnumSet.empty
   , docs_locations = Map.empty
+  , docs_splices = Set.empty
   }
