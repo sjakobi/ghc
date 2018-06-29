@@ -82,6 +82,8 @@ import Data.IORef
 import Data.Char                ( ord, chr )
 import Data.Map                 ( Map )
 import qualified Data.Map as Map
+import Data.Set                 ( Set )
+import qualified Data.Set as Set
 import Data.Time
 import Type.Reflection
 import Type.Reflection.Unsafe
@@ -1130,11 +1132,7 @@ instance Binary a => Binary (GenLocated SrcSpan a) where
 instance Binary SrcSpan where
   put_ bh (RealSrcSpan ss) = do
           putByte bh 0
-          put_ bh (srcSpanFile ss)
-          put_ bh (srcSpanStartLine ss)
-          put_ bh (srcSpanStartCol ss)
-          put_ bh (srcSpanEndLine ss)
-          put_ bh (srcSpanEndCol ss)
+          put_ bh ss
 
   put_ bh (UnhelpfulSpan s) = do
           putByte bh 1
@@ -1152,6 +1150,27 @@ instance Binary SrcSpan where
                                       (mkSrcLoc f el ec))
             _ -> do s <- get bh
                     return (UnhelpfulSpan s)
+
+instance Binary RealSrcSpan where
+  put_ bh ss = do
+          put_ bh (srcSpanFile ss)
+          put_ bh (srcSpanStartLine ss)
+          put_ bh (srcSpanStartCol ss)
+          put_ bh (srcSpanEndLine ss)
+          put_ bh (srcSpanEndCol ss)
+  get bh = do
+          f <- get bh
+          sl <- get bh
+          sc <- get bh
+          el <- get bh
+          ec <- get bh
+          return (RealSrcSpan'
+            { srcSpanFile = f
+            , srcSpanSLine = sl
+            , srcSpanSCol = sc
+            , srcSpanELine = el
+            , srcSpanECol = ec
+            })
 
 instance Binary Serialized where
     put_ bh (Serialized the_type bytes) = do
@@ -1181,6 +1200,16 @@ instance Binary SourceText where
 -- Instances for the containers package
 --------------------------------------------------------------------------------
 
+-- | Assumes a deterministic 'Ord' instance.
+--
+-- So don't use this for a @('Map' 'Nane' X)@ for example.
 instance (Binary k, Binary v) => Binary (Map k v) where
   put_ bh m = put_ bh (Map.toAscList m)
   get bh = Map.fromDistinctAscList <$> get bh
+
+-- | Assumes a deterministic 'Ord' instance.
+--
+-- So don't use this for a @('Set' 'Nane')@ for example.
+instance Binary a => Binary (Set a) where
+  put_ bh s = put_ bh (Set.toAscList s)
+  get bh = Set.fromDistinctAscList <$> get bh
