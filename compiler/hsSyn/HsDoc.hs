@@ -246,6 +246,7 @@ data DocStructureItem
   | DsiDocChunk HsDoc'
   | DsiNamedChunkRef String
   | DsiExports Avails
+    -- TODO: Also record Avails and restrictedness of re-export here.
   | DsiModExport ModuleName
 
 instance Binary DocStructureItem where
