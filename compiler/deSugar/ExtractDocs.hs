@@ -28,6 +28,7 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad.Trans.Writer
 import Data.Foldable
+import Data.IORef
 import Data.List
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -36,14 +37,14 @@ import Data.Semigroup
 import Data.Tuple
 
 -- | Extract docs from renamer output.
-extractDocs :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Maybe Docs)
-extractDocs dflags tc_gbl_env
-  | gopt Opt_Haddock dflags = (warns, Just docs)
-  | otherwise               = (warns, Nothing)
-  where
-    (warns, docs) = extractDocs' dflags tc_gbl_env
+extractDocs :: DynFlags -> TcGblEnv -> IO (Warnings HsDoc', Maybe Docs)
+extractDocs dflags tc_gbl_env = do
+    (warns, docs) <- extractDocs' dflags tc_gbl_env
+    pure (if gopt Opt_Haddock dflags
+            then (warns, Just docs)
+            else (warns, Nothing))
 
-extractDocs' :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Docs)
+extractDocs' :: DynFlags -> TcGblEnv -> IO (Warnings HsDoc', Docs)
 extractDocs' dflags
              TcGblEnv { tcg_semantic_mod = mod
                         -- TODO: Why are the exports in reverse order?
@@ -56,14 +57,16 @@ extractDocs' dflags
                       , tcg_fam_insts = fam_insts
                       , tcg_doc_hdr = mb_doc_hdr
                       , tcg_th_top_level_locs = ref_splices
-                      } =
-    ( warns'
-    , combined_docs { docs_haddock_opts = haddockOptions dflags
-                    , docs_language = language_
-                    , docs_extensions = exts
-                    , docs_locations = locs_map
-                    }
-    )
+                      } = do
+    splices <- readIORef ref_splices
+    pure ( warns'
+         , combined_docs { docs_haddock_opts = haddockOptions dflags
+                         , docs_language = language_
+                         , docs_extensions = exts
+                         , docs_locations = locs_map
+                         , docs_splices = splices
+                         }
+         )
   where
     exts = EnumSet.difference (extensionFlags dflags)
                               (EnumSet.fromList (languageExtensions language_))
@@ -215,24 +218,32 @@ mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
        -> ( Map Name (HsDoc Name)
           , Map Name (Map Int (HsDoc Name))
-          , Map Name (SrcSpan, Bool)
+          , Map Name SrcSpan
           )
 mkMaps instances decls =
     ( f' (map (nubByName fst) decls')
     , f (filterMapping (not . M.null) args)
+      -- FIXME: In the case of
+      --
+      -- data R = R
+      --   { a :: Int }
+      --
+      -- we currently get the same locations for both Rs and the a field.
+      -- That doesn't seem quite right.
     , f'' locs
     )
   where
     (decls', args, locs) = unzip3 (map mappings decls)
 
+    -- TODO: Refactor f, f' and f''
     f :: (Ord a, Semigroup b) => [[(a, b)]] -> Map a b
     f = M.fromListWith (<>) . concat
 
     f' :: Ord a => [[(a, HsDoc Name)]] -> Map a (HsDoc Name)
     f' = M.fromListWith appendHsDoc . concat
 
-    f'' :: [[(Name, (SrcSpan, Bool))]] -> Map Name (SrcSpan, Bool)
-    f'' = M.fromListWith (\(sp0, b0) (sp1, b1) -> (combineSrcSpans sp0 sp1, b0 || b1)) . concat
+    f'' :: [[(Name, SrcSpan)]] -> Map Name SrcSpan
+    f'' = M.fromListWith combineSrcSpans . concat
 
     filterMapping :: (b -> Bool) ->  [[(a, b)]] -> [[(a, b)]]
     filterMapping p = map (filter (p . snd))
@@ -240,7 +251,7 @@ mkMaps instances decls =
     mappings :: (LHsDecl GhcRn, [HsDoc Name])
              -> ( [(Name, HsDoc Name)]
                 , [(Name, Map Int (HsDoc Name))]
-                , [(Name, (SrcSpan, Bool))]
+                , [(Name, SrcSpan)]
                 )
     mappings (L l decl, docStrs) =
            (dm, am, lm)
@@ -258,11 +269,7 @@ mkMaps instances decls =
         subNs = [ n | (n, _, _) <- subs ]
         dm = [(n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs]
         am = [(n, args) | n <- ns] ++ zip subNs subArgs
-        lm = [(n, (l, isSplice)) | n <- ns ++ subNs]
-
-        isSplice = case decl of
-          SpliceD {} -> True
-          _ -> False
+        lm = [(n, l) | n <- ns ++ subNs]
 
     instanceMap :: Map SrcSpan Name
     instanceMap = M.fromList [(getSrcSpan n, n) | n <- instances]
