@@ -184,7 +184,7 @@ deSugar hsc_env
 
         ; foreign_files <- readIORef th_foreign_files_var
 
-        ; let (warns, docs) = extractDocs dflags tcg_env
+        ; (warns, docs) <- extractDocs dflags tcg_env
 
         ; let mod_guts = ModGuts {
                 mg_module       = mod,
