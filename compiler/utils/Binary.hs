@@ -1164,13 +1164,9 @@ instance Binary RealSrcSpan where
           sc <- get bh
           el <- get bh
           ec <- get bh
-          return (RealSrcSpan'
-            { srcSpanFile = f
-            , srcSpanSLine = sl
-            , srcSpanSCol = sc
-            , srcSpanELine = el
-            , srcSpanECol = ec
-            })
+          let sloc = mkRealSrcLoc f sl sc
+              eloc = mkRealSrcLoc f el ec
+          pure (mkRealSrcSpan sloc eloc)
 
 instance Binary Serialized where
     put_ bh (Serialized the_type bytes) = do
