@@ -23,3 +23,7 @@ test('LanguageExts',
      normal,
      run_command,
      ['$MAKE -s --no-print-directory LanguageExts'])
+test('Splices',
+     extra_files(['Curries.hs']),
+     run_command,
+     ['$MAKE -s --no-print-directory Splices'])

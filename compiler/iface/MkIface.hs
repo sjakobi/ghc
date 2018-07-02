@@ -203,7 +203,7 @@ mkIfaceTc hsc_env maybe_old_fingerprint safe_mode mod_details
           usages <- mkUsageInfo hsc_env this_mod (imp_mods imports) used_names
                       dep_files merged pluginModules
 
-          let (warns, docs) = extractDocs dflags tc_result
+          (warns, docs) <- extractDocs dflags tc_result
 
           mkIface_ hsc_env maybe_old_fingerprint
                    this_mod hsc_src
