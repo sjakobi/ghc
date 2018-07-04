@@ -27,3 +27,11 @@ test('Splices',
      extra_files(['Curries.hs']),
      run_command,
      ['$MAKE -s --no-print-directory Splices'])
+test('ReExports',
+     extra_files(['Inner0.hs', 'Inner1.hs', 'Inner2.hs', 'Inner3.hs', 'Inner4.hs']),
+     run_command,
+     ['$MAKE -s --no-print-directory ReExports'])
+test('HaddockIssue849',
+     normal,
+     run_command,
+     ['$MAKE -s --no-print-directory HaddockIssue849'])
