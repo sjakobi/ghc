@@ -47,6 +47,8 @@ docs:
          Nothing
        language extensions:
        declaration locations:
+         add:
+           NoExportList.hs:(27,1)-(28,9)
          R:
            NoExportList.hs:(12,1)-(15,3)
          R:
@@ -55,8 +57,6 @@ docs:
            NoExportList.hs:(12,1)-(15,3)
          fβ:
            NoExportList.hs:(12,1)-(15,3)
-         add:
-           NoExportList.hs:(27,1)-(28,9)
          $fEqR:
            NoExportList.hs:(18,1)-(19,19)
        splice locations:

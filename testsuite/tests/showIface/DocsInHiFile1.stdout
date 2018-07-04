@@ -25,20 +25,10 @@ docs:
 "
               spans: 2-6, 10-15, 19-26, 30-32, 36-39, 43-47
        declaration docs:
-         D':
+         elem:
            text:
-             " Another datatype...
-
- ...with two docstrings."
-           spans:
-         P:
-           text:
-             " A class"
-           spans:
-         p:
-           text:
-             " A class method"
-           spans:
+             " '()', 'elem'."
+           spans: 8-12
          D:
            text:
              " A datatype."
@@ -51,20 +41,25 @@ docs:
            text:
              " Another constructor"
            spans:
-         elem:
+         P:
            text:
-             " '()', 'elem'."
-           spans: 8-12
+             " A class"
+           spans:
+         p:
+           text:
+             " A class method"
+           spans:
          $fShowD:
            text:
              " 'Show' instance"
            spans: 2-6
+         D':
+           text:
+             " Another datatype...
+
+ ...with two docstrings."
+           spans:
        arg docs:
-         p:
-           0:
-             text:
-               " An argument"
-             spans:
          add:
            0:
              text:
@@ -77,6 +72,11 @@ docs:
            2:
              text:
                " Sum"
+             spans:
+         p:
+           0:
+             text:
+               " An argument"
              spans:
        documentation structure:
          section heading, level 1:
@@ -113,23 +113,23 @@ docs:
          Nothing
        language extensions:
        declaration locations:
-         D':
-           DocsInHiFile.hs:45:1-7
-         P:
-           DocsInHiFile.hs:(39,1)-(42,10)
-         p:
-           DocsInHiFile.hs:(39,1)-(42,10)
+         add:
+           DocsInHiFile.hs:(33,1)-(38,12)
+         elem:
+           DocsInHiFile.hs:(23,1)-(24,9)
          D:
            DocsInHiFile.hs:(27,1)-(31,12)
          D0:
            DocsInHiFile.hs:(27,1)-(31,12)
          D1:
            DocsInHiFile.hs:(27,1)-(31,12)
-         elem:
-           DocsInHiFile.hs:(23,1)-(24,9)
-         add:
-           DocsInHiFile.hs:(33,1)-(38,12)
+         P:
+           DocsInHiFile.hs:(39,1)-(42,10)
+         p:
+           DocsInHiFile.hs:(39,1)-(42,10)
          $fShowD:
            DocsInHiFile.hs:(27,1)-(31,12)
+         D':
+           DocsInHiFile.hs:45:1-7
        splice locations:
 
