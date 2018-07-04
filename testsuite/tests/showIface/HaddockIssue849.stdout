@@ -1,0 +1,31 @@
+docs:
+  Just identifier env:
+       module header:
+         Nothing
+       declaration docs:
+       arg docs:
+       documentation structure:
+         re-exported module: Data.Functor.Identity
+           unrestricted: False
+           avails:
+             []
+         re-exported module: Data.Maybe
+           unrestricted: False
+           avails:
+             [Maybe{Maybe;}, Maybe{Just;}, Maybe{Nothing;}, maybe]
+         re-exported module: Data.Tuple
+           unrestricted: True
+           avails:
+             [swap, curry, fst, snd, uncurry]
+         re-exported module: Data.Tuple
+           unrestricted: True
+           avails:
+             [swap, curry, fst, snd, uncurry]
+       named chunks:
+       haddock options:
+       language:
+         Nothing
+       language extensions:
+       declaration locations:
+       splice locations:
+

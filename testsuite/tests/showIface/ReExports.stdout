@@ -1,0 +1,33 @@
+docs:
+  Just identifier env:
+       module header:
+         Nothing
+       declaration docs:
+       arg docs:
+       documentation structure:
+         re-exported module: Inner0
+           unrestricted: True
+           avails:
+             [inner0_0]
+         re-exported module: Inner1
+           unrestricted: False
+           avails:
+             [inner1_1]
+         avails:
+           [inner2_0]
+         re-exported module: Inner4
+           unrestricted: False
+           avails:
+             [inner4_1]
+         re-exported module: Inner3
+           unrestricted: True
+           avails:
+             [inner3_0]
+       named chunks:
+       haddock options:
+       language:
+         Nothing
+       language extensions:
+       declaration locations:
+       splice locations:
+

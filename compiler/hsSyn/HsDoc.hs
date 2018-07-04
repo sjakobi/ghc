@@ -53,6 +53,7 @@ import Name
 import Outputable
 import SrcLoc
 
+import Control.Applicative (liftA3)
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C8
@@ -247,7 +248,10 @@ data DocStructureItem
   | DsiNamedChunkRef String
   | DsiExports Avails
     -- TODO: Also record Avails and restrictedness of re-export here.
-  | DsiModExport ModuleName
+  | DsiModExport
+      ModuleName
+      Bool -- ^ Are all of the modules exports re-exported?
+      Avails
 
 instance Binary DocStructureItem where
   put_ bh = \case
@@ -264,9 +268,11 @@ instance Binary DocStructureItem where
     DsiExports avails -> do
       putByte bh 3
       put_ bh avails
-    DsiModExport mod_name -> do
+    DsiModExport mod_name complete_re_export avails -> do
       putByte bh 4
       put_ bh mod_name
+      put_ bh complete_re_export
+      put_ bh avails
 
   get bh = do
     tag <- getByte bh
@@ -275,7 +281,7 @@ instance Binary DocStructureItem where
       1 -> DsiDocChunk <$> get bh
       2 -> DsiNamedChunkRef <$> get bh
       3 -> DsiExports <$> get bh
-      4 -> DsiModExport <$> get bh
+      4 -> liftA3 DsiModExport (get bh) (get bh) (get bh)
       _ -> fail "instance Binary DocStructureItem: Invalid tag"
 
 instance Outputable DocStructureItem where
@@ -292,8 +298,12 @@ instance Outputable DocStructureItem where
       text "reference to named chunk:" <+> text name
     DsiExports avails ->
       text "avails:" $$ nest 2 (ppr avails)
-    DsiModExport mod_name ->
-      text "re-exported module:" <+> ppr mod_name
+    DsiModExport mod_name complete_re_export avails ->
+      text "re-exported module:"
+        <+> ppr mod_name
+        $$ nest 2 (vcat [ text "unrestricted:" <+> ppr complete_re_export
+                        , text "avails:" $$ nest 2 (ppr avails)
+                        ])
 
 type DocStructure = [DocStructureItem]
 

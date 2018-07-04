@@ -17,10 +17,12 @@ import HsImpExp
 import HsTypes
 import HsUtils
 import HscTypes
+import Module
 import Name
 import NameSet
 import Outputable hiding ((<>))
 import Panic
+import RdrName
 import SrcLoc
 import TcRnTypes
 
@@ -51,6 +53,7 @@ extractDocs' dflags
                         -- Maybe fix this?!
                       , tcg_rn_exports = mb_rn_exports
                       , tcg_exports = all_exports
+                      , tcg_imports = import_avails
                       , tcg_rn_decls = mb_rn_decls
                       , tcg_warns = warns
                       , tcg_insts = insts
@@ -81,7 +84,7 @@ extractDocs' dflags
     mb_decls_with_docs = topDecls <$> mb_rn_decls
     local_insts = filter (nameIsLocalOrFrom mod)
                          $ map getName insts ++ map getName fam_insts
-    doc_structure = mkDocStructure mb_rn_exports mb_rn_decls all_exports
+    doc_structure = mkDocStructure import_avails mb_rn_exports mb_rn_decls all_exports
     -- TODO: We probably have no use for the named chunks section when
     -- there is no explicit export list. Maybe leave it empty in that case.
     named_chunks = getNamedChunks (isJust mb_rn_exports) mb_rn_decls
@@ -136,37 +139,78 @@ splitWarnings =
 -- | If we have an explicit export list, we can easily extract the
 -- documentation structure from that.
 -- Otherwise we make do with the renamed exports and declarations.
-mkDocStructure :: Maybe [(Located (IE GhcRn), Avails)] -- ^ Renamed exports
+mkDocStructure :: ImportAvails                         -- ^ Imports
+               -> Maybe [(Located (IE GhcRn), Avails)] -- ^ Renamed exports
                -> Maybe (HsGroup GhcRn)
                -> [AvailInfo]                          -- ^ All exports
                -> (DocIdEnv, DocStructure)
 -- TODO: Can we respect {-# OPTIONS_HADDOCK ignore-exports #-} here, e.g.
 -- include section headings from the module body?
 -- ignore-exports will be removed.
-mkDocStructure mb_rn_exports mb_rn_decls all_exports =
+mkDocStructure import_avails mb_rn_exports mb_rn_decls all_exports =
   fromMaybe
     (M.empty, [])
     (asum
-      [ mkDocStructureFromExportList <$> mb_rn_exports
+      [ mkDocStructureFromExportList import_avails <$> mb_rn_exports
       , mkDocStructureFromDecls all_exports <$> mb_rn_decls
       ])
 
-mkDocStructureFromExportList :: [(Located (IE GhcRn), Avails)]
+-- FIXME:
+-- * HaddockIssue849:
+--   - The avails of Data.Maybe aren't combined
+--   - Data.Tuple is listed twice
+-- * ReExports:
+--   - Inner3 should be listed before Inner4
+-- * Check the ordering of avails in DsiModExport
+mkDocStructureFromExportList :: ImportAvails
+                             -> [(Located (IE GhcRn), Avails)]
                              -> (DocIdEnv, DocStructure)
-mkDocStructureFromExportList rn_exports =
-    (foldMap fst items, map snd items)
+mkDocStructureFromExportList import_avails rn_exports =
+    foldMap (toDocStructure . first unLoc) (reverse rn_exports)
   where
-    items = map (getDsi . first unLoc) (reverse rn_exports)
 
-    getDsi :: (IE GhcRn, Avails) -> (DocIdEnv, DocStructureItem)
-    getDsi = \case
-      (IEModuleContents _ lmn, _) -> noDocs (DsiModExport (unLoc lmn))
-      (IEGroup _ level doc, _)    -> DsiSectionHeading level <$> splitHsDoc doc
-      (IEDoc _ doc, _)            -> DsiDocChunk <$> splitHsDoc doc
-      (IEDocNamed _ name, _)      -> noDocs (DsiNamedChunkRef name)
-      (_, avails)                 -> noDocs (DsiExports (nubAvails avails))
+    toDocStructure :: (IE GhcRn, Avails) -> (DocIdEnv, DocStructure)
+    toDocStructure = \case
+      (IEModuleContents _ lmn, avails) -> noDocs (moduleExports (unLoc lmn) avails)
+      (IEGroup _ level doc, _)    -> pure . DsiSectionHeading level <$> splitHsDoc doc
+      (IEDoc _ doc, _)            -> pure . DsiDocChunk <$> splitHsDoc doc
+      (IEDocNamed _ name, _)      -> noDocs [DsiNamedChunkRef name]
+      (_, avails)                 -> noDocs [DsiExports (nubAvails avails)]
 
     noDocs x = (M.empty, x)
+
+    -- Construct one or more DsiModExport for the given export.
+    moduleExports :: ModuleName -- Alias
+                  -> Avails
+                  -> DocStructure
+    moduleExports alias avails =
+        map (uncurry (mkModExport avails)) aliased
+      where
+        aliased = M.findWithDefault aliasErr alias aliasedImports
+        aliasErr = error "mkDocStructureFromExportList: Can't find a module alias"
+
+        mkModExport :: Avails -> ModuleName -> GlobalRdrEnv -> DocStructureItem
+        mkModExport exports0 orig_mdl_name gre = DsiModExport orig_mdl_name complete exports
+          where
+            (exports, complete) = filterExports exports0 gre
+
+        -- Remove any avails not contained in the 'GlobalRdrEnv'.
+        -- The 'Bool' indicates whether there's anything else in the 'GlobalRdrEnv'.
+        filterExports :: Avails -> GlobalRdrEnv -> (Avails, Bool)
+        filterExports exps0 potentialExps = (exps, complete)
+          where
+            complete = isEmptyNameSet (potentialNames
+                                         `minusNameSet`
+                                         availsToNameSetWithSelectors exps)
+            exps = filterAvails (flip elemNameSet potentialNames) exps0
+            potentialNames = (mkNameSet . map gre_name . globalRdrEnvElts) potentialExps
+
+    aliasedImports :: Map ModuleName [(ModuleName, GlobalRdrEnv)]
+    aliasedImports = M.fromListWith (<>) $ flip concatMap (moduleEnvToList imported) $ \(mdl, imvs) ->
+      [(imv_name imv, [(moduleName mdl, imv_all_exports imv)]) | imv <- imvs]
+
+    imported :: ModuleEnv [ImportedModsVal]
+    imported = importedByUser <$> (imp_mods import_avails)
 
 -- | Figure out the documentation structure by correlating
 -- the module exports with the located declarations.
