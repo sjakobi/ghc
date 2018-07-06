@@ -1198,14 +1198,14 @@ instance Binary SourceText where
 
 -- | Assumes a deterministic 'Ord' instance.
 --
--- So don't use this for a @('Map' 'Nane' X)@ for example.
+-- So don't use this for a @('Map' 'Name' X)@ for example.
 instance (Binary k, Binary v) => Binary (Map k v) where
   put_ bh m = put_ bh (Map.toAscList m)
   get bh = Map.fromDistinctAscList <$> get bh
 
 -- | Assumes a deterministic 'Ord' instance.
 --
--- So don't use this for a @('Set' 'Nane')@ for example.
+-- So don't use this for a @('Set' 'Name')@ for example.
 instance Binary a => Binary (Set a) where
   put_ bh s = put_ bh (Set.toAscList s)
   get bh = Set.fromDistinctAscList <$> get bh
