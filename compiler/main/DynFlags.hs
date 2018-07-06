@@ -636,6 +636,8 @@ data GeneralFlag
    | Opt_DistrustAllPackages
    | Opt_PackageTrust
 
+   | Opt_SkipIfaceVersionCheck
+
    | Opt_G_NoStateHack
    | Opt_G_NoOptCoercion
    deriving (Eq, Show, Enum)

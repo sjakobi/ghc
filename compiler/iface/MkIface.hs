@@ -5,6 +5,7 @@
 
 {-# LANGUAGE CPP, NondecreasingIndentation #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE TupleSections #-}
 
 -- | Module for constructing @ModIface@ values (interface files),
 -- writing them to disk and comparing two versions to see if
@@ -1188,6 +1189,12 @@ check_old_iface hsc_env mod_summary src_modified maybe_iface
                 case maybe_iface' of
                     -- We can't retrieve the iface
                     Nothing    -> return (MustCompile, Nothing)
+
+                    -- TODO: For haddock we probably want to require -haddock but ignore
+                    -- everything else
+                    Just iface | gopt Opt_SkipIfaceVersionCheck dflags ->
+                        (,Just iface) <$>
+                            up_to_date (text "using the iface regardless of its version")
 
                     -- We have got the old iface; check its versions
                     -- even in the SourceUnmodifiedAndStable case we
