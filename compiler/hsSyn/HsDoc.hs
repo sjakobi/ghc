@@ -326,6 +326,7 @@ data Docs = Docs
     -- ^ Locations of TH splices.
   }
 
+-- FIXME: The Binary (Map Name X) instances used here have a bug. See #15240.
 instance Binary Docs where
   put_ bh docs = do
     put_ bh (docs_id_env docs)
