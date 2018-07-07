@@ -326,31 +326,30 @@ data Docs = Docs
     -- ^ Locations of TH splices.
   }
 
--- FIXME: The Binary (Map Name X) instances used here have a bug. See #15240.
 instance Binary Docs where
   put_ bh docs = do
     put_ bh (docs_id_env docs)
     put_ bh (docs_mod_hdr docs)
-    put_ bh (docs_decls docs)
-    put_ bh (docs_args docs)
+    put_ bh (NonDetKeyMap (docs_decls docs))
+    put_ bh (NonDetKeyMap (docs_args docs))
     put_ bh (docs_structure docs)
     put_ bh (docs_named_chunks docs)
     put_ bh (docs_haddock_opts docs)
     put_ bh (docs_language docs)
     put_ bh (docs_extensions docs)
-    put_ bh (docs_locations docs)
+    put_ bh (NonDetKeyMap (docs_locations docs))
     put_ bh (docs_splices docs)
   get bh = do
     id_env <- get bh
     mod_hdr <- get bh
-    decls <- get bh
-    args <- get bh
+    decls <- unNonDetKeyMap <$> get bh
+    args <- unNonDetKeyMap <$> get bh
     structure <- get bh
     named_chunks <- get bh
     haddock_opts <- get bh
     language <- get bh
     exts <- get bh
-    locations <- get bh
+    locations <- unNonDetKeyMap <$> get bh
     splices <- get bh
     pure Docs { docs_id_env = id_env
               , docs_mod_hdr = mod_hdr
