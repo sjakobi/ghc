@@ -54,6 +54,8 @@ module Binary
    UserData(..), getUserData, setUserData,
    newReadState, newWriteState,
    putDictionary, getDictionary, putFS,
+
+   NonDetKeyMap(..)
   ) where
 
 #include "HsVersions.h"
@@ -1209,3 +1211,11 @@ instance (Binary k, Binary v) => Binary (Map k v) where
 instance Binary a => Binary (Set a) where
   put_ bh s = put_ bh (Set.toAscList s)
   get bh = Set.fromDistinctAscList <$> get bh
+
+-- | Provides a 'Binary' instance for 'Map's where the key has a
+-- non-deterministic 'Ord' instance.
+newtype NonDetKeyMap k v = NonDetKeyMap { unNonDetKeyMap :: Map k v }
+
+instance (Binary k, Binary v, Ord k) => Binary (NonDetKeyMap k v) where
+  put_ bh (NonDetKeyMap m) = put_ bh (Map.toList m)
+  get bh = NonDetKeyMap . Map.fromList <$> get bh
