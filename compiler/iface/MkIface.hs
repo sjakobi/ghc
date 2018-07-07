@@ -1191,11 +1191,14 @@ check_old_iface hsc_env mod_summary src_modified maybe_iface
                     -- We can't retrieve the iface
                     Nothing    -> return (MustCompile, Nothing)
 
-                    -- TODO: For haddock we probably want to require -haddock but ignore
-                    -- everything else
                     Just iface | gopt Opt_SkipIfaceVersionCheck dflags ->
-                        (,Just iface) <$>
-                            up_to_date (text "using the iface regardless of its version")
+                        if gopt Opt_Haddock dflags && isNothing (mi_docs iface)
+                            then (,Nothing) <$>
+                                   out_of_date ("requiring haddocks for " ++
+                                                moduleNameString (moduleName (ms_mod mod_summary)))
+                                               (text "mi_docs was Nothing")
+                            else (,Just iface) <$>
+                                   up_to_date (text "using the iface regardless of its version")
 
                     -- We have got the old iface; check its versions
                     -- even in the SourceUnmodifiedAndStable case we
