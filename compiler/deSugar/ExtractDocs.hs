@@ -157,7 +157,9 @@ mkDocStructure import_avails mb_rn_exports mb_rn_decls all_exports =
       , mkDocStructureFromDecls all_exports <$> mb_rn_decls
       ])
 
--- FIXME:
+-- TODO:
+-- * Maybe remove items that export nothing?
+-- * Combine sequences of DsiExports?
 -- * Check the ordering of avails in DsiModExport
 mkDocStructureFromExportList :: ImportAvails
                              -> [(Located (IE GhcRn), Avails)]
