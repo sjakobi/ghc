@@ -60,6 +60,7 @@ import Data.ByteString.Internal (ByteString(..))
 import qualified Data.ByteString.Internal as BS
 import Data.Data
 import Data.Foldable
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
@@ -246,8 +247,15 @@ data DocStructureItem
   | DsiDocChunk HsDoc'
   | DsiNamedChunkRef String
   | DsiExports Avails
-    -- TODO: Also record Avails and restrictedness of re-export here.
-  | DsiModExport ModuleName
+  | DsiModExport
+      (NonEmpty ModuleName) -- ^ We might re-export avails from multiple
+                            -- modules with a single export declaration. E.g.
+                            -- when we have
+                            --
+                            -- > module M (module X) where
+                            -- > import R0 as X
+                            -- > import R1 as X
+      Avails
 
 instance Binary DocStructureItem where
   put_ bh = \case
@@ -264,9 +272,10 @@ instance Binary DocStructureItem where
     DsiExports avails -> do
       putByte bh 3
       put_ bh avails
-    DsiModExport mod_name -> do
+    DsiModExport mod_names avails -> do
       putByte bh 4
-      put_ bh mod_name
+      put_ bh mod_names
+      put_ bh avails
 
   get bh = do
     tag <- getByte bh
@@ -275,7 +284,7 @@ instance Binary DocStructureItem where
       1 -> DsiDocChunk <$> get bh
       2 -> DsiNamedChunkRef <$> get bh
       3 -> DsiExports <$> get bh
-      4 -> DsiModExport <$> get bh
+      4 -> DsiModExport <$> get bh <*> get bh
       _ -> fail "instance Binary DocStructureItem: Invalid tag"
 
 instance Outputable DocStructureItem where
@@ -292,8 +301,8 @@ instance Outputable DocStructureItem where
       text "reference to named chunk:" <+> text name
     DsiExports avails ->
       text "avails:" $$ nest 2 (ppr avails)
-    DsiModExport mod_name ->
-      text "re-exported module:" <+> ppr mod_name
+    DsiModExport mod_names avails ->
+      text "re-exported module(s):" <+> ppr mod_names $$ nest 2 (ppr avails)
 
 type DocStructure = [DocStructureItem]
 

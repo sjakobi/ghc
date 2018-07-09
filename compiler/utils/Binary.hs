@@ -82,6 +82,8 @@ import qualified Data.ByteString.Internal as BS
 import qualified Data.ByteString.Unsafe   as BS
 import Data.IORef
 import Data.Char                ( ord, chr )
+import Data.List.NonEmpty       ( NonEmpty(..))
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Map                 ( Map )
 import qualified Data.Map as Map
 import Data.Set                 ( Set )
@@ -416,6 +418,10 @@ instance Binary a => Binary [a] where
         let loop 0 = return []
             loop n = do a <- get bh; as <- loop (n-1); return (a:as)
         loop len
+
+instance Binary a => Binary (NonEmpty a) where
+    put_ bh = put_ bh . NonEmpty.toList
+    get bh = NonEmpty.fromList <$> get bh
 
 instance (Binary a, Binary b) => Binary (a,b) where
     put_ bh (a,b) = do put_ bh a; put_ bh b
