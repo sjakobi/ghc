@@ -50,7 +50,8 @@ extractDocs dflags tc_gbl_env = do
 
 extractDocs' :: DynFlags -> TcGblEnv -> IO (Warnings HsDoc', Docs)
 extractDocs' dflags
-             TcGblEnv { tcg_semantic_mod = mod
+             TcGblEnv { tcg_mod = mdl
+                      , tcg_semantic_mod = semantic_mdl
                         -- TODO: Why are the exports in reverse order?
                         -- Maybe fix this?!
                       , tcg_rn_exports = mb_rn_exports
@@ -84,9 +85,9 @@ extractDocs' dflags
                                (mkMaps local_insts)
                                mb_decls_with_docs
     mb_decls_with_docs = topDecls <$> mb_rn_decls
-    local_insts = filter (nameIsLocalOrFrom mod)
+    local_insts = filter (nameIsLocalOrFrom semantic_mdl)
                          $ map getName insts ++ map getName fam_insts
-    doc_structure = mkDocStructure import_avails mb_rn_exports mb_rn_decls all_exports
+    doc_structure = mkDocStructure mdl import_avails mb_rn_exports mb_rn_decls all_exports
     -- TODO: We probably have no use for the named chunks section when
     -- there is no explicit export list. Maybe leave it empty in that case.
     named_chunks = getNamedChunks (isJust mb_rn_exports) mb_rn_decls
@@ -141,7 +142,8 @@ splitWarnings =
 -- | If we have an explicit export list, we can easily extract the
 -- documentation structure from that.
 -- Otherwise we make do with the renamed exports and declarations.
-mkDocStructure :: ImportAvails                         -- ^ Imports
+mkDocStructure :: Module                               -- ^ The current module
+               -> ImportAvails                         -- ^ Imports
                -> Maybe [(Located (IE GhcRn), Avails)] -- ^ Renamed exports
                -> Maybe (HsGroup GhcRn)
                -> [AvailInfo]                          -- ^ All exports
@@ -149,11 +151,11 @@ mkDocStructure :: ImportAvails                         -- ^ Imports
 -- TODO: Can we respect {-# OPTIONS_HADDOCK ignore-exports #-} here, e.g.
 -- include section headings from the module body?
 -- ignore-exports will be removed.
-mkDocStructure import_avails mb_rn_exports mb_rn_decls all_exports =
+mkDocStructure mdl import_avails mb_rn_exports mb_rn_decls all_exports =
   fromMaybe
     (M.empty, [])
     (asum
-      [ mkDocStructureFromExportList import_avails <$> mb_rn_exports
+      [ mkDocStructureFromExportList mdl import_avails <$> mb_rn_exports
       , mkDocStructureFromDecls all_exports <$> mb_rn_decls
       ])
 
@@ -161,10 +163,11 @@ mkDocStructure import_avails mb_rn_exports mb_rn_decls all_exports =
 -- * Maybe remove items that export nothing?
 -- * Combine sequences of DsiExports?
 -- * Check the ordering of avails in DsiModExport
-mkDocStructureFromExportList :: ImportAvails
+mkDocStructureFromExportList :: Module                         -- ^ The current module
+                             -> ImportAvails
                              -> [(Located (IE GhcRn), Avails)]
                              -> (DocIdEnv, DocStructure)
-mkDocStructureFromExportList import_avails rn_exports =
+mkDocStructureFromExportList mdl import_avails rn_exports =
     foldMap (second (: []) . toDocStructure . first unLoc) (reverse rn_exports)
   where
 
@@ -184,14 +187,21 @@ mkDocStructureFromExportList import_avails rn_exports =
     moduleExport alias avails =
         DsiModExport (nubSortNE orig_names) (nubAvails avails)
       where
-        orig_names = M.findWithDefault aliasErr alias aliasedImports
-        aliasErr = error "mkDocStructureFromExportList: Can't find a module alias"
+        orig_names = M.findWithDefault aliasErr alias aliasMap
+        aliasErr = error $ "mkDocStructureFromExportList: "
+                           ++ (moduleNameString . moduleName) mdl
+                           ++ ": Can't find alias " ++ moduleNameString alias
         nubSortNE = NonEmpty.fromList . Set.toList . Set.fromList . NonEmpty.toList
 
     -- Map from aliases to true module names.
-    aliasedImports :: Map ModuleName (NonEmpty ModuleName)
-    aliasedImports = M.fromListWith (<>) $ flip concatMap (moduleEnvToList imported) $ \(mdl, imvs) ->
-      [(imv_name imv, moduleName mdl :| []) | imv <- imvs]
+    aliasMap :: Map ModuleName (NonEmpty ModuleName)
+    aliasMap =
+        M.fromListWith (<>) $
+          (this_mdl_name, this_mdl_name :| [])
+          : (flip concatMap (moduleEnvToList imported) $ \(mdl, imvs) ->
+              [(imv_name imv, moduleName mdl :| []) | imv <- imvs])
+      where
+        this_mdl_name = moduleName mdl
 
     imported :: ModuleEnv [ImportedModsVal]
     imported = importedByUser <$> (imp_mods import_avails)
