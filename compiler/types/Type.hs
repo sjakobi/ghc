@@ -37,7 +37,7 @@ module Type (
 
         mkForAllTy, mkForAllTys, mkInvForAllTys, mkSpecForAllTys,
         mkVisForAllTys, mkInvForAllTy,
-        splitForAllTys, splitForAllTyVarBndrs,
+        splitForAllTys, splitForAllTysPreserveSynonyms, splitForAllTyVarBndrs,
         splitForAllTy_maybe, splitForAllTy,
         splitPiTy_maybe, splitPiTy, splitPiTys,
         mkPiTy, mkPiTys, mkTyConBindersPreferAnon,
@@ -1317,6 +1317,12 @@ splitForAllTys :: Type -> ([TyVar], Type)
 splitForAllTys ty = split ty ty []
   where
     split orig_ty ty tvs | Just ty' <- coreView ty = split orig_ty ty' tvs
+    split _       (ForAllTy (TvBndr tv _) ty) tvs = split ty ty (tv:tvs)
+    split orig_ty _                           tvs = (reverse tvs, orig_ty)
+
+splitForAllTysPreserveSynonyms :: Type -> ([TyVar], Type)
+splitForAllTysPreserveSynonyms ty = split ty ty []
+  where
     split _       (ForAllTy (TvBndr tv _) ty) tvs = split ty ty (tv:tvs)
     split orig_ty _                           tvs = (reverse tvs, orig_ty)
 

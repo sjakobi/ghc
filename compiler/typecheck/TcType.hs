@@ -69,7 +69,8 @@ module TcType (
   tcSplitAppTy_maybe, tcSplitAppTy, tcSplitAppTys, tcRepSplitAppTy_maybe,
   tcRepGetNumAppTys,
   tcGetCastedTyVar_maybe, tcGetTyVar_maybe, tcGetTyVar, nextRole,
-  tcSplitSigmaTy, tcSplitNestedSigmaTys, tcDeepSplitSigmaTy_maybe,
+  tcSplitSigmaTy, tcSplitSigmaTyPreserveSynonyms, tcSplitNestedSigmaTys,
+  tcDeepSplitSigmaTy_maybe,
 
   ---------------------------------
   -- Predicates.
@@ -1534,6 +1535,9 @@ tcSplitForAllTy_maybe _                = Nothing
 tcSplitForAllTys :: Type -> ([TyVar], Type)
 tcSplitForAllTys = splitForAllTys
 
+tcSplitForAllTysPreserveSynonyms :: Type -> ([TyVar], Type)
+tcSplitForAllTysPreserveSynonyms = splitForAllTysPreserveSynonyms
+
 -- | Like 'tcSplitForAllTys', but splits off only named binders.
 tcSplitForAllTyVarBndrs :: Type -> ([TyVarBinder], Type)
 tcSplitForAllTyVarBndrs = splitForAllTyVarBndrs
@@ -1544,13 +1548,16 @@ tcIsForAllTy ty | Just ty' <- tcView ty = tcIsForAllTy ty'
 tcIsForAllTy (ForAllTy {}) = True
 tcIsForAllTy _             = False
 
+-- | Split off the first predicate argument from a type
 tcSplitPredFunTy_maybe :: Type -> Maybe (PredType, Type)
--- Split off the first predicate argument from a type
 tcSplitPredFunTy_maybe ty
   | Just ty' <- tcView ty = tcSplitPredFunTy_maybe ty'
-tcSplitPredFunTy_maybe (FunTy arg res)
+  | otherwise             = tcSplitPredFunTyPreserveSynonyms_maybe ty
+
+tcSplitPredFunTyPreserveSynonyms_maybe :: Type -> Maybe (PredType, Type)
+tcSplitPredFunTyPreserveSynonyms_maybe (FunTy arg res)
   | isPredTy arg = Just (arg, res)
-tcSplitPredFunTy_maybe _
+tcSplitPredFunTyPreserveSynonyms_maybe _
   = Nothing
 
 tcSplitPhiTy :: Type -> (ThetaType, Type)
@@ -1562,11 +1569,25 @@ tcSplitPhiTy ty
           Just (pred, ty) -> split ty (pred:ts)
           Nothing         -> (reverse ts, ty)
 
+tcSplitPhiTyPreserveSynonyms :: Type -> (ThetaType, Type)
+tcSplitPhiTyPreserveSynonyms ty
+  = split ty []
+  where
+    split ty ts
+      = case tcSplitPredFunTyPreserveSynonyms_maybe ty of
+          Just (pred, ty) -> split ty (pred:ts)
+          Nothing         -> (reverse ts, ty)
+
 -- | Split a sigma type into its parts.
 tcSplitSigmaTy :: Type -> ([TyVar], ThetaType, Type)
 tcSplitSigmaTy ty = case tcSplitForAllTys ty of
                         (tvs, rho) -> case tcSplitPhiTy rho of
                                         (theta, tau) -> (tvs, theta, tau)
+
+tcSplitSigmaTyPreserveSynonyms :: Type -> ([TyVar], ThetaType, Type)
+tcSplitSigmaTyPreserveSynonyms ty = case tcSplitForAllTysPreserveSynonyms ty of
+    (tvs, rho) -> case tcSplitPhiTyPreserveSynonyms rho of
+        (theta, tau) -> (tvs, theta, tau)
 
 -- | Split a sigma type into its parts, going underneath as many @ForAllTy@s
 -- as possible. For example, given this type synonym:
