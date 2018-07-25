@@ -20,8 +20,6 @@ import HscTypes
 import Module
 import Name
 import NameSet
-import Outputable hiding ((<>))
-import Panic
 import SrcLoc
 import TcRnTypes
 
@@ -221,8 +219,11 @@ mkDocStructureFromDecls all_exports decls = (id_env, items)
     avails = flip fmap all_exports $ \avail ->
       case M.lookup (availName avail) name_locs of
         Just loc -> L loc (DsiExports [avail])
-        Nothing -> panicDoc "mkDocStructureFromDecls: No loc found for"
-                            (ppr avail)
+        -- FIXME: This is just a workaround that we use when handling e.g.
+        -- associated data families like in the html-test Instances.hs.
+        Nothing -> noLoc (DsiExports [avail])
+        -- Nothing -> panicDoc "mkDocStructureFromDecls: No loc found for"
+        --                     (ppr avail)
 
     split_docs = mapMaybe structuralDoc (hs_docs decls)
 
