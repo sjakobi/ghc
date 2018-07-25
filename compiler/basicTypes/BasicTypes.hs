@@ -32,7 +32,11 @@ module BasicTypes(
 
         FunctionOrData(..),
 
-        WarningTxt(..), WarningSort(..), StringLiteral(..),
+        WithSourceText(..), wstSourceText, unWithSourceText,
+
+        StringLiteral, slSourceText, slFastString, pprStringLiteral,
+
+        WarningTxt(..), WarningSort(..),
 
         Fixity(..), FixityDirection(..),
         defaultFixity, maxPrecedence, minPrecedence,
@@ -310,19 +314,33 @@ initialVersion = 1
 ************************************************************************
 -}
 
+data WithSourceText a =
+  WithSourceText
+    SourceText -- literal raw source. See Note [Literal source text]
+    a
+  deriving Data
+
+instance Eq a => Eq (WithSourceText a) where
+  WithSourceText _ a == WithSourceText _ b = a == b
+
+wstSourceText :: WithSourceText a -> SourceText
+wstSourceText (WithSourceText st _) = st
+
+unWithSourceText :: WithSourceText a -> a
+unWithSourceText (WithSourceText _ a) = a
+
 -- | A String Literal in the source, including its original raw format for use by
 -- source to source manipulation tools.
-data StringLiteral = StringLiteral
-                       { sl_st :: SourceText, -- literal raw source.
-                                              -- See Note [Literal source text]
-                         sl_fs :: FastString  -- literal string value
-                       } deriving Data
+type StringLiteral = WithSourceText FastString
 
-instance Eq StringLiteral where
-  (StringLiteral _ a) == (StringLiteral _ b) = a == b
+slSourceText :: StringLiteral -> SourceText
+slSourceText = wstSourceText
 
-instance Outputable StringLiteral where
-  ppr sl = pprWithSourceText (sl_st sl) (ftext $ sl_fs sl)
+slFastString :: StringLiteral -> FastString
+slFastString = unWithSourceText
+
+pprStringLiteral :: StringLiteral -> SDoc
+pprStringLiteral sl = pprWithSourceText (slSourceText sl) (ftext $ slFastString sl)
 
 -- | Warning Text
 --
