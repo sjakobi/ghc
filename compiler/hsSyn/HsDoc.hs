@@ -211,6 +211,27 @@ appendHDSAsParagraphs a b
   | nullHDS b = a
   | otherwise = concatHDS [a, HsDocString (C8.pack "\n\n"), b]
 
+subStringHDS :: HsDocString -> HsDocIdentifierSpan -> HsDocString
+subStringHDS (HsDocString bs) (HsDocIdentifierSpan start end) =
+    utf8SubString bs start end
+
+utf8SubString :: ByteString -> Int -> Int
+utf8SubString bs start end =
+    utf8Take (end - start) (utf8Drop start bs)
+
+utf8Drop :: Int -> ByteString -> ByteString
+utf8Drop n bs@(PS fp off len) =
+
+-- | Split after a given number of characters.
+-- Negative values are treated as if they are 0.
+utf8SplitAt :: Int -> ByteString -> (ByteString, ByteString)
+utf8SplitAt x bs = loop 0 x bs
+  where loop a n _ | n <= 0 = BS.splitAt a bs
+        loop a n bs1 = case decode bs1 of
+                         Just (_,y) -> loop (a+y) (n-1) (BS.drop y bs1)
+                         Nothing    -> (bs, BS.empty)
+ -- utf8DecodeChar 
+
 type LHsDocString = Located HsDocString
 
 -- | Identifiers and the names they may correspond to.
