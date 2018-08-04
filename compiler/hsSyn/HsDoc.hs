@@ -26,7 +26,6 @@ module HsDoc
   , HsDocIdentifierSpan(..)
 
   , DocIdEnv
-  , hsDocIdentifierIdEnv
 
   , HsDoc'(..)
 
@@ -101,13 +100,12 @@ shiftHsDocIdentifierSpan n (HsDocIdentifierSpan a b) =
 -- | An identifier from a docstring.
 data HsDocIdentifier name = HsDocIdentifier
   { hsDocIdentifierSpan :: !HsDocIdentifierSpan
-  , hsDocIdentifierString :: !HsDocString -- ^ The text of the docstring.
   , hsDocIdentifierNames :: ![name]
   } deriving (Eq, Show, Data)
 
 shiftHsDocIdentifier :: Int -> HsDocIdentifier name -> HsDocIdentifier name
-shiftHsDocIdentifier n (HsDocIdentifier span s names) =
-  HsDocIdentifier (shiftHsDocIdentifierSpan n span) s names
+shiftHsDocIdentifier n (HsDocIdentifier span names) =
+  HsDocIdentifier (shiftHsDocIdentifierSpan n span) names
 
 -- | A docstring with the (probable) identifiers found in it.
 data HsDoc name = HsDoc
@@ -232,10 +230,6 @@ type LHsDocString = Located HsDocString
 
 -- | Identifiers and the names they may correspond to.
 type DocIdEnv = Map HsDocString [Name]
-
-hsDocIdentifierIdEnv :: HsDocIdentifier Name -> DocIdEnv
-hsDocIdentifierIdEnv (HsDocIdentifier _span s names) =
-  Map.singleton s names
 
 -- | A version of 'HsDoc' intended for serialization.
 data HsDoc' = HsDoc'

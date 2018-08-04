@@ -30,9 +30,9 @@ rnHsDoc (HsDoc s ids) = do
 rnHsDocIdentifier :: GlobalRdrEnv
                   -> HsDocIdentifier RdrName
                   -> HsDocIdentifier Name
-rnHsDocIdentifier gre (HsDocIdentifier span s rdr_names) =
+rnHsDocIdentifier gre (HsDocIdentifier span rdr_names) =
   -- TODO: Add a check that there should be exactly 1 RdrName in the identifier?
-  HsDocIdentifier span s names
+  HsDocIdentifier span names
   where
     -- Try to look up all the names in the GlobalRdrEnv that match
     -- the names.
