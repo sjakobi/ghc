@@ -52,7 +52,9 @@ import Module
 import Name
 import Outputable
 import SrcLoc
+import Util
 
+import Data.Bifunctor
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C8
@@ -145,7 +147,15 @@ splitHsDoc :: HsDoc Name -> (DocIdEnv, HsDoc')
 splitHsDoc (HsDoc s ids) = (id_env, hsDoc')
   where
     hsDoc' = HsDoc' s (hsDocIdentifierSpan <$> ids)
-    id_env = foldMap hsDocIdentifierIdEnv ids
+    id_env = thdOf3 (foldl' f (0, s, Map.empty) ids)
+
+    f (!off, !hds, !m)
+      HsDocIdentifier { hsDocIdentifierSpan = HsDocIdentifierSpan a b
+                      , hsDocIdentifierNames = names } =
+        (b, hds'', Map.insert id_ names m)
+      where
+        (id_, hds'') = splitAtHDS (b - a) hds'
+        hds' = dropHDS (a - off) hds
 
 type LHsDoc name = Located (HsDoc name)
 
@@ -211,26 +221,12 @@ appendHDSAsParagraphs a b
   | nullHDS b = a
   | otherwise = concatHDS [a, HsDocString (C8.pack "\n\n"), b]
 
-subStringHDS :: HsDocString -> HsDocIdentifierSpan -> HsDocString
-subStringHDS (HsDocString bs) (HsDocIdentifierSpan start end) =
-    utf8SubString bs start end
+splitAtHDS :: Int -> HsDocString -> (HsDocString, HsDocString)
+splitAtHDS n (HsDocString bs) =
+    bimap HsDocString HsDocString (utf8SplitAtByteString n bs)
 
-utf8SubString :: ByteString -> Int -> Int
-utf8SubString bs start end =
-    utf8Take (end - start) (utf8Drop start bs)
-
-utf8Drop :: Int -> ByteString -> ByteString
-utf8Drop n bs@(PS fp off len) =
-
--- | Split after a given number of characters.
--- Negative values are treated as if they are 0.
-utf8SplitAt :: Int -> ByteString -> (ByteString, ByteString)
-utf8SplitAt x bs = loop 0 x bs
-  where loop a n _ | n <= 0 = BS.splitAt a bs
-        loop a n bs1 = case decode bs1 of
-                         Just (_,y) -> loop (a+y) (n-1) (BS.drop y bs1)
-                         Nothing    -> (bs, BS.empty)
- -- utf8DecodeChar 
+dropHDS :: Int -> HsDocString -> HsDocString
+dropHDS n hds = snd (splitAtHDS n hds)
 
 type LHsDocString = Located HsDocString
 
