@@ -68,7 +68,7 @@ lexHsDoc identParser s =
   where
     maybeDocIdentifier :: (Int, String, Int) -> Maybe (HsDocIdentifier RdrName)
     maybeDocIdentifier (ix0, pid, ix1) =
-      HsDocIdentifier (HsDocIdentifierSpan ix0 ix1) (mkHsDocString pid) . (: [])
+      HsDocIdentifier (HsDocIdentifierSpan ix0 ix1) . (: [])
         <$> validateIdentWith identParser pid
 
     plausibleIdents :: [(Int, String, Int)]
