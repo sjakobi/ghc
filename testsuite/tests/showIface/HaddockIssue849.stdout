@@ -8,7 +8,7 @@ docs:
          re-exported module(s): [Data.Functor.Identity]
            []
          re-exported module(s): [Data.Maybe]
-           [Maybe{Maybe, Just, Nothing;}, maybe]
+           [Maybe{Maybe, Nothing, Just;}, maybe]
          re-exported module(s): [Data.Tuple]
            [fst, snd, curry, uncurry, swap]
        named chunks:
