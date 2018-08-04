@@ -1,5 +1,8 @@
 docs:
   Just identifier env:
+         "R":
+           R from NoExportList
+           R from NoExportList
          "fα":
            fα from NoExportList
        module header:
@@ -10,7 +13,7 @@ docs:
          fα:
            text:
              " Documentation for 'R'\'s 'fα' field."
-           spans: 27-29
+           spans: 20-21, 27-29
          $fEqR:
            text:
              " A very lazy Eq instance"
