@@ -122,7 +122,7 @@ data HsDoc name = HsDoc
 instance Outputable (HsDoc a) where
   ppr (HsDoc s _ids) = ppr s
 
-hsDocIdentifierSpans :: HsDoc' -> [HsDocIdentifierSpan]
+hsDocIdentifierSpans :: HsDoc a -> [HsDocIdentifierSpan]
 hsDocIdentifierSpans = map hsDocIdentifierSpan . hsDocIdentifiers
 
 emptyHsDoc :: HsDoc a
