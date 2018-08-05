@@ -1636,7 +1636,7 @@ pprDocs :: (Maybe HsDoc', Map Int HsDoc') -> SDoc
 pprDocs (mb_decl_docs, _arg_docs) =
   maybe
     (text "<has no documentation>")
-    (text . unpackHDS . hsDoc'String)
+    (text . unpackHDS . hsDocString)
     mb_decl_docs
 
 handleGetDocsFailure :: GHC.GhcMonad m => GetDocsFailure -> m SDoc

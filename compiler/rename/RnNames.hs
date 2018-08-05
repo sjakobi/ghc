@@ -1712,7 +1712,7 @@ missingImportListItem ie
 moduleWarn :: ModuleName -> WarningTxt HsDoc' -> SDoc
 moduleWarn mod (WarningTxt sort_ _lbl txt)
   = sep [ text "Module" <+> quotes (ppr mod) <> deprecated <> char ':',
-          nest 2 (vcat (map (text . unpackHDS . hsDoc'String) txt)) ]
+          nest 2 (vcat (map (text . unpackHDS . hsDocString) txt)) ]
   where
     deprecated =
       case sort_ of

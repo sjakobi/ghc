@@ -39,7 +39,7 @@ import TcUnify       ( tcSubType_NC )
 
 import ExtractDocs ( extractDocs )
 import qualified Data.Map as Map
-import HsDoc           ( HsDoc'(..), HsDocString, unpackHDS, Docs(..) )
+import HsDoc           ( HsDoc(..), HsDocString, unpackHDS, Docs(..) )
 import HscTypes        ( ModIface(..) )
 import LoadIface       ( loadInterfaceForNameMaybe )
 
@@ -489,7 +489,7 @@ addDocs fits =
                  then pure (Map.lookup name lclDocs)
                  else do { mbIface <- loadInterfaceForNameMaybe msg name
                          ; return $ mbIface >>= lookupInIface name }
-        ; return $ fit {hfDoc = hsDoc'String <$> doc} }
+        ; return $ fit {hfDoc = hsDocString <$> doc} }
 
 -- For pretty printing hole fits, we display the name and type of the fit,
 -- with added '_' to represent any extra arguments in case of a non-zero
