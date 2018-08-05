@@ -1266,7 +1266,7 @@ warnIfDeprecated gre@(GRE { gre_name = name, gre_imp = iss })
 
 pprWarningTxtForMsg :: WarningTxt HsDoc' -> SDoc
 pprWarningTxtForMsg (WarningTxt sort_ _ ws) =
-    withHeading (doubleQuotes (vcat (map (text . unpackHDS . hsDoc'String) ws)))
+    withHeading (doubleQuotes (vcat (map (text . unpackHDS . hsDocString) ws)))
   where
     withHeading =
       case sort_ of

@@ -2,6 +2,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 
@@ -27,7 +28,9 @@ module HsDoc
 
   , DocIdEnv
 
-  , HsDoc'(..)
+  , HsDoc'
+  , mkHsDoc'
+  , pprHsDoc'
 
   , DocStructureItem(..)
   , DocStructure
@@ -66,6 +69,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.Void
 import Foreign
 import GHC.ForeignPtr
 import GHC.LanguageExtensions.Type
@@ -118,6 +122,9 @@ data HsDoc name = HsDoc
 instance Outputable (HsDoc a) where
   ppr (HsDoc s _ids) = ppr s
 
+hsDocIdentifierSpans :: HsDoc' -> [HsDocIdentifierSpan]
+hsDocIdentifierSpans = map hsDocIdentifierSpan . hsDocIdentifiers
+
 emptyHsDoc :: HsDoc a
 emptyHsDoc = HsDoc (HsDocString BS.empty) []
 
@@ -144,7 +151,7 @@ concatHsDoc xs =
 splitHsDoc :: HsDoc Name -> (DocIdEnv, HsDoc')
 splitHsDoc (HsDoc s ids) = (id_env, hsDoc')
   where
-    hsDoc' = HsDoc' s (hsDocIdentifierSpan <$> ids)
+    hsDoc' = mkHsDoc' s (hsDocIdentifierSpan <$> ids)
     id_env = thdOf3 (foldl' f (0, s, Map.empty) ids)
 
     f (!off, !hds, !m)
@@ -231,26 +238,26 @@ type LHsDocString = Located HsDocString
 -- | Identifiers and the names they may correspond to.
 type DocIdEnv = Map HsDocString [Name]
 
--- | A version of 'HsDoc' intended for serialization.
-data HsDoc' = HsDoc'
-  { hsDoc'String :: !HsDocString
-  , hsDoc'IdentifierSpans :: ![HsDocIdentifierSpan]
-  }
+-- | The type of docstrings that we include in @.hi@-files.
+type HsDoc' = HsDoc Void
+
+mkHsDoc' :: HsDocString -> [HsDocIdentifierSpan] -> HsDoc'
+mkHsDoc' s spans = HsDoc s (map (\span -> HsDocIdentifier span []) spans)
+
+pprHsDoc' :: HsDoc' -> SDoc
+pprHsDoc' hsDoc' =
+    vcat [ text "text:" $$ nest 2 (ppr $ hsDocString hsDoc')
+         , text "spans:" <+> fsep (punctuate (char ',') (map ppr (hsDocIdentifierSpans hsDoc')))
+         ]
 
 instance Binary HsDoc' where
-  put_ bh (HsDoc' s spans) = do
-    put_ bh s
-    put_ bh spans
+  put_ bh hsDoc' = do
+    put_ bh (hsDocString hsDoc')
+    put_ bh (hsDocIdentifierSpans hsDoc')
   get bh = do
     s <- get bh
     spans <- get bh
-    return (HsDoc' s spans)
-
-instance Outputable HsDoc' where
-  ppr (HsDoc' s spans) =
-    vcat [ text "text:" $$ nest 2 (ppr s)
-         , text "spans:" <+> fsep (punctuate (char ',') (map ppr spans))
-         ]
+    return (mkHsDoc' s spans)
 
 -- | A simplified version of 'HsImpExp.IE'.
 data DocStructureItem
@@ -302,11 +309,11 @@ instance Outputable DocStructureItem where
   ppr = \case
     DsiSectionHeading level doc -> vcat
       [ text "section heading, level" <+> ppr level Outputable.<> colon
-      , nest 2 (ppr doc)
+      , nest 2 (pprHsDoc' doc)
       ]
     DsiDocChunk doc -> vcat
       [ text "documentation chunk:"
-      , nest 2 (ppr doc)
+      , nest 2 (pprHsDoc' doc)
       ]
     DsiNamedChunkRef name ->
       text "reference to named chunk:" <+> text name
@@ -389,11 +396,11 @@ instance Outputable Docs where
       vcat
         [ pprField (pprMap ppr (vcat . map pprName')) "identifier env"
                    docs_id_env
-        , pprField ppr "module header" docs_mod_hdr
-        , pprField (pprMap ppr ppr) "declaration docs" docs_decls
-        , pprField (pprMap ppr (pprMap ppr ppr)) "arg docs" docs_args
+        , pprField (pprMaybe pprHsDoc') "module header" docs_mod_hdr
+        , pprField (pprMap ppr pprHsDoc') "declaration docs" docs_decls
+        , pprField (pprMap ppr (pprMap ppr pprHsDoc')) "arg docs" docs_args
         , pprField (vcat . map ppr) "documentation structure" docs_structure
-        , pprField (pprMap (doubleQuotes . text) ppr) "named chunks"
+        , pprField (pprMap (doubleQuotes . text) pprHsDoc') "named chunks"
                    docs_named_chunks
         , pprField pprMbString "haddock options" docs_haddock_opts
         , pprField ppr "language" docs_language
@@ -413,6 +420,9 @@ instance Outputable Docs where
         ppr (nameOccName n) <+> text "from" <+> ppr (nameModule n)
       pprMbString Nothing = empty
       pprMbString (Just s) = text s
+      pprMaybe ppr' = \case
+        Nothing -> text "Nothing"
+        Just x -> text "Just" <+> ppr' x
 
 emptyDocs :: Docs
 emptyDocs = Docs
