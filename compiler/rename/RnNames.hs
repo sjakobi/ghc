@@ -50,7 +50,7 @@ import RdrHsSyn        ( setRdrNameSpace )
 import Outputable
 import Maybes
 import SrcLoc
-import BasicTypes      ( TopLevelFlag(..), StringLiteral(..), WarningSort(..) )
+import BasicTypes      ( TopLevelFlag(..), StringLiteral(..), WarningSort(..), warningTxtContents )
 import Util
 import FastString
 import FastStringEnv
@@ -1683,10 +1683,11 @@ missingImportListItem ie
   = text "The import item" <+> quotes (ppr ie) <+> ptext (sLit "does not have an explicit import list")
 
 moduleWarn :: ModuleName -> WarningTxt HsDoc' -> SDoc
-moduleWarn mod (WarningTxt sort_ _lbl txt)
+moduleWarn mod w
   = sep [ text "Module" <+> quotes (ppr mod) <> deprecated <> char ':',
           nest 2 (vcat (map (text . unpackHDS . hsDocString) txt)) ]
   where
+    (sort_, txt) = warningTxtContents w
     deprecated =
       case sort_ of
         WsWarning -> empty

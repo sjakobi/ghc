@@ -650,7 +650,7 @@ data TcGblEnv
         tcg_binds     :: LHsBinds GhcTc,     -- Value bindings in this module
         tcg_sigs      :: NameSet,            -- ...Top-level names that *lack* a signature
         tcg_imp_specs :: [LTcSpecPrag],      -- ...SPECIALISE prags for imported Ids
-        tcg_warns     :: Warnings (LHsDoc Name), -- ...Warnings and deprecations
+        tcg_warns     :: Warnings (HsDoc Name), -- ...Warnings and deprecations
         tcg_anns      :: [Annotation],       -- ...Annotations
         tcg_tcs       :: [TyCon],            -- ...TyCons and Classes
         tcg_insts     :: [ClsInst],          -- ...Instances

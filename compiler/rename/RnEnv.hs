@@ -65,7 +65,7 @@ import DataCon
 import TyCon
 import ErrUtils         ( MsgDoc )
 import PrelNames        ( rOOT_MAIN )
-import BasicTypes       ( WarningTxt(..), WarningSort(..), TopLevelFlag(..))
+import BasicTypes       ( WarningTxt(..), WarningSort(..), TopLevelFlag(..), warningTxtContents )
 import SrcLoc
 import Outputable
 import Util
@@ -1264,10 +1264,11 @@ warnIfDeprecated gre@(GRE { gre_name = name, gre_imp = iss })
         extra | imp_mod == moduleName name_mod = Outputable.empty
               | otherwise = text ", but defined in" <+> ppr name_mod
 
-pprWarningTxtForMsg :: WarningTxt HsDoc' -> SDoc
-pprWarningTxtForMsg (WarningTxt sort_ _ ws) =
+pprWarningTxtForMsg :: WarningTxt (HsDoc a) -> SDoc
+pprWarningTxtForMsg w =
     withHeading (doubleQuotes (vcat (map (text . unpackHDS . hsDocString) ws)))
   where
+    (sort_, ws) = warningTxtContents w
     withHeading =
       case sort_ of
         WsDeprecated -> (text "Deprecated:" <+>)
