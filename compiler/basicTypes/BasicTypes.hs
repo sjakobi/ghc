@@ -32,7 +32,11 @@ module BasicTypes(
 
         FunctionOrData(..),
 
-        WarningTxt(..), WarningSort(..), StringLiteral(..),
+        WarningTxt(..), warningTxtContents,
+
+        WarningSort(..),
+
+        WithSourceText(..), noSourceText, StringLiteral(..),
 
         Fixity(..), FixityDirection(..),
         defaultFixity, maxPrecedence, minPrecedence,
@@ -311,8 +315,24 @@ initialVersion = 1
 ************************************************************************
 -}
 
+data WithSourceText a = WithSourceText
+  { wst_st :: SourceText
+  , unWithSourceText :: a
+  } deriving (Data, Functor, Foldable, Traversable)
+
+instance Eq a => Eq (WithSourceText a) where
+  (==) = (==) `on` unWithSourceText
+
+instance Outputable a => Outputable (WithSourceText a) where
+  ppr _wst = text "TODO"
+
+noSourceText :: a -> WithSourceText a
+noSourceText = WithSourceText NoSourceText
+
 -- | A String Literal in the source, including its original raw format for use by
 -- source to source manipulation tools.
+
+-- TODO: Make this an alias for (WithSourceText FastString)
 data StringLiteral = StringLiteral
                        { sl_st :: SourceText, -- literal raw source.
                                               -- See Note [Literal source text]
@@ -329,23 +349,19 @@ instance Outputable StringLiteral where
 --
 -- reason/explanation from a WARNING or DEPRECATED pragma
 data WarningTxt text = WarningTxt
-  { wt_sort :: !WarningSort
-  , wt_label :: !(Located SourceText)
-    -- ^ The original text of the pragma label, e.g. @DEPRECATED@.
-  , wt_warning :: ![text]
+  { wt_sort :: !(Located (WithSourceText WarningSort))
+  , wt_warning :: ![Located (WithSourceText text)]
   } deriving (Eq, Data, Functor, Foldable, Traversable)
 
 instance Outputable text => Outputable (WarningTxt text) where
-  ppr (WarningTxt _sort lsrc ws) =
-      case unLoc lsrc of
-        NoSourceText   -> pp_ws ws
-        SourceText src -> text src <+> pp_ws ws <+> text "#-}"
-    where
-      pp_ws [l] = ppr l
-      pp_ws ws
-        = text "["
-          <+> vcat (punctuate comma (map ppr ws))
-          <+> text "]"
+  ppr w = ppr sort_ <> colon <+> ppr ws
+    where (sort_, ws) = warningTxtContents w
+
+warningTxtContents :: WarningTxt text -> (WarningSort, [text])
+warningTxtContents (WarningTxt srt ws) =
+    (strip srt, map strip ws)
+  where
+    strip = unWithSourceText . unLoc
 
 data WarningSort
   = WsWarning

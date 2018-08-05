@@ -98,7 +98,7 @@ combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> (DocIdEnv, DocStructure)        -- ^ Docs from section headings
                                                -- and doc chunks
             -> Map String (HsDoc Name)         -- ^ Named chunks
-            -> Warnings (LHsDoc Name)
+            -> Warnings (HsDoc Name)
             -> (Warnings HsDoc', Docs)
 combineDocs mb_doc_hdr doc_map arg_map (id_env0, doc_structure) named_chunks
             warns =
@@ -133,9 +133,9 @@ splitMbHsDoc :: Maybe (HsDoc Name) -> (DocIdEnv, Maybe HsDoc')
 splitMbHsDoc Nothing = (M.empty, Nothing)
 splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
 
-splitWarnings :: Warnings (LHsDoc Name) -> (DocIdEnv, Warnings HsDoc')
+splitWarnings :: Warnings (HsDoc Name) -> (DocIdEnv, Warnings HsDoc')
 splitWarnings =
-    swap . runWriter . traverse (writer . swap . splitHsDoc . unLoc)
+    swap . runWriter . traverse (writer . swap . splitHsDoc)
 
 -- | If we have an explicit export list, we can easily extract the
 -- documentation structure from that.
