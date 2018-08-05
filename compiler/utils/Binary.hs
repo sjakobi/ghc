@@ -75,7 +75,6 @@ import BasicTypes
 import SrcLoc
 
 import Foreign
-import Control.Applicative
 import Data.Array
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Internal as BS
@@ -1101,10 +1100,15 @@ instance Binary Fixity where
 
 -- | Ignores the 'wt_label' field.
 instance Binary text => Binary (WarningTxt text) where
-  put_ bh (WarningTxt sort_ _lbl txt_) = do
+  put_ bh w = do
+    let (sort_, ws) = warningTxtContents w
     put_ bh sort_
-    put_ bh txt_
-  get bh = liftA3 WarningTxt (get bh) (pure (noLoc NoSourceText)) (get bh)
+    put_ bh ws
+  get bh = do
+    sort_ <- get bh
+    ws <- get bh
+    let box = noLoc . noSourceText
+    pure (WarningTxt (box sort_) (map box ws))
 
 instance Binary WarningSort where
   put_ bh =
