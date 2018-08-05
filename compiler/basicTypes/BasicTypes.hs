@@ -324,7 +324,7 @@ instance Eq a => Eq (WithSourceText a) where
   (==) = (==) `on` unWithSourceText
 
 instance Outputable a => Outputable (WithSourceText a) where
-  ppr _wst = text "TODO"
+  ppr (WithSourceText st x) = pprWithSourceText st (ppr x)
 
 noSourceText :: a -> WithSourceText a
 noSourceText = WithSourceText NoSourceText
@@ -353,9 +353,16 @@ data WarningTxt text = WarningTxt
   , wt_warning :: ![Located (WithSourceText text)]
   } deriving (Eq, Data, Functor, Foldable, Traversable)
 
+-- Yeah, this is a funny instance.
+-- It makes Ppr035, Ppr036 and Ppr046 pass though!
 instance Outputable text => Outputable (WarningTxt text) where
-  ppr w = ppr sort_ <> colon <+> ppr ws
-    where (sort_, ws) = warningTxtContents w
+  ppr (WarningTxt lsort lws) =
+    case wst_st (unLoc lsort) of
+      NoSourceText -> pp_ws lws
+      SourceText src -> text src <+> pp_ws lws <+> text "#-}"
+    where
+      pp_ws [l] = ppr $ unLoc l
+      pp_ws ws = ppr $ map unLoc ws
 
 warningTxtContents :: WarningTxt text -> (WarningSort, [text])
 warningTxtContents (WarningTxt srt ws) =
