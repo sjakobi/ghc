@@ -86,8 +86,6 @@ extractDocs' dflags
     local_insts = filter (nameIsLocalOrFrom semantic_mdl)
                          $ map getName insts ++ map getName fam_insts
     doc_structure = mkDocStructure mdl import_avails mb_rn_exports mb_rn_decls all_exports
-    -- TODO: We probably have no use for the named chunks section when
-    -- there is no explicit export list. Maybe leave it empty in that case.
     named_chunks = getNamedChunks (isJust mb_rn_exports) mb_rn_decls
 
 -- | Split identifier/'Name' info off doc structures and collect it in a
