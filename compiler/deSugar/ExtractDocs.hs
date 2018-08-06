@@ -200,7 +200,7 @@ mkDocStructureFromExportList mdl import_avails rn_exports =
         this_mdl_name = moduleName mdl
 
     imported :: ModuleEnv [ImportedModsVal]
-    imported = importedByUser <$> (imp_mods import_avails)
+    imported = mapModuleEnv importedByUser (imp_mods import_avails)
 
 -- | Figure out the documentation structure by correlating
 -- the module exports with the located declarations.
