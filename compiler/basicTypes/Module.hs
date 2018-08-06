@@ -9,7 +9,6 @@ These are Uniquable, hence we can build Maps with Modules as
 the keys.
 -}
 
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
@@ -1135,7 +1134,6 @@ wiredInUnitIds = [ primUnitId,
 
 -- | A map keyed off of 'Module's
 newtype ModuleEnv elt = ModuleEnv (Map NDModule elt)
-  deriving Functor
 
 {-
 Note [ModuleEnv performance and determinism]
