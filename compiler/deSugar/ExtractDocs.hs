@@ -83,8 +83,8 @@ extractDocs' dflags
     doc_structure = mkDocStructure mdl import_avails mb_rn_exports mb_rn_decls all_exports
     named_chunks = getNamedChunks (isJust mb_rn_exports) mb_rn_decls
 
--- | Split identifier/'Name' info off doc structures and collect it in a
--- 'DocIdEnv'. Only 'HsDocIdentifierSpan's remain with the raw docstrings.
+-- | Split identifier/'Name' info off doc structures and collect it in
+-- 'docs_id_env'.
 combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> Map Name (HsDoc Name)           -- ^ Declaration docs
             -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
