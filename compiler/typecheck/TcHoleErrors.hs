@@ -475,8 +475,8 @@ addDocs fits =
      ; if showDocs
        then do { dflags <- getDynFlags
                ; tcGblEnv <- getGblEnv
-               ; (_, mb_docs) <- liftIO $ extractDocs dflags tcGblEnv
-               ; let lclDocs = maybe Map.empty docs_decls mb_docs
+               ; let (_, mb_docs) = extractDocs dflags tcGblEnv
+                     lclDocs = maybe Map.empty docs_decls mb_docs
                ; mapM (upd lclDocs) fits }
        else return fits }
   where

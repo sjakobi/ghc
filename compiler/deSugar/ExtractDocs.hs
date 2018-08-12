@@ -27,7 +27,6 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad.Trans.Writer
 import Data.Foldable
-import Data.IORef
 import Data.List
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
@@ -39,14 +38,14 @@ import Data.Semigroup
 import Data.Tuple
 
 -- | Extract docs from renamer output.
-extractDocs :: DynFlags -> TcGblEnv -> IO (Warnings HsDoc', Maybe Docs)
-extractDocs dflags tc_gbl_env = do
-    (warns, docs) <- extractDocs' dflags tc_gbl_env
-    pure (if gopt Opt_Haddock dflags
-            then (warns, Just docs)
-            else (warns, Nothing))
+extractDocs :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Maybe Docs)
+extractDocs dflags tc_gbl_env
+  | gopt Opt_Haddock dflags = (warns, Just docs)
+  | otherwise               = (warns, Nothing)
+  where
+    (warns, docs) = extractDocs' dflags tc_gbl_env
 
-extractDocs' :: DynFlags -> TcGblEnv -> IO (Warnings HsDoc', Docs)
+extractDocs' :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Docs)
 extractDocs' dflags
              TcGblEnv { tcg_mod = mdl
                       , tcg_semantic_mod = semantic_mdl
@@ -60,17 +59,14 @@ extractDocs' dflags
                       , tcg_insts = insts
                       , tcg_fam_insts = fam_insts
                       , tcg_doc_hdr = mb_doc_hdr
-                      , tcg_th_top_level_locs = ref_splices
-                      } = do
-    splices <- readIORef ref_splices
-    pure ( warns'
-         , combined_docs { docs_haddock_opts = haddockOptions dflags
-                         , docs_language = language_
-                         , docs_extensions = exts
-                         , docs_locations = locs_map
-                         , docs_splices = splices
-                         }
-         )
+                      } =
+    ( warns'
+    , combined_docs { docs_haddock_opts = haddockOptions dflags
+                    , docs_language = language_
+                    , docs_extensions = exts
+                    , docs_locations = locs_map
+                    }
+    )
   where
     exts = EnumSet.difference (extensionFlags dflags)
                               (EnumSet.fromList (languageExtensions language_))
