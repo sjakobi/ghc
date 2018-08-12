@@ -25,7 +25,6 @@ import TcRnTypes
 
 import Control.Applicative
 import Control.Arrow
-import Control.Monad.Trans.Writer
 import Data.Foldable
 import Data.List
 import Data.List.NonEmpty (NonEmpty(..))
@@ -35,7 +34,6 @@ import qualified Data.Map as M
 import qualified Data.Set as Set
 import Data.Maybe
 import Data.Semigroup
-import Data.Tuple
 
 -- | Extract docs from renamer output.
 extractDocs :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Maybe Docs)
@@ -107,28 +105,14 @@ combineDocs mb_doc_hdr doc_map arg_map (id_env0, doc_structure) named_chunks
   where id_env = M.unions [id_env0, hdr_id_env, doc_map_id_env,
                            arg_map_id_env, named_chunks_id_env, warns_id_env]
 
-        (hdr_id_env, mb_doc_hdr') = splitMbHsDoc (unLoc <$> mb_doc_hdr)
+        (hdr_id_env, mb_doc_hdr') = split_ (unLoc <$> mb_doc_hdr)
+        (doc_map_id_env, doc_map') = split_ doc_map
+        (arg_map_id_env, arg_map') = traverse split_ arg_map
+        (named_chunks_id_env, named_chunks') = split_ named_chunks
+        (warns_id_env, warns') = split_ warns
 
-        doc_map_id_env = foldMap fst split_doc_map
-        doc_map' = snd <$> split_doc_map
-        split_doc_map = splitHsDoc <$> doc_map
-
-        arg_map_id_env = foldMap (foldMap fst) split_arg_map
-        arg_map' = fmap snd <$> split_arg_map
-        split_arg_map = fmap splitHsDoc <$> arg_map
-
-        named_chunks_id_env = foldMap fst split_named_chunks
-        named_chunks' = snd <$> split_named_chunks
-        split_named_chunks = splitHsDoc <$> named_chunks
-        (warns_id_env, warns') = splitWarnings warns
-
-splitMbHsDoc :: Maybe (HsDoc Name) -> (DocIdEnv, Maybe HsDoc')
-splitMbHsDoc Nothing = (M.empty, Nothing)
-splitMbHsDoc (Just hsDoc) = Just <$> splitHsDoc hsDoc
-
-splitWarnings :: Warnings (HsDoc Name) -> (DocIdEnv, Warnings HsDoc')
-splitWarnings =
-    swap . runWriter . traverse (writer . swap . splitHsDoc)
+        split_ :: Traversable t => t (HsDoc Name) -> (DocIdEnv, t HsDoc')
+        split_ = traverse splitHsDoc
 
 -- | If we have an explicit export list, we can easily extract the
 -- documentation structure from that.
