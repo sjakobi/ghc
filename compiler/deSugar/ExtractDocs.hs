@@ -232,18 +232,13 @@ mkMaps :: [Name]
           , Map Name (Map Int (HsDoc Name))
           )
 mkMaps instances decls =
-    ( f' (map (nubByName fst) decls')
-    , f (filterMapping (not . M.null) args)
+    ( listsToMapWith appendHsDoc (map (nubByName fst) decls')
+    , listsToMapWith (<>) (filterMapping (not . M.null) args)
     )
   where
     (decls', args) = unzip (map mappings decls)
 
-    -- TODO: Refactor f, f' and f''
-    f :: (Ord a, Semigroup b) => [[(a, b)]] -> Map a b
-    f = M.fromListWith (<>) . concat
-
-    f' :: Ord a => [[(a, HsDoc Name)]] -> Map a (HsDoc Name)
-    f' = M.fromListWith appendHsDoc . concat
+    listsToMapWith f = M.fromListWith f . concat
 
     filterMapping :: (b -> Bool) ->  [[(a, b)]] -> [[(a, b)]]
     filterMapping p = map (filter (p . snd))
