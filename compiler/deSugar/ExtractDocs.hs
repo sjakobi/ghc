@@ -242,8 +242,8 @@ mkDocStructureFromDecls all_exports decls = (id_env, items)
     ldeclNames (L loc d) = zip (getMainDeclBinder d) (repeat loc)
 
 getNamedChunks :: Bool -- ^ Do we have an explicit export list?
-               -> Maybe (HsGroup GhcRn)
-               -> Map String (HsDoc Name)
+               -> Maybe (HsGroup pass)
+               -> Map String (HsDoc (IdP pass))
 getNamedChunks True (Just decls) =
   M.fromList $ flip mapMaybe (unLoc <$> hs_docs decls) $ \case
     DocCommentNamed name doc -> Just (name, doc)
@@ -415,7 +415,7 @@ subordinates instMap decl = case decl of
                   , Just instName <- [M.lookup l instMap] ]
 
 -- | Extract constructor argument docs from inside constructor decls.
-conArgDocs :: ConDecl GhcRn -> Map Int (HsDoc Name)
+conArgDocs :: ConDecl pass -> Map Int (HsDoc (IdP pass))
 conArgDocs con = case getConArgs con of
                    PrefixCon args -> go 0 (map unLoc args ++ ret)
                    InfixCon arg1 arg2 -> go 0 ([unLoc arg1, unLoc arg2] ++ ret)
@@ -445,7 +445,7 @@ classDecls class_ = filterDecls . collectDocs . sortByLoc $ decls
     ats   = mkDecls tcdATs (TyClD noExt . FamDecl noExt) class_
 
 -- | Extract function argument docs from inside top-level decls.
-declTypeDocs :: HsDecl GhcRn -> Map Int (HsDoc Name)
+declTypeDocs :: HsDecl pass -> Map Int (HsDoc (IdP pass))
 declTypeDocs = \case
   SigD  _ (TypeSig _ _ ty)          -> typeDocs (unLoc (hsSigWcType ty))
   SigD  _ (ClassOpSig _ _ _ ty)     -> typeDocs (unLoc (hsSigType ty))
@@ -466,7 +466,7 @@ nubByName f ns = go emptyNameSet ns
         y = f x
 
 -- | Extract function argument docs from inside types.
-typeDocs :: HsType GhcRn -> Map Int (HsDoc Name)
+typeDocs :: HsType pass -> Map Int (HsDoc (IdP pass))
 typeDocs = go 0
   where
     go n (HsForAllTy { hst_body = ty }) = go n (unLoc ty)
