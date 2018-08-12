@@ -23,11 +23,4 @@ docs:
        language:
          Nothing
        language extensions:
-       declaration locations:
-         contains:
-           PragmaDocs.hs:(4,1)-(5,20)
-         x:
-           PragmaDocs.hs:8:1-6
-         y:
-           PragmaDocs.hs:9:1-6
 

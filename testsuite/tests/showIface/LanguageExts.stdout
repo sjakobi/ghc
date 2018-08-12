@@ -11,5 +11,4 @@ docs:
          Just Haskell98
        language extensions:
          PatternGuards
-       declaration locations:
 
