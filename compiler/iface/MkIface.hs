@@ -1190,6 +1190,8 @@ check_old_iface hsc_env mod_summary src_modified maybe_iface
                     -- We can't retrieve the iface
                     Nothing    -> return (MustCompile, Nothing)
 
+                    -- TODO: We probably want to require haddocks with -haddock
+                    -- independently of Opt_SkipIfaceVersionCheck.
                     Just iface | gopt Opt_SkipIfaceVersionCheck dflags ->
                         if gopt Opt_Haddock dflags && isNothing (mi_docs iface)
                             then (,Nothing) <$>
