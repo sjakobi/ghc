@@ -64,7 +64,6 @@ extractDocs' dflags
     , combined_docs { docs_haddock_opts = haddockOptions dflags
                     , docs_language = language_
                     , docs_extensions = exts
-                    , docs_locations = locs_map
                     }
     )
   where
@@ -75,7 +74,7 @@ extractDocs' dflags
     (warns', combined_docs) = combineDocs mb_doc_hdr doc_map arg_map
                                           doc_structure named_chunks warns
 
-    (doc_map, arg_map, locs_map) = maybe (M.empty, M.empty, M.empty)
+    (doc_map, arg_map) = maybe (M.empty, M.empty)
                                (mkMaps local_insts)
                                mb_decls_with_docs
     mb_decls_with_docs = topDecls <$> mb_rn_decls
@@ -252,22 +251,13 @@ mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
        -> ( Map Name (HsDoc Name)
           , Map Name (Map Int (HsDoc Name))
-          , Map Name SrcSpan
           )
 mkMaps instances decls =
     ( f' (map (nubByName fst) decls')
     , f (filterMapping (not . M.null) args)
-      -- FIXME: In the case of
-      --
-      -- data R = R
-      --   { a :: Int }
-      --
-      -- we currently get the same locations for both Rs and the a field.
-      -- That doesn't seem quite right.
-    , f'' locs
     )
   where
-    (decls', args, locs) = unzip3 (map mappings decls)
+    (decls', args) = unzip (map mappings decls)
 
     -- TODO: Refactor f, f' and f''
     f :: (Ord a, Semigroup b) => [[(a, b)]] -> Map a b
@@ -276,19 +266,15 @@ mkMaps instances decls =
     f' :: Ord a => [[(a, HsDoc Name)]] -> Map a (HsDoc Name)
     f' = M.fromListWith appendHsDoc . concat
 
-    f'' :: [[(Name, SrcSpan)]] -> Map Name SrcSpan
-    f'' = M.fromListWith combineSrcSpans . concat
-
     filterMapping :: (b -> Bool) ->  [[(a, b)]] -> [[(a, b)]]
     filterMapping p = map (filter (p . snd))
 
     mappings :: (LHsDecl GhcRn, [HsDoc Name])
              -> ( [(Name, HsDoc Name)]
                 , [(Name, Map Int (HsDoc Name))]
-                , [(Name, SrcSpan)]
                 )
     mappings (L l decl, docStrs) =
-           (dm, am, lm)
+           (dm, am)
       where
         doc = concatHsDoc docStrs
         args = declTypeDocs decl
@@ -303,7 +289,6 @@ mkMaps instances decls =
         subNs = [ n | (n, _, _) <- subs ]
         dm = [(n, d) | (n, Just d) <- zip ns (repeat doc) ++ zip subNs subDocs]
         am = [(n, args) | n <- ns] ++ zip subNs subArgs
-        lm = [(n, l) | n <- ns ++ subNs]
 
     instanceMap :: Map SrcSpan Name
     instanceMap = M.fromList [(getSrcSpan n, n) | n <- instances]

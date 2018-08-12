@@ -112,23 +112,4 @@ docs:
        language:
          Nothing
        language extensions:
-       declaration locations:
-         add:
-           DocsInHiFile.hs:(33,1)-(38,12)
-         elem:
-           DocsInHiFile.hs:(23,1)-(24,9)
-         D:
-           DocsInHiFile.hs:(27,1)-(31,12)
-         D0:
-           DocsInHiFile.hs:(27,1)-(31,12)
-         D1:
-           DocsInHiFile.hs:(27,1)-(31,12)
-         P:
-           DocsInHiFile.hs:(39,1)-(42,10)
-         p:
-           DocsInHiFile.hs:(39,1)-(42,10)
-         $fShowD:
-           DocsInHiFile.hs:(27,1)-(31,12)
-         D':
-           DocsInHiFile.hs:45:1-7
 

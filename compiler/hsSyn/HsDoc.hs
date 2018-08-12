@@ -345,8 +345,6 @@ data Docs = Docs
   , docs_extensions   :: EnumSet Extension
     -- ^ The language extensions used in the module. Any extensions implied by
     -- 'docs_language' are excluded.
-  , docs_locations    :: Map Name SrcSpan
-    -- ^ Locations of declarations.
   }
 
 instance Binary Docs where
@@ -360,7 +358,6 @@ instance Binary Docs where
     put_ bh (docs_haddock_opts docs)
     put_ bh (docs_language docs)
     put_ bh (docs_extensions docs)
-    put_ bh (NonDetKeyMap (docs_locations docs))
   get bh = do
     id_env <- get bh
     mod_hdr <- get bh
@@ -371,7 +368,6 @@ instance Binary Docs where
     haddock_opts <- get bh
     language <- get bh
     exts <- get bh
-    locations <- unNonDetKeyMap <$> get bh
     pure Docs { docs_id_env = id_env
               , docs_mod_hdr = mod_hdr
               , docs_decls =  decls
@@ -381,7 +377,6 @@ instance Binary Docs where
               , docs_haddock_opts = haddock_opts
               , docs_language = language
               , docs_extensions = exts
-              , docs_locations = locations
               }
 
 instance Outputable Docs where
@@ -399,7 +394,6 @@ instance Outputable Docs where
         , pprField ppr "language" docs_language
         , pprField (vcat . map ppr . EnumSet.toList) "language extensions"
                    docs_extensions
-        , pprField (pprMap ppr ppr) "declaration locations" docs_locations
         ]
     where
       pprField ppr' heading lbl =
@@ -427,5 +421,4 @@ emptyDocs = Docs
   , docs_haddock_opts = Nothing
   , docs_language = Nothing
   , docs_extensions = EnumSet.empty
-  , docs_locations = Map.empty
   }
