@@ -114,25 +114,20 @@ combineDocs mb_doc_hdr doc_map arg_map (id_env0, doc_structure) named_chunks
         split_ :: Traversable t => t (HsDoc Name) -> (DocIdEnv, t HsDoc')
         split_ = traverse splitHsDoc
 
--- | If we have an explicit export list, we can easily extract the
--- documentation structure from that.
--- Otherwise we make do with the renamed exports and declarations.
+-- | If we have an explicit export list, we extract the documentation structure
+-- from that.
+-- Otherwise we use the renamed exports and declarations.
 mkDocStructure :: Module                               -- ^ The current module
                -> ImportAvails                         -- ^ Imports
                -> Maybe [(Located (IE GhcRn), Avails)] -- ^ Renamed exports
                -> Maybe (HsGroup GhcRn)
                -> [AvailInfo]                          -- ^ All exports
                -> (DocIdEnv, DocStructure)
--- TODO: Can we respect {-# OPTIONS_HADDOCK ignore-exports #-} here, e.g.
--- include section headings from the module body?
--- ignore-exports will be removed.
 mkDocStructure mdl import_avails mb_rn_exports mb_rn_decls all_exports =
-  fromMaybe
-    (M.empty, [])
-    (asum
-      [ mkDocStructureFromExportList mdl import_avails <$> mb_rn_exports
-      , mkDocStructureFromDecls all_exports <$> mb_rn_decls
-      ])
+  fold $ asum
+    [ mkDocStructureFromExportList mdl import_avails <$> mb_rn_exports
+    , mkDocStructureFromDecls all_exports <$> mb_rn_decls
+    ]
 
 -- TODO:
 -- * Maybe remove items that export nothing?
