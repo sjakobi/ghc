@@ -30,10 +30,6 @@ LanguageExts:
 	'$(TEST_HC)' $(TEST_HC_OPTS) -c -haddock LanguageExts.hs
 	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface LanguageExts.hi | grep -A 100 'docs:'
 
-Splices:
-	'$(TEST_HC)' $(TEST_HC_OPTS) --make -haddock Curries.hs Splices.hs
-	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface Splices.hi | grep -A 100 'docs:'
-
 ReExports:
 	'$(TEST_HC)' $(TEST_HC_OPTS) --make -haddock -v0 Inner0 Inner1 Inner2 Inner3 Inner4 ReExports
 	'$(TEST_HC)' $(TEST_HC_OPTS) --show-iface ReExports.hi | grep -A 200 'docs:'
