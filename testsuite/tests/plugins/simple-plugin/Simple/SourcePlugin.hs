@@ -29,21 +29,12 @@ parsedPlugin opts _ pm
   = do liftIO $ putStrLn $ "parsePlugin(" ++ intercalate "," opts ++ ")"
        return pm
 
--- <<<<<<< HEAD
 renamedAction :: [CommandLineOption]
                     -> TcGblEnv -> HsGroup GhcRn
                     -> TcM (TcGblEnv, HsGroup GhcRn)
 renamedAction _ env grp
   = do liftIO $ putStrLn "typeCheckPlugin (rn)"
        return (env, grp)
--- =======
--- renamedAction :: [CommandLineOption] -> ModSummary
---                     -> ( HsGroup GhcRn, [LImportDecl GhcRn]
---                        , Maybe [(LIE GhcRn, Avails)], Maybe (LHsDoc Name) )
---                     -> TcM ()
--- renamedAction _ _ ( gr, _, _, _ )
---   = liftIO $ putStrLn "typeCheckPlugin (rn)"
--- >>>>>>> a54e339f51... Lex and rename docstrings
 
 typecheckPlugin :: [CommandLineOption] -> ModSummary -> TcGblEnv -> TcM TcGblEnv
 typecheckPlugin _ _ tc
