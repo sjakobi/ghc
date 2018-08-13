@@ -52,6 +52,8 @@ instance Binary (EnumSet a) where
   put_ bh = put_ bh . enumSetToBitArray
   get bh = bitArrayToEnumSet <$> get bh
 
+-- TODO: Using 'Natural' instead of 'Integer' should be slightly more efficient
+-- but we don't currently have a 'Binary' instance for 'Natural'.
 type BitArray = Integer
 
 enumSetToBitArray :: EnumSet a -> BitArray
