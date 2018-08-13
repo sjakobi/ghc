@@ -956,6 +956,10 @@ data ModIface
         mi_complete_sigs :: [IfaceCompleteMatch],
 
         mi_docs      :: Maybe Docs
+                -- ^ Docstrings and related data for use by haddock, the ghci
+                -- @:doc@ command, and other tools.
+                --
+                -- @Just _@ @<=>@ the module was built with @-haddock@.
      }
 
 -- | Old-style accessor for whether or not the ModIface came from an hs-boot
