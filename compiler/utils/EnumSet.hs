@@ -56,7 +56,7 @@ type BitArray = Integer
 
 enumSetToBitArray :: EnumSet a -> BitArray
 enumSetToBitArray (EnumSet int_set) =
-    IntSet.foldl' (\ba i -> ba `setBit` i) 0 int_set
+    IntSet.foldl' setBit 0 int_set
 
 bitArrayToEnumSet :: BitArray -> EnumSet a
 bitArrayToEnumSet ba = EnumSet (go (popCount ba) 0 IntSet.empty)
