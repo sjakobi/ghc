@@ -146,8 +146,13 @@ utf8DecodeStringLazy fptr offset len
                   rest <- unsafeDupableInterleaveIO $ unpack (p `plusPtr#` nBytes#)
                   return (C# c# : rest)
 
+-- | Return the first UTF8-encoded 'Char' and its length in bytes, if the
+-- 'ByteString' is non-empty.
+
 -- TODO: Make this faster
-utf8DecodeByteStringChar :: ByteString -> Maybe (Char, Int)
+utf8DecodeByteStringChar
+    :: ByteString
+    -> Maybe (Char, Int)
 utf8DecodeByteStringChar bs =
     case utf8DecodeByteString bs of
       [] -> Nothing
