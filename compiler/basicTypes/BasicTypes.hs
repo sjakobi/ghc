@@ -372,7 +372,7 @@ warningTxtContents (WarningTxt srt ws) =
 data WarningSort
   = WsWarning
   | WsDeprecated
-  deriving (Data, Eq)
+  deriving (Data, Eq, Enum)
 
 instance Outputable WarningSort where
   ppr WsWarning = text "Warning"
