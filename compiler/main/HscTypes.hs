@@ -1068,6 +1068,10 @@ instance Binary ModIface where
         put_ bh trust
         put_ bh trust_pkg
         put_ bh complete_sigs
+        -- TODO: In some cases we may just want check whether we have any docs
+        -- or not, without loading the docs if they are present. So possibly
+        -- the 'Maybe' constructor should be serialized strictly while the docs
+        -- inside should be serialized lazily.
         lazyPut bh docs
 
    get bh = do
