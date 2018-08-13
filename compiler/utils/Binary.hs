@@ -1098,7 +1098,7 @@ instance Binary Fixity where
           ab <- get bh
           return (Fixity src aa ab)
 
--- | Ignores the 'wt_label' field.
+-- | Ignores source locations and 'SourceText's.
 instance Binary text => Binary (WarningTxt text) where
   put_ bh w = do
     let (sort_, ws) = warningTxtContents w
