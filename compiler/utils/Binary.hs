@@ -92,7 +92,7 @@ import Type.Reflection
 import Type.Reflection.Unsafe
 import Data.Kind (Type)
 import GHC.Exts (TYPE, RuntimeRep(..), VecCount(..), VecElem(..))
-import Control.Monad            ( when )
+import Control.Monad            ( (<$!>), when )
 import System.IO as IO
 import System.IO.Unsafe         ( unsafeInterleaveIO )
 import System.IO.Error          ( mkIOError, eofErrorType )
@@ -1111,16 +1111,8 @@ instance Binary text => Binary (WarningTxt text) where
     pure (WarningTxt (box sort_) (map box ws))
 
 instance Binary WarningSort where
-  put_ bh =
-    \case
-      WsWarning -> putByte bh 0
-      WsDeprecated -> putByte bh 1
-  get bh = do
-    tag <- getByte bh
-    case tag of
-      0 -> pure WsWarning
-      1 -> pure WsDeprecated
-      _ -> fail "instance Binary WarningSort: Bad tag"
+  put_ bh = putWord8 bh . fromIntegral . fromEnum
+  get  bh = toEnum . fromIntegral <$!> getWord8 bh
 
 instance Binary StringLiteral where
   put_ bh (StringLiteral st fs) = do
