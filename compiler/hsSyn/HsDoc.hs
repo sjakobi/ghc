@@ -2,6 +2,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
@@ -103,7 +104,7 @@ shiftHsDocIdentifierSpan n (HsDocIdentifierSpan a b) =
 data HsDocIdentifier name = HsDocIdentifier
   { hsDocIdentifierSpan :: !HsDocIdentifierSpan
   , hsDocIdentifierNames :: ![name]
-  } deriving (Eq, Show, Data)
+  } deriving (Eq, Show, Data, Functor, Foldable, Traversable)
 
 shiftHsDocIdentifier :: Int -> HsDocIdentifier name -> HsDocIdentifier name
 shiftHsDocIdentifier n (HsDocIdentifier span names) =
@@ -113,7 +114,7 @@ shiftHsDocIdentifier n (HsDocIdentifier span names) =
 data HsDoc name = HsDoc
   { hsDocString :: !HsDocString
   , hsDocIdentifiers :: ![HsDocIdentifier name]
-  } deriving (Eq, Show, Data)
+  } deriving (Eq, Show, Data, Functor, Foldable, Traversable)
 
 -- | For compatibility with the existing @-ddump-parsed' output, we only show
 -- the docstring.
