@@ -6,7 +6,7 @@ require own pkg trusted: False
 docs:
   Just identifier env:
          "elem":
-           elem from Data.Foldable
+           Data.Foldable.elem
        module header:
          Nothing
        declaration docs:

@@ -383,7 +383,7 @@ instance Binary Docs where
 instance Outputable Docs where
   ppr docs =
       vcat
-        [ pprField (pprMap ppr (vcat . map pprName')) "identifier env"
+        [ pprField (pprMap ppr (vcat . map ppr)) "identifier env"
                    docs_id_env
         , pprField (pprMaybe pprHsDoc') "module header" docs_mod_hdr
         , pprField (pprMap ppr pprHsDoc') "declaration docs" docs_decls
@@ -402,9 +402,6 @@ instance Outputable Docs where
       pprMap pprKey pprVal m =
         vcat $ flip map (Map.toList m) $ \(k, v) ->
           pprKey k Outputable.<> colon $$ nest 2 (pprVal v)
-      pprName' n =
-        -- TODO: This looks a bit awkward.
-        ppr (nameOccName n) <+> text "from" <+> ppr (nameModule n)
       pprMbString Nothing = empty
       pprMbString (Just s) = text s
       pprMaybe ppr' = \case

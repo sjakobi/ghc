@@ -1,10 +1,10 @@
 docs:
   Just identifier env:
          "R":
-           R from NoExportList
-           R from NoExportList
+           R
+           R
          "fα":
-           fα from NoExportList
+           fα
        module header:
          Just text:
                 " Module header"
