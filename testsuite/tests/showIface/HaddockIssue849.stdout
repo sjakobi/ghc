@@ -8,9 +8,12 @@ docs:
          re-exported module(s): [Data.Functor.Identity]
            []
          re-exported module(s): [Data.Maybe]
-           [Maybe{Maybe, Just, Nothing;}, maybe]
+           [GHC.Maybe.Maybe{GHC.Maybe.Maybe, GHC.Maybe.Just,
+                            GHC.Maybe.Nothing;},
+            Data.Maybe.maybe]
          re-exported module(s): [Data.Tuple]
-           [fst, snd, curry, uncurry, swap]
+           [Data.Tuple.fst, Data.Tuple.snd, Data.Tuple.curry,
+            Data.Tuple.uncurry, Data.Tuple.swap]
        named chunks:
        haddock options:
        language:
