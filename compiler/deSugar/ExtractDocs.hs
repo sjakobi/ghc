@@ -65,6 +65,9 @@ extractDocs' dflags
                     }
     )
   where
+    -- TODO: I'm getting some doubts whether we can recreate (extensionFlags dflags)
+    -- from docs_language and docs_extensions.
+    -- Maybe we should serialize (extensions dflags) instead of exts here.
     exts = EnumSet.difference (extensionFlags dflags)
                               (EnumSet.fromList (languageExtensions language_))
     language_ = language dflags
