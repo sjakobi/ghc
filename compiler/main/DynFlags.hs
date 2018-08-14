@@ -635,6 +635,7 @@ data GeneralFlag
    | Opt_DistrustAllPackages
    | Opt_PackageTrust
 
+   -- TODO: Add a CLI flag for this option.
    | Opt_SkipIfaceVersionCheck
 
    | Opt_G_NoStateHack
