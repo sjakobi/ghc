@@ -101,7 +101,8 @@ docs:
          avails:
            [P{P, p;}]
          avails:
-           [Show{Show, show, showList, showsPrec;}]
+           [GHC.Show.Show{GHC.Show.Show, GHC.Show.show, GHC.Show.showList,
+                          GHC.Show.showsPrec;}]
        named chunks:
          "namedchunk":
            text:
