@@ -2,21 +2,21 @@ docs:
   Just identifier env:
          ":=:":
          "<>":
-           <> from GHC.Base
+           GHC.Base.<>
          "Bool":
-           Bool from GHC.Types
+           GHC.Types.Bool
          "D":
-           D from DocsInHiFile
+           D
          "Show":
-           Show from GHC.Show
+           GHC.Show.Show
          "Unknown":
          "add":
-           add from DocsInHiFile
+           add
          "elem":
-           elem from Data.Foldable
-           elem from DocsInHiFile
+           Data.Foldable.elem
+           elem
          "print":
-           print from System.IO
+           System.IO.print
        module header:
          Just text:
                 " `elem`, 'print',
