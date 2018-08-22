@@ -25,7 +25,6 @@ import TcRnTypes
 
 import Control.Applicative
 import Control.Arrow
-import Data.Foldable
 import Data.List
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
@@ -123,15 +122,16 @@ combineDocs mb_doc_hdr doc_map arg_map (id_env0, doc_structure) named_chunks
 -- Otherwise we use the renamed exports and declarations.
 mkDocStructure :: Module                               -- ^ The current module
                -> ImportAvails                         -- ^ Imports
-               -> Maybe [(Located (IE GhcRn), Avails)] -- ^ Renamed exports
+               -> Maybe [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
                -> Maybe (HsGroup GhcRn)
                -> [AvailInfo]                          -- ^ All exports
                -> (DocIdEnv, DocStructure)
-mkDocStructure mdl import_avails mb_rn_exports mb_rn_decls all_exports =
-  fold $ asum
-    [ mkDocStructureFromExportList mdl import_avails <$> mb_rn_exports
-    , mkDocStructureFromDecls all_exports <$> mb_rn_decls
-    ]
+mkDocStructure mdl import_avails (Just export_list) _ _ =
+    mkDocStructureFromExportList mdl import_avails export_list
+mkDocStructure _ _ Nothing (Just rn_decls) all_exports =
+    mkDocStructureFromDecls all_exports rn_decls
+mkDocStructure _ _ Nothing Nothing _ =
+    error "mkDocStructure"
 
 -- TODO:
 -- * Maybe remove items that export nothing?
@@ -139,10 +139,10 @@ mkDocStructure mdl import_avails mb_rn_exports mb_rn_decls all_exports =
 -- * Check the ordering of avails in DsiModExport
 mkDocStructureFromExportList :: Module                         -- ^ The current module
                              -> ImportAvails
-                             -> [(Located (IE GhcRn), Avails)]
+                             -> [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
                              -> (DocIdEnv, DocStructure)
-mkDocStructureFromExportList mdl import_avails rn_exports =
-    foldMap (second (: []) . toDocStructure . first unLoc) (reverse rn_exports)
+mkDocStructureFromExportList mdl import_avails export_list =
+    foldMap (second (: []) . toDocStructure . first unLoc) (reverse export_list)
   where
 
     toDocStructure :: (IE GhcRn, Avails) -> (DocIdEnv, DocStructureItem)
