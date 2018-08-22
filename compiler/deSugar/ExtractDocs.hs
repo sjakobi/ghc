@@ -37,14 +37,20 @@ import Data.Semigroup
 
 -- | Extract docs from renamer output.
 extractDocs :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Maybe Docs)
-extractDocs dflags tc_gbl_env
-  | gopt Opt_Haddock dflags = (warns, Just docs)
-  | otherwise               = (warns, Nothing)
+extractDocs dflags tc_gbl_env@TcGblEnv { tcg_warns = warns } =
+    ( warns'
+    , if gopt Opt_Haddock dflags
+          then Just (extractDocs' dflags warns_id_env tc_gbl_env)
+          else Nothing
+    )
   where
-    (warns, docs) = extractDocs' dflags tc_gbl_env
+    (warns_id_env, warns') = traverse splitHsDoc warns
 
-extractDocs' :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Docs)
-extractDocs' dflags
+extractDocs' :: DynFlags
+             -> DocIdEnv -- ^ Identifiers lexed from warnings
+             -> TcGblEnv
+             -> Docs
+extractDocs' dflags warns_id_env
              TcGblEnv { tcg_mod = mdl
                       , tcg_semantic_mod = semantic_mdl
                         -- TODO: Why are the exports in reverse order?
@@ -53,17 +59,14 @@ extractDocs' dflags
                       , tcg_exports = all_exports
                       , tcg_imports = import_avails
                       , tcg_rn_decls = mb_rn_decls
-                      , tcg_warns = warns
                       , tcg_insts = insts
                       , tcg_fam_insts = fam_insts
                       , tcg_doc_hdr = mb_doc_hdr
                       } =
-    ( warns'
-    , combined_docs { docs_haddock_opts = haddockOptions dflags
-                    , docs_language = language_
-                    , docs_extensions = exts
-                    }
-    )
+    combined_docs { docs_haddock_opts = haddockOptions dflags
+                  , docs_language = language_
+                  , docs_extensions = exts
+                  }
   where
     -- TODO: I'm getting some doubts whether we can recreate (extensionFlags dflags)
     -- from docs_language and docs_extensions.
@@ -72,8 +75,8 @@ extractDocs' dflags
                               (EnumSet.fromList (languageExtensions language_))
     language_ = language dflags
 
-    (warns', combined_docs) = combineDocs mb_doc_hdr doc_map arg_map
-                                          doc_structure named_chunks warns
+    combined_docs = combineDocs mb_doc_hdr doc_map arg_map doc_structure
+                                named_chunks warns_id_env
 
     (doc_map, arg_map) = maybe (M.empty, M.empty)
                                (mkMaps local_insts)
@@ -92,19 +95,18 @@ combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
             -> (DocIdEnv, DocStructure)        -- ^ Docs from section headings
                                                -- and doc chunks
             -> Map String (HsDoc Name)         -- ^ Named chunks
-            -> Warnings (HsDoc Name)
-            -> (Warnings HsDoc', Docs)
+            -> DocIdEnv                        -- ^ Identifiers lexed from
+                                               -- warnings
+            -> Docs
 combineDocs mb_doc_hdr doc_map arg_map (id_env0, doc_structure) named_chunks
-            warns =
-    ( warns'
-    , emptyDocs { docs_id_env = id_env
-                , docs_mod_hdr =  mb_doc_hdr'
-                , docs_decls = doc_map'
-                , docs_args =  arg_map'
-                , docs_structure = doc_structure
-                , docs_named_chunks = named_chunks'
-                }
-    )
+            warns_id_env =
+    emptyDocs { docs_id_env = id_env
+              , docs_mod_hdr =  mb_doc_hdr'
+              , docs_decls = doc_map'
+              , docs_args =  arg_map'
+              , docs_structure = doc_structure
+              , docs_named_chunks = named_chunks'
+              }
   where id_env = M.unions [id_env0, hdr_id_env, doc_map_id_env,
                            arg_map_id_env, named_chunks_id_env, warns_id_env]
 
@@ -112,7 +114,6 @@ combineDocs mb_doc_hdr doc_map arg_map (id_env0, doc_structure) named_chunks
         (doc_map_id_env, doc_map') = split_ doc_map
         (arg_map_id_env, arg_map') = traverse split_ arg_map
         (named_chunks_id_env, named_chunks') = split_ named_chunks
-        (warns_id_env, warns') = split_ warns
 
         split_ :: Traversable t => t (HsDoc Name) -> (DocIdEnv, t HsDoc')
         split_ = traverse splitHsDoc
