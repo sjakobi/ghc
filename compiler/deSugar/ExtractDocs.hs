@@ -142,16 +142,15 @@ mkDocStructureFromExportList :: Module                         -- ^ The current 
                              -> [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
                              -> (DocIdEnv, DocStructure)
 mkDocStructureFromExportList mdl import_avails export_list =
-    foldMap (second (: []) . toDocStructure . first unLoc) (reverse export_list)
+    traverse (toDocStructure . first unLoc) (reverse export_list)
   where
-
     toDocStructure :: (IE GhcRn, Avails) -> (DocIdEnv, DocStructureItem)
     toDocStructure = \case
       (IEModuleContents _ lmn, avails) -> noDocs (moduleExport (unLoc lmn) avails)
-      (IEGroup _ level doc, _)    -> DsiSectionHeading level <$> splitHsDoc doc
-      (IEDoc _ doc, _)            -> DsiDocChunk <$> splitHsDoc doc
-      (IEDocNamed _ name, _)      -> noDocs (DsiNamedChunkRef name)
-      (_, avails)                 -> noDocs (DsiExports (nubAvails avails))
+      (IEGroup _ level doc, _)         -> DsiSectionHeading level <$> splitHsDoc doc
+      (IEDoc _ doc, _)                 -> DsiDocChunk <$> splitHsDoc doc
+      (IEDocNamed _ name, _)           -> noDocs (DsiNamedChunkRef name)
+      (_, avails)                      -> noDocs (DsiExports (nubAvails avails))
 
     noDocs x = (M.empty, x)
 
