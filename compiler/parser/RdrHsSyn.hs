@@ -375,7 +375,7 @@ cvBindGroup binding
 
 cvBindsAndSigs :: OrdList (LHsDecl GhcPs)
   -> P (LHsBinds GhcPs, [LSig GhcPs], [LFamilyDecl GhcPs]
-          , [LTyFamInstDecl GhcPs], [LDataFamInstDecl GhcPs], [LDocDecl])
+          , [LTyFamInstDecl GhcPs], [LDataFamInstDecl GhcPs], [LDocDecl GhcPs])
 -- Input decls contain just value bindings and signatures
 -- and in case of class or instance declarations also
 -- associated type declarations. They might also contain Haddock comments.
@@ -1299,7 +1299,7 @@ isFunLhs e = go e [] []
 data TyEl = TyElOpr RdrName | TyElOpd (HsType GhcPs)
           | TyElTilde | TyElBang
           | TyElUnpackedness ([AddAnn], SourceText, SrcUnpackedness)
-          | TyElDocPrev HsDocString
+          | TyElDocPrev (HsDoc RdrName)
 
 instance Outputable TyEl where
   ppr (TyElOpr name) = ppr name
@@ -1457,7 +1457,7 @@ pInfixSide (L l1 (TyElOpd t1):xs1) = go [L l1 t1] xs1
     mergeAcc (x:xs) = mkHsAppTys x xs
 pInfixSide _ = Nothing
 
-pDocPrev :: [Located TyEl] -> (Maybe LHsDocString, [Located TyEl])
+pDocPrev :: [Located TyEl] -> (Maybe (LHsDoc RdrName), [Located TyEl])
 pDocPrev = go Nothing
   where
     go mTrailingDoc (L l (TyElDocPrev doc):xs) =
@@ -1535,7 +1535,7 @@ mergeDataCon
       :: [Located TyEl]
       -> P ( Located RdrName         -- constructor name
            , HsConDeclDetails GhcPs  -- constructor field information
-           , Maybe LHsDocString      -- docstring to go on the constructor
+           , Maybe (LHsDoc RdrName)  -- docstring to go on the constructor
            )
 mergeDataCon all_xs =
   do { (addAnns, a) <- eitherToP res
@@ -2140,10 +2140,10 @@ mkLHsOpTy x op y =
   let loc = getLoc x `combineSrcSpans` getLoc op `combineSrcSpans` getLoc y
   in L loc (mkHsOpTy x op y)
 
-mkLHsDocTy :: LHsType GhcPs -> LHsDocString -> LHsType GhcPs
+mkLHsDocTy :: LHsType GhcPs -> LHsDoc RdrName -> LHsType GhcPs
 mkLHsDocTy t doc =
   let loc = getLoc t `combineSrcSpans` getLoc doc
   in L loc (HsDocTy noExt t doc)
 
-mkLHsDocTyMaybe :: LHsType GhcPs -> Maybe LHsDocString -> LHsType GhcPs
+mkLHsDocTyMaybe :: LHsType GhcPs -> Maybe (LHsDoc RdrName) -> LHsType GhcPs
 mkLHsDocTyMaybe t = maybe t (mkLHsDocTy t)
