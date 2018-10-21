@@ -271,12 +271,15 @@ mkMaps instances decls =
     instanceMap = M.fromList [(getSrcSpan n, n) | n <- instances]
 
     names :: SrcSpan -> HsDecl GhcRn -> [Name]
-    names l (InstD _ d) = maybeToList (M.lookup loc instanceMap) -- See
+    names _ (InstD _ d) = maybeToList (M.lookup loc instanceMap) -- See
                                                                  -- Note [1].
-      where loc = case d of
-              TyFamInstD _ _ -> l -- The CoAx's loc is the whole line, but only
-                                  -- for TFs
-              _ -> getInstLoc d
+      where
+        loc = case d of
+          -- The CoAx's loc is the whole line, but only for TFs. The
+          -- workaround is to dig into the family instance declaration and
+          -- get the identifier with the right location.
+          TyFamInstD _ (TyFamInstDecl d') -> getLoc (feqn_tycon (hsib_body d'))
+          _ -> getInstLoc d
     names l (DerivD {}) = maybeToList (M.lookup l instanceMap) -- See Note [1].
     names _ decl = getMainDeclBinder decl
 
@@ -380,6 +383,8 @@ conArgDocs con = case getConArgs con of
                    RecCon _ -> go 1 ret
   where
     go n (HsDocTy _ _ (L _ ds) : tys) = M.insert n ds $ go (n+1) tys
+    go n (HsBangTy _ _ (L _ (HsDocTy _ _ (L _ ds))) : tys)
+      = M.insert n ds $ go (n+1) tys
     go n (_ : tys) = go (n+1) tys
     go _ [] = M.empty
 
