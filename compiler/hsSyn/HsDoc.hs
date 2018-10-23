@@ -64,7 +64,6 @@ import qualified Data.ByteString.Char8 as C8
 import Data.ByteString.Internal (ByteString(..))
 import qualified Data.ByteString.Internal as BS
 import Data.Data
-import Data.Foldable
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
