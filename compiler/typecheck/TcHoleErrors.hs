@@ -474,7 +474,7 @@ addDocs fits =
   do { showDocs <- goptM Opt_ShowDocsOfHoleFits
      ; if showDocs
        then do { dflags <- getDynFlags
-               ; (_, mb_docs) <- extractDocs dflags <$> getGblEnv
+               ; mb_docs <- extractDocs dflags <$> getGblEnv
                  -- TODO: We might want to emit a warning if mb_docs is Nothing
                ; let lclDocs = maybe Map.empty docs_decls mb_docs
                ; mapM (upd lclDocs) fits }

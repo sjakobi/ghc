@@ -1709,7 +1709,7 @@ missingImportListItem :: IE GhcPs -> SDoc
 missingImportListItem ie
   = text "The import item" <+> quotes (ppr ie) <+> ptext (sLit "does not have an explicit import list")
 
-moduleWarn :: ModuleName -> WarningTxt HsDoc' -> SDoc
+moduleWarn :: ModuleName -> WarningTxt (HsDoc Name) -> SDoc
 moduleWarn mod w
   = sep [ text "Module" <+> quotes (ppr mod) <> deprecated <> char ':',
           nest 2 (vcat (map (text . unpackHDS . hsDocString) txt)) ]

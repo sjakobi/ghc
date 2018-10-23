@@ -1274,7 +1274,7 @@ pprWarningTxtForMsg w =
         WsDeprecated -> (text "Deprecated:" <+>)
         WsWarning -> id
 
-lookupImpDeprec :: ModIface -> GlobalRdrElt -> Maybe (WarningTxt HsDoc')
+lookupImpDeprec :: ModIface -> GlobalRdrElt -> Maybe (WarningTxt (HsDoc Name))
 lookupImpDeprec iface gre
   = mi_warn_fn iface (greOccName gre) `mplus`  -- Bleat if the thing,
     case gre_par gre of                      -- or its parent, is warn'd

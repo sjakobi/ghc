@@ -1,47 +1,43 @@
 docs:
-  Just identifier env:
-         "R":
-           R
-           R
-         "fα":
-           fα
-       module header:
+  Just module header:
          Just text:
                 " Module header"
-              spans:
+              identifiers:
        declaration docs:
          fα:
            text:
              " Documentation for 'R'\'s 'fα' field."
-           spans: 20-21, 27-29
+           identifiers:
+             20-21: [R, R]
+             27-29: [fα]
          $fEqR:
            text:
              " A very lazy Eq instance"
-           spans:
+           identifiers:
        arg docs:
        documentation structure:
          section heading, level 1:
            text:
              " Types"
-           spans:
+           identifiers:
          documentation chunk:
            text:
              "
 
  Actually we have only one type."
-           spans:
+           identifiers:
          avails:
            [R{R, R; fβ, fα}]
          section heading, level 1:
            text:
              " Functions"
-           spans:
+           identifiers:
          documentation chunk:
            text:
              "
 
  We have them too."
-           spans:
+           identifiers:
          avails:
            [add]
        named chunks:

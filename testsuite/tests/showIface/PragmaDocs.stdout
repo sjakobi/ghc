@@ -4,10 +4,7 @@ Warnings: x: "These are useless"
 trusted: safe
 require own pkg trusted: False
 docs:
-  Just identifier env:
-         "elem":
-           Data.Foldable.elem
-       module header:
+  Just module header:
          Nothing
        declaration docs:
        arg docs:
