@@ -35,21 +35,15 @@ import Data.Maybe
 import Data.Semigroup
 
 -- | Extract docs from renamer output.
-extractDocs :: DynFlags -> TcGblEnv -> (Warnings HsDoc', Maybe Docs)
-extractDocs dflags tc_gbl_env@TcGblEnv { tcg_warns = warns } =
-    ( warns'
-    , if gopt Opt_Haddock dflags
-          then Just (extractDocs' dflags warns_id_env tc_gbl_env)
-          else Nothing
-    )
-  where
-    (warns_id_env, warns') = traverse splitHsDoc warns
+extractDocs :: DynFlags -> TcGblEnv -> Maybe Docs
+extractDocs dflags tc_gbl_env
+  | gopt Opt_Haddock dflags = Just (extractDocs' dflags tc_gbl_env)
+  | otherwise = Nothing
 
 extractDocs' :: DynFlags
-             -> DocIdEnv -- ^ Identifiers lexed from warnings
              -> TcGblEnv
              -> Docs
-extractDocs' dflags warns_id_env
+extractDocs' dflags
              TcGblEnv { tcg_mod = mdl
                       , tcg_semantic_mod = semantic_mdl
                         -- TODO: Why are the exports in reverse order?
@@ -62,10 +56,15 @@ extractDocs' dflags warns_id_env
                       , tcg_fam_insts = fam_insts
                       , tcg_doc_hdr = mb_doc_hdr
                       } =
-    combined_docs { docs_haddock_opts = haddockOptions dflags
-                  , docs_language = language_
-                  , docs_extensions = exts
-                  }
+    Docs { docs_mod_hdr = unLoc <$> mb_doc_hdr
+         , docs_decls = doc_map
+         , docs_args = arg_map
+         , docs_structure = doc_structure
+         , docs_named_chunks = named_chunks
+         , docs_haddock_opts = haddockOptions dflags
+         , docs_language = language_
+         , docs_extensions = exts
+         }
   where
     -- TODO: I'm getting some doubts whether we can recreate (extensionFlags dflags)
     -- from docs_language and docs_extensions.
@@ -73,9 +72,6 @@ extractDocs' dflags warns_id_env
     exts = EnumSet.difference (extensionFlags dflags)
                               (EnumSet.fromList (languageExtensions language_))
     language_ = language dflags
-
-    combined_docs = combineDocs mb_doc_hdr doc_map arg_map doc_structure
-                                named_chunks warns_id_env
 
     (doc_map, arg_map) = maybe (M.empty, M.empty)
                                (mkMaps local_insts)
@@ -86,37 +82,6 @@ extractDocs' dflags warns_id_env
     doc_structure = mkDocStructure mdl import_avails mb_rn_exports mb_rn_decls all_exports
     named_chunks = getNamedChunks (isJust mb_rn_exports) mb_rn_decls
 
--- | Split identifier/'Name' info off doc structures and collect it in
--- 'docs_id_env'.
-combineDocs :: Maybe (LHsDoc Name)             -- ^ Module header
-            -> Map Name (HsDoc Name)           -- ^ Declaration docs
-            -> Map Name (Map Int (HsDoc Name)) -- ^ Argument docs
-            -> (DocIdEnv, DocStructure)        -- ^ Docs from section headings
-                                               -- and doc chunks
-            -> Map String (HsDoc Name)         -- ^ Named chunks
-            -> DocIdEnv                        -- ^ Identifiers lexed from
-                                               -- warnings
-            -> Docs
-combineDocs mb_doc_hdr doc_map arg_map (id_env0, doc_structure) named_chunks
-            warns_id_env =
-    emptyDocs { docs_id_env = id_env
-              , docs_mod_hdr =  mb_doc_hdr'
-              , docs_decls = doc_map'
-              , docs_args =  arg_map'
-              , docs_structure = doc_structure
-              , docs_named_chunks = named_chunks'
-              }
-  where id_env = M.unions [id_env0, hdr_id_env, doc_map_id_env,
-                           arg_map_id_env, named_chunks_id_env, warns_id_env]
-
-        (hdr_id_env, mb_doc_hdr') = split_ (unLoc <$> mb_doc_hdr)
-        (doc_map_id_env, doc_map') = split_ doc_map
-        (arg_map_id_env, arg_map') = traverse split_ arg_map
-        (named_chunks_id_env, named_chunks') = split_ named_chunks
-
-        split_ :: Traversable t => t (HsDoc Name) -> (DocIdEnv, t HsDoc')
-        split_ = traverse splitHsDoc
-
 -- | If we have an explicit export list, we extract the documentation structure
 -- from that.
 -- Otherwise we use the renamed exports and declarations.
@@ -125,7 +90,7 @@ mkDocStructure :: Module                               -- ^ The current module
                -> Maybe [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
                -> Maybe (HsGroup GhcRn)
                -> [AvailInfo]                          -- ^ All exports
-               -> (DocIdEnv, DocStructure)
+               -> DocStructure
 mkDocStructure mdl import_avails (Just export_list) _ _ =
     mkDocStructureFromExportList mdl import_avails export_list
 mkDocStructure _ _ Nothing (Just rn_decls) all_exports =
@@ -140,19 +105,17 @@ mkDocStructure _ _ Nothing Nothing _ =
 mkDocStructureFromExportList :: Module                         -- ^ The current module
                              -> ImportAvails
                              -> [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
-                             -> (DocIdEnv, DocStructure)
+                             -> DocStructure
 mkDocStructureFromExportList mdl import_avails export_list =
-    traverse (toDocStructure . first unLoc) (reverse export_list)
+    toDocStructure . first unLoc <$> reverse export_list
   where
-    toDocStructure :: (IE GhcRn, Avails) -> (DocIdEnv, DocStructureItem)
+    toDocStructure :: (IE GhcRn, Avails) -> DocStructureItem
     toDocStructure = \case
-      (IEModuleContents _ lmn, avails) -> noDocs (moduleExport (unLoc lmn) avails)
-      (IEGroup _ level doc, _)         -> DsiSectionHeading level <$> splitHsDoc doc
-      (IEDoc _ doc, _)                 -> DsiDocChunk <$> splitHsDoc doc
-      (IEDocNamed _ name, _)           -> noDocs (DsiNamedChunkRef name)
-      (_, avails)                      -> noDocs (DsiExports (nubAvails avails))
-
-    noDocs x = (M.empty, x)
+      (IEModuleContents _ lmn, avails) -> moduleExport (unLoc lmn) avails
+      (IEGroup _ level doc, _)         -> DsiSectionHeading level doc
+      (IEDoc _ doc, _)                 -> DsiDocChunk doc
+      (IEDocNamed _ name, _)           -> DsiNamedChunkRef name
+      (_, avails)                      -> DsiExports (nubAvails avails)
 
     moduleExport :: ModuleName -- Alias
                  -> Avails
@@ -183,12 +146,10 @@ mkDocStructureFromExportList mdl import_avails export_list =
 -- the module exports with the located declarations.
 mkDocStructureFromDecls :: [AvailInfo] -- ^ All exports, unordered
                         -> HsGroup GhcRn
-                        -> (DocIdEnv, DocStructure)
-mkDocStructureFromDecls all_exports decls = (id_env, items)
+                        -> DocStructure
+mkDocStructureFromDecls all_exports decls = items
   where
-    id_env = foldMap fst split_docs
     items = map unLoc (sortByLoc (docs ++ avails))
-    docs = map snd split_docs
 
     avails :: [Located DocStructureItem]
     avails = flip fmap all_exports $ \avail ->
@@ -200,18 +161,18 @@ mkDocStructureFromDecls all_exports decls = (id_env, items)
         -- Nothing -> panicDoc "mkDocStructureFromDecls: No loc found for"
         --                     (ppr avail)
 
-    split_docs = mapMaybe structuralDoc (hs_docs decls)
+    docs = mapMaybe structuralDoc (hs_docs decls)
 
     structuralDoc :: LDocDecl GhcRn
-                  -> Maybe (DocIdEnv, Located DocStructureItem)
+                  -> Maybe (Located DocStructureItem)
     structuralDoc = \case
       L loc (DocCommentNamed _name doc) ->
         -- TODO: Is this correct?
         -- NB: There is no export list where we could reference the named chunk.
-        Just (L loc . DsiDocChunk <$> splitHsDoc doc)
+        Just (L loc (DsiDocChunk doc))
 
       L loc (DocGroup level doc) ->
-        Just (L loc . DsiSectionHeading level <$> splitHsDoc doc)
+        Just (L loc (DsiSectionHeading level doc))
 
       _ -> Nothing
 

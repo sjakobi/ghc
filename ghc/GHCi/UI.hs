@@ -1632,7 +1632,7 @@ docCmd s  = do
   (liftIO . putStrLn . showSDocForUser dflags unqual) sdocs'
 
 -- TODO: also print arg docs.
-pprDocs :: (Maybe HsDoc', Map Int HsDoc') -> SDoc
+pprDocs :: (Maybe (HsDoc Name), Map Int (HsDoc Name)) -> SDoc
 pprDocs (mb_decl_docs, _arg_docs) =
   maybe
     (text "<has no documentation>")

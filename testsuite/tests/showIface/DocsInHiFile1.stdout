@@ -1,92 +1,84 @@
 docs:
-  Just identifier env:
-         ":=:":
-         "<>":
-           GHC.Base.<>
-         "Bool":
-           GHC.Types.Bool
-         "D":
-           D
-         "Show":
-           GHC.Show.Show
-         "Unknown":
-         "add":
-           add
-         "elem":
-           Data.Foldable.elem
-           elem
-         "print":
-           System.IO.print
-       module header:
+  Just module header:
          Just text:
                 " `elem`, 'print',
 `Unknown',
 '<>', ':=:', 'Bool'
 "
-              spans: 2-6, 10-15, 19-26, 30-32, 36-39, 43-47
+              identifiers:
+                2-6: [Data.Foldable.elem, elem]
+                10-15: [System.IO.print]
+                19-26: []
+                30-32: [GHC.Base.<>]
+                36-39: []
+                43-47: [GHC.Types.Bool]
        declaration docs:
          elem:
            text:
              " '()', 'elem'."
-           spans: 8-12
+           identifiers:
+             8-12: [Data.Foldable.elem, elem]
          D:
            text:
              " A datatype."
-           spans:
+           identifiers:
          D0:
            text:
              " A constructor for 'D'. '"
-           spans: 20-21
+           identifiers:
+             20-21: [D]
          D1:
            text:
              " Another constructor"
-           spans:
+           identifiers:
          P:
            text:
              " A class"
-           spans:
+           identifiers:
          p:
            text:
              " A class method"
-           spans:
+           identifiers:
          $fShowD:
            text:
              " 'Show' instance"
-           spans: 2-6
+           identifiers:
+             2-6: [GHC.Show.Show]
          D':
            text:
              " Another datatype...
 
  ...with two docstrings."
-           spans:
+           identifiers:
        arg docs:
          add:
            0:
              text:
                " First summand for 'add'"
-             spans: 20-23
+             identifiers:
+               20-23: [add]
            1:
              text:
                " Second summand"
-             spans:
+             identifiers:
            2:
              text:
                " Sum"
-             spans:
+             identifiers:
          p:
            0:
              text:
                " An argument"
-             spans:
+             identifiers:
        documentation structure:
          section heading, level 1:
            text:
              " First section heading"
-           spans:
+           identifiers:
          documentation chunk:
            text:
              " A small chunk of documentation"
-           spans:
+           identifiers:
          avails:
            [elem]
          reference to named chunk: namedchunk
@@ -97,7 +89,7 @@ docs:
          section heading, level 1:
            text:
              " Another section heading"
-           spans:
+           identifiers:
          avails:
            [P{P, p;}]
          avails:
@@ -108,7 +100,7 @@ docs:
            text:
              "
  This chunk of documentation is named "namedchunk"."
-           spans:
+           identifiers:
        haddock options:
        language:
          Nothing

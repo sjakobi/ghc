@@ -829,7 +829,7 @@ parseThing parser dflags stmt = do
 
 getDocs :: GhcMonad m
         => Name
-        -> m (Either GetDocsFailure (Maybe HsDoc', Map Int HsDoc'))
+        -> m (Either GetDocsFailure (Maybe (HsDoc Name), Map Int (HsDoc Name)))
            -- TODO: What about docs for constructors etc.?
 getDocs name =
   withSession $ \hsc_env -> do

@@ -11,7 +11,6 @@ module HsDoc
   ( HsDoc(..)
   , appendHsDoc
   , concatHsDoc
-  , splitHsDoc
   , LHsDoc
   , ppr_mbDoc
 
@@ -26,12 +25,6 @@ module HsDoc
   , HsDocIdentifier(..)
 
   , HsDocIdentifierSpan(..)
-
-  , DocIdEnv
-
-  , HsDoc'
-  , mkHsDoc'
-  , pprHsDoc'
 
   , DocStructureItem(..)
   , DocStructure
@@ -55,9 +48,7 @@ import Module
 import Name
 import Outputable
 import SrcLoc
-import Util
 
-import Data.Bifunctor
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C8
@@ -67,7 +58,6 @@ import Data.Data
 import Data.List.NonEmpty (NonEmpty(..))
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Void
 import Foreign
 import GHC.ForeignPtr
 import GHC.LanguageExtensions.Type
@@ -105,6 +95,19 @@ data HsDocIdentifier name = HsDocIdentifier
   , hsDocIdentifierNames :: ![name]
   } deriving (Eq, Show, Data, Functor, Foldable, Traversable)
 
+instance Binary name => Binary (HsDocIdentifier name) where
+  put_ bh (HsDocIdentifier span names) = do
+    put_ bh span
+    put_ bh names
+  get bh = do
+    span <- get bh
+    names <- get bh
+    pure (HsDocIdentifier span names)
+
+instance Outputable name => Outputable (HsDocIdentifier name) where
+  ppr (HsDocIdentifier span names) =
+    ppr span <> colon <+> ppr names
+
 shiftHsDocIdentifier :: Int -> HsDocIdentifier name -> HsDocIdentifier name
 shiftHsDocIdentifier n (HsDocIdentifier span names) =
   HsDocIdentifier (shiftHsDocIdentifierSpan n span) names
@@ -120,8 +123,14 @@ data HsDoc name = HsDoc
 instance Outputable (HsDoc a) where
   ppr (HsDoc s _ids) = ppr s
 
-hsDocIdentifierSpans :: HsDoc a -> [HsDocIdentifierSpan]
-hsDocIdentifierSpans = map hsDocIdentifierSpan . hsDocIdentifiers
+instance Binary name => Binary (HsDoc name) where
+  put_ bh (HsDoc s ids) = do
+    put_ bh s
+    put_ bh ids
+  get bh = do
+    s <- get bh
+    ids <- get bh
+    return (HsDoc s ids)
 
 emptyHsDoc :: HsDoc a
 emptyHsDoc = HsDoc (HsDocString BS.empty) []
@@ -146,19 +155,11 @@ concatHsDoc xs =
     HsDoc s [] | nullHDS s -> Nothing
     x -> Just x
 
-splitHsDoc :: HsDoc Name -> (DocIdEnv, HsDoc')
-splitHsDoc (HsDoc s ids) = (id_env, hsDoc')
-  where
-    hsDoc' = mkHsDoc' s (hsDocIdentifierSpan <$> ids)
-    id_env = thdOf3 (foldl' f (0, s, Map.empty) ids)
-
-    f (!off, !hds, !m)
-      HsDocIdentifier { hsDocIdentifierSpan = HsDocIdentifierSpan a b
-                      , hsDocIdentifierNames = names } =
-        (b, hds'', Map.insert id_ names m)
-      where
-        (id_, hds'') = splitAtHDS (b - a) hds'
-        hds' = dropHDS (a - off) hds
+pprHsDoc :: Outputable name => HsDoc name -> SDoc
+pprHsDoc (HsDoc s ids) =
+    vcat [ text "text:" $$ nest 2 (ppr s)
+         , text "identifiers:" $$ nest 2 (vcat (map ppr ids))
+         ]
 
 type LHsDoc name = Located (HsDoc name)
 
@@ -224,43 +225,12 @@ appendHDSAsParagraphs a b
   | nullHDS b = a
   | otherwise = concatHDS [a, HsDocString (C8.pack "\n\n"), b]
 
-splitAtHDS :: Int -> HsDocString -> (HsDocString, HsDocString)
-splitAtHDS n (HsDocString bs) =
-    bimap HsDocString HsDocString (utf8SplitAtByteString n bs)
-
-dropHDS :: Int -> HsDocString -> HsDocString
-dropHDS n hds = snd (splitAtHDS n hds)
-
 type LHsDocString = Located HsDocString
-
--- | Identifiers and the names they may correspond to.
-type DocIdEnv = Map HsDocString [Name]
-
--- | The type of docstrings that we include in @.hi@-files.
-type HsDoc' = HsDoc Void
-
-mkHsDoc' :: HsDocString -> [HsDocIdentifierSpan] -> HsDoc'
-mkHsDoc' s spans = HsDoc s (map (\span -> HsDocIdentifier span []) spans)
-
-pprHsDoc' :: HsDoc' -> SDoc
-pprHsDoc' hsDoc' =
-    vcat [ text "text:" $$ nest 2 (ppr $ hsDocString hsDoc')
-         , text "spans:" <+> fsep (punctuate (char ',') (map ppr (hsDocIdentifierSpans hsDoc')))
-         ]
-
-instance Binary HsDoc' where
-  put_ bh hsDoc' = do
-    put_ bh (hsDocString hsDoc')
-    put_ bh (hsDocIdentifierSpans hsDoc')
-  get bh = do
-    s <- get bh
-    spans <- get bh
-    return (mkHsDoc' s spans)
 
 -- | A simplified version of 'HsImpExp.IE'.
 data DocStructureItem
-  = DsiSectionHeading Int HsDoc'
-  | DsiDocChunk HsDoc'
+  = DsiSectionHeading Int (HsDoc Name)
+  | DsiDocChunk (HsDoc Name)
   | DsiNamedChunkRef String
   | DsiExports Avails
   | DsiModExport
@@ -307,11 +277,11 @@ instance Outputable DocStructureItem where
   ppr = \case
     DsiSectionHeading level doc -> vcat
       [ text "section heading, level" <+> ppr level Outputable.<> colon
-      , nest 2 (pprHsDoc' doc)
+      , nest 2 (pprHsDoc doc)
       ]
     DsiDocChunk doc -> vcat
       [ text "documentation chunk:"
-      , nest 2 (pprHsDoc' doc)
+      , nest 2 (pprHsDoc doc)
       ]
     DsiNamedChunkRef name ->
       text "reference to named chunk:" <+> text name
@@ -324,16 +294,14 @@ type DocStructure = [DocStructureItem]
 
 -- TODO: Maybe combine the various @(Map Name X)@s to a single map.
 data Docs = Docs
-  { docs_id_env       :: DocIdEnv
-    -- ^ Identifiers and the names they may correspond to.
-  , docs_mod_hdr      :: Maybe HsDoc'
+  { docs_mod_hdr      :: Maybe (HsDoc Name)
     -- ^ Module header.
-  , docs_decls        :: Map Name HsDoc'
+  , docs_decls        :: Map Name (HsDoc Name)
     -- ^ Docs for declarations: functions, data types, instances, methods etc.
-  , docs_args         :: Map Name (Map Int HsDoc')
+  , docs_args         :: Map Name (Map Int (HsDoc Name))
     -- ^ Docs for arguments. E.g. function arguments, method arguments.
   , docs_structure    :: DocStructure
-  , docs_named_chunks :: Map String HsDoc'
+  , docs_named_chunks :: Map String (HsDoc Name)
     -- ^ Map from chunk name to content.
     --
     -- This map will be empty unless we have an explicit export list from which
@@ -349,7 +317,6 @@ data Docs = Docs
 
 instance Binary Docs where
   put_ bh docs = do
-    put_ bh (docs_id_env docs)
     put_ bh (docs_mod_hdr docs)
     put_ bh (NonDetKeyMap (docs_decls docs))
     put_ bh (NonDetKeyMap (docs_args docs))
@@ -359,7 +326,6 @@ instance Binary Docs where
     put_ bh (docs_language docs)
     put_ bh (docs_extensions docs)
   get bh = do
-    id_env <- get bh
     mod_hdr <- get bh
     decls <- unNonDetKeyMap <$> get bh
     args <- unNonDetKeyMap <$> get bh
@@ -368,8 +334,7 @@ instance Binary Docs where
     haddock_opts <- get bh
     language <- get bh
     exts <- get bh
-    pure Docs { docs_id_env = id_env
-              , docs_mod_hdr = mod_hdr
+    pure Docs { docs_mod_hdr = mod_hdr
               , docs_decls =  decls
               , docs_args = args
               , docs_structure = structure
@@ -382,13 +347,11 @@ instance Binary Docs where
 instance Outputable Docs where
   ppr docs =
       vcat
-        [ pprField (pprMap ppr (vcat . map ppr)) "identifier env"
-                   docs_id_env
-        , pprField (pprMaybe pprHsDoc') "module header" docs_mod_hdr
-        , pprField (pprMap ppr pprHsDoc') "declaration docs" docs_decls
-        , pprField (pprMap ppr (pprMap ppr pprHsDoc')) "arg docs" docs_args
+        [ pprField (pprMaybe pprHsDoc) "module header" docs_mod_hdr
+        , pprField (pprMap ppr pprHsDoc) "declaration docs" docs_decls
+        , pprField (pprMap ppr (pprMap ppr pprHsDoc)) "arg docs" docs_args
         , pprField (vcat . map ppr) "documentation structure" docs_structure
-        , pprField (pprMap (doubleQuotes . text) pprHsDoc') "named chunks"
+        , pprField (pprMap (doubleQuotes . text) pprHsDoc) "named chunks"
                    docs_named_chunks
         , pprField pprMbString "haddock options" docs_haddock_opts
         , pprField ppr "language" docs_language
@@ -409,8 +372,7 @@ instance Outputable Docs where
 
 emptyDocs :: Docs
 emptyDocs = Docs
-  { docs_id_env = Map.empty
-  , docs_mod_hdr = Nothing
+  { docs_mod_hdr = Nothing
   , docs_decls = Map.empty
   , docs_args = Map.empty
   , docs_structure = []

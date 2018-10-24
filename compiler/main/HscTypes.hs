@@ -889,7 +889,7 @@ data ModIface
                 -- ^ Fixities
                 -- NOT STRICT!  we read this field lazily from the interface file
 
-        mi_warns    :: Warnings HsDoc',
+        mi_warns    :: Warnings (HsDoc Name),
                 -- ^ Warnings
                 -- NOT STRICT!  we read this field lazily from the interface file
 
@@ -930,7 +930,7 @@ data ModIface
                 -- Cached environments for easy lookup
                 -- These are computed (lazily) from other fields
                 -- and are not put into the interface file
-        mi_warn_fn   :: OccName -> Maybe (WarningTxt HsDoc'),
+        mi_warn_fn   :: OccName -> Maybe (WarningTxt (HsDoc Name)),
                 -- ^ Cached lookup for 'mi_warns'
         mi_fix_fn    :: OccName -> Maybe Fixity,
                 -- ^ Cached lookup for 'mi_fixities'
@@ -1283,7 +1283,7 @@ data ModGuts
         mg_foreign   :: !ForeignStubs,   -- ^ Foreign exports declared in this module
         mg_foreign_files :: ![(ForeignSrcLang, FilePath)],
         -- ^ Files to be compiled with the C compiler
-        mg_warns     :: !(Warnings HsDoc'), -- ^ Warnings declared in the module
+        mg_warns     :: !(Warnings (HsDoc Name)), -- ^ Warnings declared in the module
         mg_anns      :: [Annotation],    -- ^ Annotations declared in this module
         mg_complete_sigs :: [CompleteMatch], -- ^ Complete Matches
         mg_hpc_info  :: !HpcInfo,        -- ^ Coverage tick boxes in the module
