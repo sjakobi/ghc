@@ -9,8 +9,10 @@
 
 module HsDoc
   ( HsDoc(..)
+  , emptyHsDoc
   , appendHsDoc
   , concatHsDoc
+  , hsDocIdEnv
   , LHsDoc
   , ppr_mbDoc
 
@@ -48,7 +50,9 @@ import Module
 import Name
 import Outputable
 import SrcLoc
+import Util
 
+import Data.Bifunctor
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as C8
@@ -155,6 +159,17 @@ concatHsDoc xs =
     HsDoc s [] | nullHDS s -> Nothing
     x -> Just x
 
+hsDocIdEnv :: HsDoc name -> Map HsDocString [name]
+hsDocIdEnv (HsDoc s ids) =
+    thdOf3 (foldl' f (0, s, Map.empty) ids)
+  where
+    f (!off, !hds, !m)
+      HsDocIdentifier { hsDocIdentifierSpan = HsDocIdentifierSpan a b
+                      , hsDocIdentifierNames = names } =
+        let hds' = dropHDS (a - off) hds
+            (id_, hds'') = splitAtHDS (b - a) hds'
+        in (b, hds'', Map.insert id_ names m)
+
 pprHsDoc :: Outputable name => HsDoc name -> SDoc
 pprHsDoc (HsDoc s ids) =
     vcat [ text "text:" $$ nest 2 (ppr s)
@@ -224,6 +239,13 @@ appendHDSAsParagraphs a b
   | nullHDS a = b
   | nullHDS b = a
   | otherwise = concatHDS [a, HsDocString (C8.pack "\n\n"), b]
+
+splitAtHDS :: Int -> HsDocString -> (HsDocString, HsDocString)
+splitAtHDS n (HsDocString bs) =
+    bimap HsDocString HsDocString (utf8SplitAtByteString n bs)
+
+dropHDS :: Int -> HsDocString -> HsDocString
+dropHDS n hds = snd (splitAtHDS n hds)
 
 type LHsDocString = Located HsDocString
 
