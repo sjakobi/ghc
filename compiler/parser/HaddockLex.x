@@ -20,6 +20,8 @@ import RdrName
 import qualified EnumSet
 
 import Data.Maybe
+
+import GHC.LanguageExtensions.Type (Extension(MagicHash))
 }
 
 %wrapper "posn"
@@ -42,7 +44,7 @@ $symbol = $interesting # [$digit $asciialpha \'] -- TODO
 $idchar = [$alpha $digit \']
 $delim = [\'\`]
 
-@id = $alpha $idchar* | $symbol+
+@id = ($alpha $idchar* | $symbol+) \#*
 @modname = $upper $idchar*
 @qualid = (@modname \.)* @id
 
@@ -76,7 +78,7 @@ lexHsDoc identParser s =
 
 validateIdentWith :: P RdrName -> String -> Maybe RdrName
 validateIdentWith identParser str0 =
-  let pflags = ParserFlags EnumSet.empty EnumSet.empty (stringToUnitId "") 0
+  let pflags = ParserFlags EnumSet.empty (EnumSet.fromList [MagicHash]) (stringToUnitId "") 0
       buffer = stringToStringBuffer str0
       realSrcLc = mkRealSrcLoc (mkFastString "") 0 0
       pstate = mkPStatePure pflags buffer realSrcLc

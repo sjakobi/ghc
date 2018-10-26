@@ -31,3 +31,7 @@ test('HaddockIssue849',
      normal,
      run_command,
      ['$MAKE -s --no-print-directory HaddockIssue849'])
+test('DocsWithMagicHash',
+     normal,
+     run_command,
+     ['$MAKE -s --no-print-directory DocsWithMagicHash'])
