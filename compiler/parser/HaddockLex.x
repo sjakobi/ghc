@@ -60,8 +60,8 @@ getIdentifier (AlexPn off0 _ _) s0 =
     s1 = init (tail s0)
 
 -- | Lex identifiers from a docstring.
-lexHsDoc :: P (GenLocated loc RdrName) -- ^ A precise identifier parser
-         -> String                     -- ^ A docstring
+lexHsDoc :: P RdrName      -- ^ A precise identifier parser
+         -> String         -- ^ A docstring
          -> HsDoc RdrName
 lexHsDoc identParser s =
     HsDoc (mkHsDocString s) (mapMaybe maybeDocIdentifier plausibleIdents)
@@ -74,13 +74,13 @@ lexHsDoc identParser s =
     plausibleIdents :: [(Int, String, Int)]
     plausibleIdents = alexScanTokens s
 
-validateIdentWith :: P (GenLocated loc RdrName) -> String -> Maybe RdrName
+validateIdentWith :: P RdrName -> String -> Maybe RdrName
 validateIdentWith identParser str0 =
   let pflags = ParserFlags EnumSet.empty EnumSet.empty (stringToUnitId "") 0
       buffer = stringToStringBuffer str0
       realSrcLc = mkRealSrcLoc (mkFastString "") 0 0
       pstate = mkPStatePure pflags buffer realSrcLc
   in case unP identParser pstate of
-    POk _ name -> Just (unLoc name)
+    POk _ name -> Just name
     _ -> Nothing
 }

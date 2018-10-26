@@ -3607,7 +3607,7 @@ getSCC lt = do let s = getSTRING lt
                    else return s
 
 lexHsDoc' :: String -> HsDoc RdrName
-lexHsDoc' = lexHsDoc parseIdentifier
+lexHsDoc' = lexHsDoc (unLoc <$> parseIdentifier)
 
 stringLiteralToHsDocWst :: Located StringLiteral -> Located (WithSourceText (HsDoc RdrName))
 stringLiteralToHsDocWst = fmap $ \(StringLiteral st fs) ->
