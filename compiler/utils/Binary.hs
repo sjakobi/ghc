@@ -54,8 +54,6 @@ module Binary
    UserData(..), getUserData, setUserData,
    newReadState, newWriteState,
    putDictionary, getDictionary, putFS,
-
-   NonDetKeyMap(..)
   ) where
 
 #include "HsVersions.h"
@@ -1200,24 +1198,14 @@ instance Binary SourceText where
 -- Instances for the containers package
 --------------------------------------------------------------------------------
 
--- | Assumes a deterministic 'Ord' instance.
---
--- So don't use this for a @('Map' 'Name' X)@ for example.
-instance (Binary k, Binary v) => Binary (Map k v) where
-  put_ bh m = put_ bh (Map.toAscList m)
-  get bh = Map.fromDistinctAscList <$> get bh
+-- | This instance doesn't rely on the determinism of the keys' 'Ord' instance,
+-- so it works e.g. for 'Name's too.
+instance (Binary k, Binary v, Ord k) => Binary (Map k v) where
+  put_ bh m = put_ bh (Map.toList m)
+  get bh = Map.fromList <$> get bh
 
--- | Assumes a deterministic 'Ord' instance.
---
--- So don't use this for a @('Set' 'Name')@ for example.
-instance Binary a => Binary (Set a) where
-  put_ bh s = put_ bh (Set.toAscList s)
-  get bh = Set.fromDistinctAscList <$> get bh
-
--- | Provides a 'Binary' instance for 'Map's where the key has a
--- non-deterministic 'Ord' instance.
-newtype NonDetKeyMap k v = NonDetKeyMap { unNonDetKeyMap :: Map k v }
-
-instance (Binary k, Binary v, Ord k) => Binary (NonDetKeyMap k v) where
-  put_ bh (NonDetKeyMap m) = put_ bh (Map.toList m)
-  get bh = NonDetKeyMap . Map.fromList <$> get bh
+-- | This instance doesn't rely on the determinism of the keys' 'Ord' instance,
+-- so it works e.g. for 'Name's too.
+instance (Binary a, Ord a) => Binary (Set a) where
+  put_ bh s = put_ bh (Set.toList s)
+  get bh = Set.fromList <$> get bh

@@ -341,8 +341,8 @@ data Docs = Docs
 instance Binary Docs where
   put_ bh docs = do
     put_ bh (docs_mod_hdr docs)
-    put_ bh (NonDetKeyMap (docs_decls docs))
-    put_ bh (NonDetKeyMap (docs_args docs))
+    put_ bh (docs_decls docs)
+    put_ bh (docs_args docs)
     put_ bh (docs_structure docs)
     put_ bh (docs_named_chunks docs)
     put_ bh (docs_haddock_opts docs)
@@ -350,8 +350,8 @@ instance Binary Docs where
     put_ bh (docs_extensions docs)
   get bh = do
     mod_hdr <- get bh
-    decls <- unNonDetKeyMap <$> get bh
-    args <- unNonDetKeyMap <$> get bh
+    decls <- get bh
+    args <- get bh
     structure <- get bh
     named_chunks <- get bh
     haddock_opts <- get bh
