@@ -143,8 +143,13 @@ emptyHsDoc = HsDoc (HsDocString BS.empty) []
 appendHsDoc :: HsDoc a -> HsDoc a -> HsDoc a
 appendHsDoc (HsDoc s_x [])    y                 | nullHDS s_x = y
 appendHsDoc (HsDoc s_x ids_x) (HsDoc s_y ids_y) =
-  HsDoc (appendHDSAsParagraphs s_x s_y)
-        (ids_x ++ map (shiftHsDocIdentifier (lengthHDS s_x + 2)) ids_y)
+    HsDoc (appendHDSAsParagraphs s_x s_y)
+          (ids_x ++ map shift ids_y)
+  where
+    -- The identifiers of the second docstring need to be shifted by the length
+    -- of the first docstring plus 2 positions for the two newlines that
+    -- 'appendHDSAsParagraphs' inserts in between.
+    shift = shiftHsDocIdentifier (lengthHDS s_x + 2)
 
 -- | Concatenate several 'HsDoc's with 'appendHsDoc'.
 --
