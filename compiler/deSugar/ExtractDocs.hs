@@ -178,6 +178,10 @@ mkDocStructureFromDecls all_exports decls =
     name_locs = M.fromList (concatMap ldeclNames (ungroup decls))
     ldeclNames (L loc d) = zip (getMainDeclBinder d) (repeat loc)
 
+-- | Extract named documentation chunks from the renamed declarations.
+--
+-- If there is no explicit export list, we simply return an empty map
+-- since there would be no way to link to a named chunk.
 getNamedChunks :: Bool -- ^ Do we have an explicit export list?
                -> Maybe (HsGroup pass)
                -> Map String (HsDoc (IdP pass))
