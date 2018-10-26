@@ -51,7 +51,7 @@ extractDocs' dflags
                       , tcg_rn_exports = mb_rn_exports
                       , tcg_exports = all_exports
                       , tcg_imports = import_avails
-                      , tcg_rn_decls = mb_rn_decls
+                      , tcg_rn_decls = Just rn_decls
                       , tcg_insts = insts
                       , tcg_fam_insts = fam_insts
                       , tcg_doc_hdr = mb_doc_hdr
@@ -73,14 +73,15 @@ extractDocs' dflags
                               (EnumSet.fromList (languageExtensions language_))
     language_ = language dflags
 
-    (doc_map, arg_map) = maybe (M.empty, M.empty)
-                               (mkMaps local_insts)
-                               mb_decls_with_docs
-    mb_decls_with_docs = topDecls <$> mb_rn_decls
+    (doc_map, arg_map) = mkMaps local_insts decls_with_docs
+    decls_with_docs = topDecls rn_decls
     local_insts = filter (nameIsLocalOrFrom semantic_mdl)
                          $ map getName insts ++ map getName fam_insts
-    doc_structure = mkDocStructure mdl import_avails mb_rn_exports mb_rn_decls all_exports
-    named_chunks = getNamedChunks (isJust mb_rn_exports) mb_rn_decls
+    doc_structure = mkDocStructure mdl import_avails mb_rn_exports rn_decls
+                                   all_exports
+    named_chunks = getNamedChunks (isJust mb_rn_exports) rn_decls
+
+extractDocs' _ _ = error "extractDocs': tcg_rn_decls is Nothing"
 
 -- | If we have an explicit export list, we extract the documentation structure
 -- from that.
@@ -88,15 +89,13 @@ extractDocs' dflags
 mkDocStructure :: Module                               -- ^ The current module
                -> ImportAvails                         -- ^ Imports
                -> Maybe [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
-               -> Maybe (HsGroup GhcRn)
+               -> HsGroup GhcRn
                -> [AvailInfo]                          -- ^ All exports
                -> DocStructure
 mkDocStructure mdl import_avails (Just export_list) _ _ =
     mkDocStructureFromExportList mdl import_avails export_list
-mkDocStructure _ _ Nothing (Just rn_decls) all_exports =
+mkDocStructure _ _ Nothing rn_decls all_exports =
     mkDocStructureFromDecls all_exports rn_decls
-mkDocStructure _ _ Nothing Nothing _ =
-    error "mkDocStructure"
 
 -- TODO:
 -- * Maybe remove items that export nothing?
@@ -183,13 +182,13 @@ mkDocStructureFromDecls all_exports decls =
 -- If there is no explicit export list, we simply return an empty map
 -- since there would be no way to link to a named chunk.
 getNamedChunks :: Bool -- ^ Do we have an explicit export list?
-               -> Maybe (HsGroup pass)
+               -> HsGroup pass
                -> Map String (HsDoc (IdP pass))
-getNamedChunks True (Just decls) =
+getNamedChunks True decls =
   M.fromList $ flip mapMaybe (unLoc <$> hs_docs decls) $ \case
     DocCommentNamed name doc -> Just (name, doc)
     _                        -> Nothing
-getNamedChunks _ _ = M.empty
+getNamedChunks False _ = M.empty
 
 -- | Create decl and arg doc-maps by looping through the declarations.
 -- For each declaration, find its names, its subordinates, and its doc strings.
