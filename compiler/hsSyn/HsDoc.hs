@@ -9,6 +9,7 @@
 
 module HsDoc
   ( HsDoc(..)
+  , pprHsDoc
   , emptyHsDoc
   , appendHsDoc
   , concatHsDoc

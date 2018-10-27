@@ -6,6 +6,7 @@
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RecordWildCards #-}
 
@@ -40,6 +41,10 @@ module HscTypes (
         -- (re-exported from DriverPhases)
         HscSource(..), isHsBootOrSig, isHsigFile, hscSourceString,
 
+        -- * Information about a module's layout:
+        -- Its exports, their order and the documentation structure.
+        ModLayout(..), emptyModLayout, modLayoutAvails,
+        ModLayoutItem(..),
 
         -- * State relating to modules in this package
         HomePackageTable, HomeModInfo(..), emptyHomePackageTable,
@@ -206,6 +211,7 @@ import qualified GHC.LanguageExtensions as LangExt
 
 import Foreign
 import Control.Monad    ( guard, liftM, ap )
+import Data.List.NonEmpty ( NonEmpty(..) )
 import Data.IORef
 import Data.Time
 import Exception
@@ -3130,3 +3136,109 @@ Also see Note [Typechecking Complete Matches] in TcBinds for a more detailed
 explanation for how GHC ensures that all the conlikes in a COMPLETE set are
 consistent.
 -}
+
+-- -----------------------------------------------------------------------------
+-- Module layout
+-- -----------------------------------------------------------------------------
+
+-- TODO: Also include a field that indicates whether we have an explicit export
+-- list?
+data ModLayout = ModLayout
+  { modLayout_docs_included :: Bool
+    -- ^ 'False' @<=>@ 'modLayout_items' contains only the 'MliExports' and
+    -- 'MliModExport' constructors, i.e. no docs.
+  , modLayout_items :: [ModLayoutItem]
+    -- ^ Invariant: No two 'MliExports' constructors follow each other directly.
+  }
+
+instance Binary ModLayout where
+  put_ bh (ModLayout docs_included items) = do
+    put_ bh docs_included
+    put_ bh items
+  get bh =
+    liftA2 ModLayout (get bh) (get bh)
+
+instance Outputable ModLayout where
+  ppr (ModLayout docs_included items) =
+    vcat
+      [ text "docs included?" <+> ppr docs_included
+      , text "items:" $$ nest 2 (ppr items)
+      ]
+
+emptyModLayout :: ModLayout
+emptyModLayout = ModLayout False []
+
+modLayoutAvails :: ModLayout -> Avails
+modLayoutAvails = concatMap modLayoutItemAvails . modLayout_items
+
+-- | A simplified version of 'HsImpExp.IE'.
+data ModLayoutItem
+  = MliSectionHeading Int (HsDoc Name)
+  | MliDocChunk (HsDoc Name)
+  | MliNamedChunkRef String
+  | MliExports Avails
+    -- TODO: Maybe have (NonEmpty (ModuleName, Avails)) instead?
+  | MliModExport
+      (NonEmpty ModuleName) -- ^ We might re-export avails from multiple
+                            -- modules with a single export declaration. E.g.
+                            -- when we have
+                            --
+                            -- > module M (module X) where
+                            -- > import R0 as X
+                            -- > import R1 as X
+      -- TODO: What's the order of re-exported avails?
+      Avails
+
+instance Binary ModLayoutItem where
+  put_ bh = \case
+    MliSectionHeading level doc -> do
+      putByte bh 0
+      put_ bh level
+      put_ bh doc
+    MliDocChunk doc -> do
+      putByte bh 1
+      put_ bh doc
+    MliNamedChunkRef name -> do
+      putByte bh 2
+      put_ bh name
+    MliExports avails -> do
+      putByte bh 3
+      put_ bh avails
+    MliModExport mod_names avails -> do
+      putByte bh 4
+      put_ bh mod_names
+      put_ bh avails
+  get bh = do
+    tag <- getByte bh
+    case tag of
+      0 -> MliSectionHeading <$> get bh <*> get bh
+      1 -> MliDocChunk <$> get bh
+      2 -> MliNamedChunkRef <$> get bh
+      3 -> MliExports <$> get bh
+      4 -> MliModExport <$> get bh <*> get bh
+      _ -> fail "instance Binary ModLayoutItem: Invalid tag"
+
+instance Outputable ModLayoutItem where
+  ppr = \case
+    MliSectionHeading level doc -> vcat
+      [ text "section heading, level" <+> ppr level Outputable.<> colon
+      , nest 2 (pprHsDoc doc)
+      ]
+    MliDocChunk doc -> vcat
+      [ text "documentation chunk:"
+      , nest 2 (pprHsDoc doc)
+      ]
+    MliNamedChunkRef name ->
+      text "reference to named chunk:" <+> text name
+    MliExports avails ->
+      text "avails:" $$ nest 2 (ppr avails)
+    MliModExport mod_names avails ->
+      text "re-exported module(s):" <+> ppr mod_names $$ nest 2 (ppr avails)
+
+modLayoutItemAvails :: ModLayoutItem -> Avails
+modLayoutItemAvails = \case
+  MliSectionHeading _ _ -> []
+  MliDocChunk _ -> []
+  MliNamedChunkRef _ -> []
+  MliExports avails -> avails
+  MliModExport _ avails -> avails
