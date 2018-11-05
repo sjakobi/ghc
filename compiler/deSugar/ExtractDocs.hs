@@ -141,6 +141,16 @@ mkDocStructureFromExportList mdl import_avails export_list =
     imported :: ModuleEnv [ImportedModsVal]
     imported = mapModuleEnv importedByUser (imp_mods import_avails)
 
+mkModLayoutFromExportList :: Bool                           -- ^ Include docs?
+                          -> Module                         -- ^ The current module
+                          -> ImportAvails
+                          -> [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
+                          -> DocStructure
+mkModLayoutFromExportList include_docs mdl import_avails export_list =
+    ModLayout include_docs items
+  where
+    items = undefined include_docs mdl import_avails export_list
+
 -- | Figure out the documentation structure by correlating
 -- the module exports with the located declarations.
 mkDocStructureFromDecls :: [AvailInfo] -- ^ All exports, unordered

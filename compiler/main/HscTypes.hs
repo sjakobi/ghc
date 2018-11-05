@@ -3178,7 +3178,9 @@ data ModLayoutItem
   | MliNamedChunkRef String
   | MliExports Avails
     -- TODO: Maybe have (NonEmpty (ModuleName, Avails)) instead?
-  | MliModExport
+   
+  | MliModExport -- ^ NB: If a re-exported module's avails don't all appear
+                 -- in the avails below, that doesn't necessary
       (NonEmpty ModuleName) -- ^ We might re-export avails from multiple
                             -- modules with a single export declaration. E.g.
                             -- when we have
@@ -3187,6 +3189,8 @@ data ModLayoutItem
                             -- > import R0 as X
                             -- > import R1 as X
       -- TODO: What's the order of re-exported avails?
+      -- -> lexicographically sorted because we don't want to recompile
+      -- when a dependency shifted some exports around?!
       Avails
 
 instance Binary ModLayoutItem where
