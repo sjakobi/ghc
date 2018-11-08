@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, MagicHash, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, MagicHash, MultiWayIf, UnboxedTuples #-}
 {-# OPTIONS_GHC -O2 #-}
 -- We always optimise this, otherwise performance of a non-optimised
 -- compiler is severely affected
@@ -17,8 +17,9 @@ module Encoding (
         utf8PrevChar,
         utf8CharStart,
         utf8DecodeChar,
+        utf8CharSizeAt,
+        utf8CharSizeAt#,
         utf8DecodeByteString,
-        utf8DecodeByteStringChar,
         utf8SplitAtByteString,
         utf8DecodeStringLazy,
         utf8EncodeChar,
@@ -113,6 +114,25 @@ utf8DecodeChar :: Ptr Word8 -> (Char, Int)
 utf8DecodeChar (Ptr a#) =
   case utf8DecodeChar# a# of (# c#, nBytes# #) -> ( C# c#, I# nBytes# )
 
+-- | Returns the size of UTF8-encoded character at the given 'Addr#'.
+--
+-- The validity of the encoding is not checked.
+{-# INLINE utf8CharSizeAt# #-}
+utf8CharSizeAt# :: Addr# -> Int#
+utf8CharSizeAt# a# =
+  let !byte = indexWord8OffAddr# a# 0# in
+  if | isTrue# (byte `leWord#` 0x7F##) -> 1#
+     | isTrue# (byte `leWord#` 0xDF##) -> 2#
+     | isTrue# (byte `leWord#` 0xEF##) -> 3#
+     | otherwise                       -> 4#
+
+-- | Returns the size of UTF8-encoded character beginning at the given
+-- @'Ptr' 'Word8'@.
+--
+-- The validity of the encoding is not checked.
+utf8CharSizeAt :: Ptr Word8 -> Int
+utf8CharSizeAt (Ptr a#) = I# (utf8CharSizeAt# a#)
+
 -- UTF-8 is cleverly designed so that we can always figure out where
 -- the start of the current character is, given any position in a
 -- stream.  This function finds the start of the previous character,
@@ -146,28 +166,25 @@ utf8DecodeStringLazy fptr offset len
                   rest <- unsafeDupableInterleaveIO $ unpack (p `plusPtr#` nBytes#)
                   return (C# c# : rest)
 
--- | Return the first UTF8-encoded 'Char' and its length in bytes, if the
--- 'ByteString' is non-empty.
-
--- TODO: Make this faster
-utf8DecodeByteStringChar
-    :: ByteString
-    -> Maybe (Char, Int)
-utf8DecodeByteStringChar bs =
-    case utf8DecodeByteString bs of
-      [] -> Nothing
-      (c : _) -> Just (c, utf8EncodedCharLength c)
-
 -- | Split after a given number of characters.
+--
 -- Negative values are treated as if they are 0.
 utf8SplitAtByteString :: Int -> ByteString -> (ByteString, ByteString)
-utf8SplitAtByteString x bs = loop 0 x bs
+utf8SplitAtByteString n0 bs@(BS.PS fptr off0 len)
+  | n0 <= 0   = (BS.empty, bs)
+  | otherwise =
+      case go n0 start of
+        ptr | ptr >= end -> (bs, BS.empty)
+            | otherwise  ->
+                let d = ptr `minusPtr` start
+                in (BS.PS fptr off0 d, BS.PS fptr (off0 + d) (len - d))
   where
-    loop a n _ | n <= 0 = BS.splitAt a bs
-    loop a n bs1 =
-        case utf8DecodeByteStringChar bs1 of
-          Just (_,y) -> loop (a+y) (n-1) (BS.drop y bs1)
-          Nothing    -> (bs, BS.empty)
+    !start = unsafeForeignPtrToPtr fptr `plusPtr` off0
+    !end = start `plusPtr` len
+
+    go n ptr
+      | n > 0 && ptr < end = go (pred n) (ptr `plusPtr` utf8CharSizeAt ptr)
+      | otherwise          = ptr
 
 countUTF8Chars :: Ptr Word8 -> Int -> IO Int
 countUTF8Chars ptr len = go ptr 0
