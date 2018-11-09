@@ -170,7 +170,7 @@ utf8SplitAtByteString :: Int -> ByteString -> (ByteString, ByteString)
 utf8SplitAtByteString n0 bs@(BS.PS fptr off0 len)
   | n0 <= 0 = (BS.empty, bs)
   | otherwise =
-      case unsafePerformIO (go n0 start) of
+      case go n0 start of
         ptr | ptr >= end -> (bs, BS.empty)
         ptr ->
           let off1 = ptr `minusPtr` start
@@ -182,7 +182,7 @@ utf8SplitAtByteString n0 bs@(BS.PS fptr off0 len)
 
     go n ptr
       | n > 0 && ptr < end = go (pred n) (ptr `plusPtr` utf8CharSize ptr)
-      | otherwise          = ptr <$ touchForeignPtr fptr
+      | otherwise          = ptr
 
 countUTF8Chars :: Ptr Word8 -> Int -> IO Int
 countUTF8Chars ptr len = go ptr 0
