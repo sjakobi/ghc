@@ -22,6 +22,10 @@ import qualified EnumSet
 import Data.Maybe
 }
 
+-- TODO: Maybe consider using a custom wrapper since we only use the offset
+-- field of 'AlexPosn'.
+-- See https://www.haskell.org/alex/doc/html/basic-api.html and
+-- https://github.com/simonmar/alex/blob/master/templates/wrappers.hs
 %wrapper "posn"
 
 -- The character sets marked "TODO" are mostly overly inclusive
