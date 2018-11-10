@@ -2,6 +2,7 @@ module RnHsDoc ( rnMbDocHdr, rnHsDoc, rnLHsDoc, rnMbLHsDoc ) where
 
 import GhcPrelude
 
+import Outputable
 import TcRnTypes
 import TcRnMonad
 import HsSyn
@@ -30,8 +31,7 @@ rnHsDoc (HsDoc s ids) = do
 rnHsDocIdentifier :: GlobalRdrEnv
                   -> HsDocIdentifier RdrName
                   -> HsDocIdentifier Name
-rnHsDocIdentifier gre (HsDocIdentifier span rdr_names) =
-  -- TODO: Add a check that there should be exactly 1 RdrName in the identifier?
+rnHsDocIdentifier gre (HsDocIdentifier span [rdr_name]) =
   HsDocIdentifier span names
   where
     -- Try to look up all the names in the GlobalRdrEnv that match
@@ -39,4 +39,6 @@ rnHsDocIdentifier gre (HsDocIdentifier span rdr_names) =
     names = concatMap (\c -> map gre_name (lookupGRE_RdrName c gre)) choices
     -- Generate the choices for the possible kind of thing this
     -- is.
-    choices = concatMap dataTcOccs rdr_names
+    choices = dataTcOccs rdr_name
+rnHsDocIdentifier _ hsDocId =
+  pprPanic "rnHsDocIdentifier" (ppr hsDocId)
