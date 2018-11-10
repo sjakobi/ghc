@@ -49,6 +49,8 @@ module Binary
    -- * Lazy Binary I/O
    lazyGet,
    lazyPut,
+   lazyGetMaybe,
+   lazyPutMaybe,
 
    -- * User data
    UserData(..), getUserData, setUserData,
@@ -802,6 +804,25 @@ lazyGet bh = do
         getAt bh { _off_r = off_r } p_a
     seekBin bh p -- skip over the object for now
     return a
+
+-- | Serialize the constructor strictly but lazily serialize a value inside a
+-- 'Just'.
+--
+-- This way we can check for the presence of a value without deserializing the
+-- value itself.
+lazyPutMaybe :: Binary a => BinHandle -> Maybe a -> IO ()
+lazyPutMaybe bh Nothing  = putWord8 bh 0
+lazyPutMaybe bh (Just x) = do
+  putWord8 bh 1
+  lazyPut bh x
+
+-- | Deserialize a value serialized by 'lazyPutMaybe'.
+lazyGetMaybe :: Binary a => BinHandle -> IO (Maybe a)
+lazyGetMaybe bh = do
+  h <- getWord8 bh
+  case h of
+    0 -> pure Nothing
+    _ -> Just <$> lazyGet bh
 
 -- -----------------------------------------------------------------------------
 -- UserData

@@ -1009,6 +1009,8 @@ renameFreeHoles fhs insts =
         -- It wasn't actually a hole
         | otherwise                           = emptyUniqDSet
 
+-- | The 'mi_docs' field is serialized with 'lazyPutMaybe' so you can check for
+-- the presence of any 'Docs' without actually deserializing them.
 instance Binary ModIface where
    put_ bh (ModIface {
                  mi_module    = mod,
@@ -1068,11 +1070,7 @@ instance Binary ModIface where
         put_ bh trust
         put_ bh trust_pkg
         put_ bh complete_sigs
-        -- TODO: In some cases we may just want check whether we have any docs
-        -- or not, without loading the docs if they are present. So possibly
-        -- the 'Maybe' constructor should be serialized strictly while the docs
-        -- inside should be serialized lazily.
-        lazyPut bh docs
+        lazyPutMaybe bh docs
 
    get bh = do
         mod         <- get bh
@@ -1103,7 +1101,7 @@ instance Binary ModIface where
         trust       <- get bh
         trust_pkg   <- get bh
         complete_sigs <- get bh
-        docs        <- lazyGet bh
+        docs        <- lazyGetMaybe bh
         return (ModIface {
                  mi_module      = mod,
                  mi_sig_of      = sig_of,
