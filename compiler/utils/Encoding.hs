@@ -173,9 +173,8 @@ utf8SplitAtByteString n0 bs@(BS.PS fptr off0 len)
       case go n0 start of
         ptr | ptr >= end -> (bs, BS.empty)
         ptr ->
-          let off1 = ptr `minusPtr` start
-              d    = off1 - off0
-          in (BS.PS fptr off0 d, BS.PS fptr off1 (len - d))
+          let d = ptr `minusPtr` start
+          in (BS.PS fptr off0 d, BS.PS fptr (off0 + d) (len - d))
   where
     !start = unsafeForeignPtrToPtr fptr `plusPtr` off0
     !end = start `plusPtr` len
