@@ -339,8 +339,7 @@ data Docs = Docs
   , docs_language     :: Maybe Language
     -- ^ The 'Language' used in the module, for example 'Haskell2010'.
   , docs_extensions   :: EnumSet Extension
-    -- ^ The language extensions used in the module. Any extensions implied by
-    -- 'docs_language' are excluded.
+    -- ^ The full set of language extensions used in the module.
   }
 
 instance Binary Docs where

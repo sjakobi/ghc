@@ -9,5 +9,13 @@ docs:
        language:
          Just Haskell98
        language extensions:
+         MonomorphismRestriction
+         ImplicitPrelude
+         NPlusKPatterns
          PatternGuards
+         DatatypeContexts
+         NondecreasingIndentation
+         TraditionalRecordSyntax
+         MonadFailDesugaring
+         StarIsType
 

@@ -8,7 +8,6 @@ import GhcPrelude
 import Avail
 import Bag
 import DynFlags
-import qualified EnumSet
 import HsBinds
 import HsDoc
 import HsDecls
@@ -66,11 +65,7 @@ extractDocs' dflags
          , docs_extensions = exts
          }
   where
-    -- TODO: I'm getting some doubts whether we can recreate (extensionFlags dflags)
-    -- from docs_language and docs_extensions.
-    -- Maybe we should serialize (extensions dflags) instead of exts here.
-    exts = EnumSet.difference (extensionFlags dflags)
-                              (EnumSet.fromList (languageExtensions language_))
+    exts = extensionFlags dflags
     language_ = language dflags
 
     (doc_map, arg_map) = mkMaps local_insts decls_with_docs
