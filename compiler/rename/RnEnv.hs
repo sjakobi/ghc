@@ -65,7 +65,8 @@ import DataCon
 import TyCon
 import ErrUtils         ( MsgDoc )
 import PrelNames        ( rOOT_MAIN )
-import BasicTypes       ( WarningTxt(..), WarningSort(..), TopLevelFlag(..), warningTxtContents )
+import BasicTypes       ( WarningTxt(..), WarningSort(..), TopLevelFlag(..)
+                        , warningTxtContents )
 import SrcLoc
 import Outputable
 import Util

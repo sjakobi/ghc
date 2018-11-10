@@ -1283,7 +1283,8 @@ data ModGuts
         mg_foreign   :: !ForeignStubs,   -- ^ Foreign exports declared in this module
         mg_foreign_files :: ![(ForeignSrcLang, FilePath)],
         -- ^ Files to be compiled with the C compiler
-        mg_warns     :: !(Warnings (HsDoc Name)), -- ^ Warnings declared in the module
+        mg_warns     :: !(Warnings (HsDoc Name)),
+        -- ^ Warnings declared in the module
         mg_anns      :: [Annotation],    -- ^ Annotations declared in this module
         mg_complete_sigs :: [CompleteMatch], -- ^ Complete Matches
         mg_hpc_info  :: !HpcInfo,        -- ^ Coverage tick boxes in the module
@@ -2801,7 +2802,8 @@ instance Outputable ModSummary where
    ppr ms
       = sep [text "ModSummary {",
              nest 3 (sep [text "ms_hs_date = " <> text (show (ms_hs_date ms)),
-                          text "ms_iface_date = " <> text (show (ms_iface_date ms)),
+                          text "ms_iface_date = "
+                               <> text (show (ms_iface_date ms)),
                           text "ms_location = " <> ppr (ms_location ms),
                           text "ms_mod =" <+> ppr (ms_mod ms)
                                 <> text (hscSourceString (ms_hsc_src ms)) <> comma,

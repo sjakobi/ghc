@@ -96,10 +96,11 @@ mkDocStructure _ _ Nothing rn_decls all_exports =
 -- * Maybe remove items that export nothing?
 -- * Combine sequences of DsiExports?
 -- * Check the ordering of avails in DsiModExport
-mkDocStructureFromExportList :: Module                         -- ^ The current module
-                             -> ImportAvails
-                             -> [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
-                             -> DocStructure
+mkDocStructureFromExportList
+  :: Module                         -- ^ The current module
+  -> ImportAvails
+  -> [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
+  -> DocStructure
 mkDocStructureFromExportList mdl import_avails export_list =
     toDocStructure . first unLoc <$> reverse export_list
   where
@@ -121,7 +122,10 @@ mkDocStructureFromExportList mdl import_avails export_list =
         aliasErr = error $ "mkDocStructureFromExportList: "
                            ++ (moduleNameString . moduleName) mdl
                            ++ ": Can't find alias " ++ moduleNameString alias
-        nubSortNE = NonEmpty.fromList . Set.toList . Set.fromList . NonEmpty.toList
+        nubSortNE = NonEmpty.fromList .
+                    Set.toList .
+                    Set.fromList .
+                    NonEmpty.toList
 
     -- Map from aliases to true module names.
     aliasMap :: Map ModuleName (NonEmpty ModuleName)

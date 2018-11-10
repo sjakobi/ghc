@@ -52,7 +52,8 @@ import RdrHsSyn        ( setRdrNameSpace )
 import Outputable
 import Maybes
 import SrcLoc
-import BasicTypes      ( TopLevelFlag(..), StringLiteral(..), WarningSort(..), warningTxtContents )
+import BasicTypes      ( TopLevelFlag(..), StringLiteral(..), WarningSort(..)
+                       , warningTxtContents )
 import Util
 import FastString
 import FastStringEnv
