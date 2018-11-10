@@ -990,7 +990,13 @@ recoverM recover thing
 -- | Drop elements of the input that fail, so the result
 -- list can be shorter than the argument list
 mapAndRecoverM :: (a -> TcRn b) -> [a] -> TcRn [b]
-mapAndRecoverM f = fmap reverse . foldAndRecoverM (\xs x -> (:xs) <$> f x ) []
+mapAndRecoverM f = go
+  where
+    go (x:xs) = liftA2 e (try_m (f x)) (go xs)
+    go []     = pure []
+
+    e (Left _)  ys = ys
+    e (Right y) ys = y:ys
 
 -- | The accumulator is not updated if the action fails
 foldAndRecoverM :: (b -> a -> TcRn b) -> b -> [a] -> TcRn b
