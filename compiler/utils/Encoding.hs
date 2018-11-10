@@ -17,6 +17,8 @@ module Encoding (
         utf8PrevChar,
         utf8CharStart,
         utf8DecodeChar,
+        utf8CharSizeAt,
+        utf8CharSizeAt#,
         utf8DecodeByteString,
         utf8SplitAtByteString,
         utf8DecodeStringLazy,
@@ -115,21 +117,21 @@ utf8DecodeChar (Ptr a#) =
 -- | Returns the size of UTF8-encoded character at the given 'Addr#'.
 --
 -- The validity of the encoding is not checked.
-{-# INLINE utf8CharSize# #-}
-utf8CharSize# :: Addr# -> Int#
-utf8CharSize# a# =
-  let !ch0 = indexWord8OffAddr# a# 0# in
-  if | isTrue# (ch0 `leWord#` 0x7F##) -> 1#
-     | isTrue# (ch0 `leWord#` 0xDF##) -> 2#
-     | isTrue# (ch0 `leWord#` 0xEF##) -> 3#
-     | otherwise                      -> 4#
+{-# INLINE utf8CharSizeAt# #-}
+utf8CharSizeAt# :: Addr# -> Int#
+utf8CharSizeAt# a# =
+  let !ch = indexWord8OffAddr# a# 0# in
+  if | isTrue# (ch `leWord#` 0x7F##) -> 1#
+     | isTrue# (ch `leWord#` 0xDF##) -> 2#
+     | isTrue# (ch `leWord#` 0xEF##) -> 3#
+     | otherwise                     -> 4#
 
 -- | Returns the size of UTF8-encoded character beginning at the given
 -- @'Ptr' 'Word8'@.
 --
 -- The validity of the encoding is not checked.
-utf8CharSize :: Ptr Word8 -> Int
-utf8CharSize (Ptr a#) = I# (utf8CharSize# a#)
+utf8CharSizeAt :: Ptr Word8 -> Int
+utf8CharSizeAt (Ptr a#) = I# (utf8CharSizeAt# a#)
 
 -- UTF-8 is cleverly designed so that we can always figure out where
 -- the start of the current character is, given any position in a
@@ -165,22 +167,23 @@ utf8DecodeStringLazy fptr offset len
                   return (C# c# : rest)
 
 -- | Split after a given number of characters.
+--
 -- Negative values are treated as if they are 0.
 utf8SplitAtByteString :: Int -> ByteString -> (ByteString, ByteString)
 utf8SplitAtByteString n0 bs@(BS.PS fptr off0 len)
-  | n0 <= 0 = (BS.empty, bs)
+  | n0 <= 0   = (BS.empty, bs)
   | otherwise =
       case go n0 start of
         ptr | ptr >= end -> (bs, BS.empty)
-        ptr ->
-          let d = ptr `minusPtr` start
-          in (BS.PS fptr off0 d, BS.PS fptr (off0 + d) (len - d))
+            | otherwise  ->
+                let d = ptr `minusPtr` start
+                in (BS.PS fptr off0 d, BS.PS fptr (off0 + d) (len - d))
   where
     !start = unsafeForeignPtrToPtr fptr `plusPtr` off0
     !end = start `plusPtr` len
 
     go n ptr
-      | n > 0 && ptr < end = go (pred n) (ptr `plusPtr` utf8CharSize ptr)
+      | n > 0 && ptr < end = go (pred n) (ptr `plusPtr` utf8CharSizeAt ptr)
       | otherwise          = ptr
 
 countUTF8Chars :: Ptr Word8 -> Int -> IO Int
