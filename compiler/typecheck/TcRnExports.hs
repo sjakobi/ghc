@@ -270,7 +270,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                              , ppr new_exports ])
 
              ; return (Just ( ExportAccum occs' mods
-                            , (L loc (IEModuleContents noExt lmod), new_exports))) }
+                            , ( L loc (IEModuleContents noExt lmod)
+                              , new_exports))) }
 
     exports_from_item acc@(ExportAccum occs mods) (L loc ie)
         | isDoc ie
@@ -285,7 +286,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
 
                     occs' <- check_occs ie occs [avail]
 
-                    return (Just (ExportAccum occs' mods, (L loc new_ie, [avail])))
+                    return (Just ( ExportAccum occs' mods
+                                 , (L loc new_ie, [avail])))
 
     -------------
     lookup_ie :: IE GhcPs -> RnM (IE GhcRn, AvailInfo)
