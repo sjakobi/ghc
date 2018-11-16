@@ -93,7 +93,7 @@ data ExportAccum        -- The type of the accumulating parameter of
                         -- the main worker function in rnExports
      = ExportAccum
         ExportOccMap           --  Tracks exported occurrence names
-        (UniqSet ModuleName)   --  Tracks exported module names
+        (UniqSet ModuleName)   --  Tracks (re-)exported module names
 
 emptyExportAccum :: ExportAccum
 emptyExportAccum = ExportAccum emptyOccEnv emptyUniqSet
@@ -219,7 +219,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
        let final_exports = nubAvails (concat (map snd ie_avails)) -- Combine families
        return (Just ie_avails, final_exports)
   where
-    do_litem :: ExportAccum -> LIE GhcPs -> RnM (Maybe (ExportAccum, (LIE GhcRn, Avails)))
+    do_litem :: ExportAccum -> LIE GhcPs
+             -> RnM (Maybe (ExportAccum, (LIE GhcRn, Avails)))
     do_litem acc lie = setSrcSpan (getLoc lie) (exports_from_item acc lie)
 
     -- Maps a parent to its in-scope children
@@ -231,9 +232,10 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                        | xs <- moduleEnvElts $ imp_mods imports
                        , imv <- importedByUser xs ]
 
-    exports_from_item :: ExportAccum -> LIE GhcPs -> RnM (Maybe (ExportAccum, (LIE GhcRn, Avails)))
+    exports_from_item :: ExportAccum -> LIE GhcPs
+                      -> RnM (Maybe (ExportAccum, (LIE GhcRn, Avails)))
     exports_from_item (ExportAccum occs earlier_mods)
-                      (L loc ie@(IEModuleContents _ (L lm mod)))
+                      (L loc ie@(IEModuleContents _ lmod@(L _ mod)))
         | mod `elementOfUniqSet` earlier_mods    -- Duplicate export of M
         = do { warnIfFlag Opt_WarnDuplicateExports True
                           (dupModuleExport mod) ;
@@ -245,6 +247,7 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                    ; gre_prs     = pickGREsModExp mod (globalRdrEnvElts rdr_env)
                    ; new_exports = map (availFromGRE . fst) gre_prs
                    ; all_gres    = foldr (\(gre1,gre2) gres -> gre1 : gre2 : gres) [] gre_prs
+                   ; mods        = addOneToUniqSet earlier_mods mod
                    }
 
              ; checkErr exportValid (moduleNotImported mod)
@@ -266,9 +269,8 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
                        (vcat [ ppr mod
                              , ppr new_exports ])
 
-             ; return (Just ( ExportAccum occs' (addOneToUniqSet earlier_mods mod)
-                            , ((L loc (IEModuleContents noExt (L lm mod))), new_exports)
-                            )) }
+             ; return (Just ( ExportAccum occs' mods
+                            , (L loc (IEModuleContents noExt lmod), new_exports))) }
 
     exports_from_item acc@(ExportAccum occs mods) (L loc ie)
         | isDoc ie
