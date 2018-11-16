@@ -265,8 +265,7 @@ exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
              return (Just (acc, (L loc new_ie, [])))
 
         | otherwise
-        = do (new_ie, avail) <-
-              setSrcSpan loc $ lookup_ie ie
+        = do (new_ie, avail) <- lookup_ie ie
              if isUnboundName (ieName new_ie)
                   then return Nothing    -- Avoid error cascade
                   else do
