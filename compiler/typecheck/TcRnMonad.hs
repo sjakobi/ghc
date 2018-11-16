@@ -68,7 +68,7 @@ module TcRnMonad(
   -- * Shared error message stuff: renamer and typechecker
   mkLongErrAt, mkErrDocAt, addLongErrAt, reportErrors, reportError,
   reportWarning, recoverM, mapAndRecoverM, mapAndReportM, foldAndRecoverM,
-  accumTc,
+  try_m,
   tryTc,
   askNoErrs, discardErrs, tryTcDiscardingErrs,
   checkNoErrs, whenNoErrs,
@@ -992,22 +992,6 @@ recoverM recover thing
 -- list can be shorter than the argument list
 mapAndRecoverM :: (a -> TcRn b) -> [a] -> TcRn [b]
 mapAndRecoverM f = fmap reverse . foldAndRecoverM (\xs x -> (:xs) <$> f x ) []
-
--- TODO: Use foldr
-accumTc :: (acc -> x -> TcRn (Maybe (acc, y)))
-        -> acc
-        -> [x]
-        -> TcRn [y]
-accumTc f acc0 = go acc0 []
-  where
-    go _   ys []     = pure ys
-    go acc ys (x:xs) = do
-      m <- try_m (f acc x)
-      case m of
-        Right (Just (acc', y)) -> do
-          ys <- go acc' ys xs
-          pure (y:ys)
-        _ -> go acc ys xs
 
 -- | The accumulator is not updated if the action fails
 foldAndRecoverM :: (b -> a -> TcRn b) -> b -> [a] -> TcRn b

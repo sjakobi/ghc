@@ -98,6 +98,17 @@ data ExportAccum        -- The type of the accumulating parameter of
 emptyExportAccum :: ExportAccum
 emptyExportAccum = ExportAccum emptyOccEnv emptyUniqSet
 
+accumExports :: (ExportAccum -> x -> TcRn (Maybe (ExportAccum, y)))
+             -> [x]
+             -> TcRn [y]
+accumExports f = go emptyExportAccum []
+  where go _   ys []     = pure ys
+        go acc ys (x:xs) = do
+          m <- try_m (f acc x)
+          case m of
+            Right (Just (acc', y)) -> (y:) <$> go acc' ys xs
+            _                      -> go acc ys xs
+
 type ExportOccMap = OccEnv (Name, IE GhcPs)
         -- Tracks what a particular exported OccName
         --   in an export list refers to, and which item
@@ -204,7 +215,7 @@ exports_from_avail Nothing rdr_env _imports _this_mod
 
 
 exports_from_avail (Just (L _ rdr_items)) rdr_env imports this_mod
-  = do ie_avails <- accumTc do_litem emptyExportAccum rdr_items
+  = do ie_avails <- accumExports do_litem rdr_items
        let final_exports = nubAvails (concat (map snd ie_avails)) -- Combine families
        return (Just ie_avails, final_exports)
   where
