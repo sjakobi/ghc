@@ -6,6 +6,7 @@
 
 {-# LANGUAGE CPP, NondecreasingIndentation, MultiWayIf, NamedFieldPuns #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -52,8 +53,8 @@ import RdrHsSyn        ( setRdrNameSpace )
 import Outputable
 import Maybes
 import SrcLoc
-import BasicTypes      ( TopLevelFlag(..), StringLiteral(..), WarningSort(..)
-                       , warningTxtContents )
+import BasicTypes      ( TopLevelFlag(..), pattern StringLiteral ,sl_fs
+                       , WarningSort(..), warningTxtContents )
 import Util
 import FastString
 import FastStringEnv
