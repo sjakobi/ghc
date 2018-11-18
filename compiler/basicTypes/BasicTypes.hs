@@ -16,7 +16,9 @@ types that
 
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 module BasicTypes(
         Version, bumpVersion, initialVersion,
@@ -36,7 +38,8 @@ module BasicTypes(
 
         WarningSort(..),
 
-        WithSourceText(..), noSourceText, StringLiteral(..),
+        WithSourceText(..), noSourceText,
+        StringLiteral, pattern StringLiteral, sl_st, sl_fs,
 
         Fixity(..), FixityDirection(..),
         defaultFixity, maxPrecedence, minPrecedence,
@@ -317,6 +320,8 @@ initialVersion = 1
 
 data WithSourceText a = WithSourceText
   { wst_st :: SourceText
+    -- ^ Literal raw source.
+    -- See Note [Literal source text]
   , unWithSourceText :: a
   } deriving (Data, Functor, Foldable, Traversable)
 
@@ -331,18 +336,13 @@ noSourceText = WithSourceText NoSourceText
 
 -- | A String Literal in the source, including its original raw format for use by
 -- source to source manipulation tools.
+type StringLiteral = WithSourceText FastString
 
--- TODO: Make this an alias for (WithSourceText FastString)
-data StringLiteral = StringLiteral
-                       { sl_st :: SourceText, -- literal raw source.
-                                              -- See Note [Literal source text]
-                         sl_fs :: FastString  -- literal string value
-                       } deriving Data
+{-# COMPLETE StringLiteral #-}
+pattern StringLiteral :: SourceText -> FastString -> StringLiteral
+pattern StringLiteral{sl_st, sl_fs} = WithSourceText sl_st sl_fs
 
-instance Eq StringLiteral where
-  (StringLiteral _ a) == (StringLiteral _ b) = a == b
-
-instance Outputable StringLiteral where
+instance {-# OVERLAPPING #-} Outputable StringLiteral where
   ppr sl = pprWithSourceText (sl_st sl) (ftext $ sl_fs sl)
 
 -- | Warning Text

@@ -8,6 +8,7 @@ HsImpExp: Abstract syntax: imports, exports, interfaces
 
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-} -- Note [Pass sensitive types]
@@ -20,7 +21,8 @@ import GhcPrelude
 import Module           ( ModuleName )
 import HsDoc            ( HsDoc )
 import OccName          ( HasOccName(..), isTcOcc, isSymOcc )
-import BasicTypes       ( SourceText(..), StringLiteral(..), pprWithSourceText )
+import BasicTypes       ( SourceText(..), StringLiteral, pattern StringLiteral
+                        , pprWithSourceText )
 import FieldLabel       ( FieldLbl(..) )
 
 import Outputable
