@@ -4,6 +4,8 @@
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 
 module HaddockLex (lexHsDoc) where
@@ -19,14 +21,12 @@ import StringBuffer
 import RdrName
 import qualified EnumSet
 
+import Data.Bits
+import Data.Char
+import Data.Int
 import Data.Maybe
+import Data.Word
 }
-
--- TODO: Maybe consider using a custom wrapper since we only use the offset
--- field of 'AlexPosn'.
--- See https://www.haskell.org/alex/doc/html/basic-api.html and
--- https://github.com/simonmar/alex/blob/master/templates/wrappers.hs
-%wrapper "posn"
 
 -- The character sets marked "TODO" are mostly overly inclusive
 -- and should be defined more precisely once alex has better
@@ -55,13 +55,67 @@ $delim = [\'\`]
   [. \n] ;
 
 {
--- | Shave off delimiters, compute offsets.
-getIdentifier :: AlexPosn -> String -> (Int, String, Int)
-getIdentifier (AlexPn off0 _ _) s0 =
-    (off1, s1, off1 + length s1)
+data AlexInput = AlexInput
+  { alexInput_position     :: !Offset
+  , alexInput_pendingBytes :: [Word8]
+  , alexInput_string       :: String
+  }
+
+newtype Offset = Offset Int
+  deriving (Enum, Show)
+
+-- NB: As long as we don't use a left-context we don't need to track the
+-- previous input character.
+alexInputPrevChar :: AlexInput -> Char
+alexInputPrevChar = error "Left-context not supported"
+
+alexGetByte :: AlexInput -> Maybe (Word8, AlexInput)
+alexGetByte (AlexInput p (b:bs) s    ) = Just (b, AlexInput p bs s)
+alexGetByte (AlexInput p []     (c:s)) = let (b:bs) = utf8Encode c
+                                         in Just (b, AlexInput (succ p) bs s)
+alexGetByte (AlexInput _ []     ""   ) = Nothing
+
+utf8Encode :: Char -> [Word8]
+utf8Encode = map fromIntegral . go . ord
+  where go oc
+          | oc <= 0x7f   = [oc]
+          | oc <= 0x7ff  = [ 0xc0 + (oc `unsafeShiftR` 6)
+                           , 0x80 + oc .&. 0x3f
+                           ]
+          | oc <= 0xffff = [ 0xe0 + (oc `unsafeShiftR` 12)
+                           , 0x80 + ((oc `unsafeShiftR` 6) .&. 0x3f)
+                           , 0x80 + oc .&. 0x3f
+                           ]
+          | otherwise    = [ 0xf0 + (oc `unsafeShiftR` 18)
+                           , 0x80 + ((oc `unsafeShiftR` 12) .&. 0x3f)
+                           , 0x80 + ((oc `unsafeShiftR` 6) .&. 0x3f)
+                           , 0x80 + oc .&. 0x3f
+                           ]
+
+alexScanTokens :: String -> [(Int, String, Int)]
+alexScanTokens str0 = go (AlexInput (Offset 0) [] str0)
+  where go inp@(AlexInput pos _ str) =
+          case alexScan inp 0 of
+            AlexSkip  inp' _ln          -> go inp'
+            AlexToken inp' len act      -> act pos len str : go inp'
+            AlexEOF                     -> []
+            AlexError (AlexInput p _ _) -> error $ "lexical error at " ++ show p
+
+--------------------------------------------------------------------------------
+
+-- | Extract identifier from Alex state.
+getIdentifier :: Offset
+              -> Int
+                 -- ^ Token length
+              -> String
+                 -- ^ The remaining input beginning with the found token
+              -> (Int, String, Int)
+getIdentifier (Offset off0) len0 s0 =
+    (off1, s1, off1 + len1)
   where
     off1 = succ off0
-    s1 = init (tail s0)
+    len1 = len0 - 2
+    s1 = take len1 (tail s0)
 
 -- | Lex identifiers from a docstring.
 lexHsDoc :: P RdrName      -- ^ A precise identifier parser
