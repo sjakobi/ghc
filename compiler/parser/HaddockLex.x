@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 
+{-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 
 module HaddockLex (lexHsDoc) where
@@ -19,14 +20,12 @@ import StringBuffer
 import RdrName
 import qualified EnumSet
 
+import qualified Data.Bits
+import Data.Char
+import Data.Int
 import Data.Maybe
+import Data.Word
 }
-
--- TODO: Maybe consider using a custom wrapper since we only use the offset
--- field of 'AlexPosn'.
--- See https://www.haskell.org/alex/doc/html/basic-api.html and
--- https://github.com/simonmar/alex/blob/master/templates/wrappers.hs
-%wrapper "posn"
 
 -- The character sets marked "TODO" are mostly overly inclusive
 -- and should be defined more precisely once alex has better
@@ -55,9 +54,72 @@ $delim = [\'\`]
   [. \n] ;
 
 {
+-- NB: As long as we don't use a left-context we don't need to track the
+-- previous input character.
+data AlexInput = AlexInput
+  { alexInput_position     :: !AlexPosn
+  , alexInput_pendingBytes :: [Word8]
+  , alexInput_string       :: String
+  }
+
+-- | Simple character offset.
+type AlexPosn = Int
+
+alexStartPos :: AlexPosn
+alexStartPos = 0
+
+alexGetByte :: AlexInput -> Maybe (Word8,AlexInput)
+alexGetByte (AlexInput p (b:bs) s    ) = Just (b, AlexInput p bs s)
+alexGetByte (AlexInput p []     ""   ) = Nothing
+alexGetByte (AlexInput p []     (c:s)) = let (b:bs) = utf8Encode c
+                                         in Just (b, AlexInput (succ p) bs s)
+
+-- | Encode a Haskell 'Char' to a list of 'Word8' values, in UTF8 format.
+
+-- Copied from Alex.
+-- TODO:
+--   * Use unsafeShiftR?
+--   * Return (NonEmpty Word8)?
+utf8Encode :: Char -> [Word8]
+utf8Encode = map fromIntegral . go . ord
+ where
+  go oc
+   | oc <= 0x7f       = [oc]
+
+   | oc <= 0x7ff      = [ 0xc0 + (oc `Data.Bits.shiftR` 6)
+                        , 0x80 + oc Data.Bits..&. 0x3f
+                        ]
+
+   | oc <= 0xffff     = [ 0xe0 + (oc `Data.Bits.shiftR` 12)
+                        , 0x80 + ((oc `Data.Bits.shiftR` 6) Data.Bits..&. 0x3f)
+                        , 0x80 + oc Data.Bits..&. 0x3f
+                        ]
+   | otherwise        = [ 0xf0 + (oc `Data.Bits.shiftR` 18)
+                        , 0x80 + ((oc `Data.Bits.shiftR` 12) Data.Bits..&. 0x3f)
+                        , 0x80 + ((oc `Data.Bits.shiftR` 6) Data.Bits..&. 0x3f)
+                        , 0x80 + oc Data.Bits..&. 0x3f
+                        ]
+
+alexInputPrevChar :: AlexInput -> Char
+alexInputPrevChar = error "Left-context not supported"
+
+alexScanTokens :: String -> [(Int, String, Int)]
+alexScanTokens str0 = go (AlexInput alexStartPos [] str0)
+  where go inp@(AlexInput pos _ str) =
+          case alexScan inp 0 of
+                AlexEOF -> []
+                AlexError (AlexInput off _ _) -> error $
+                                                   "lexical error at offset "
+                                                   ++ show off
+                AlexSkip  inp' _ln -> go inp'
+                -- TODO: Make use of len directly
+                AlexToken inp' len act -> act pos (take len str) : go inp'
+
+--------------------------------------------------------------------------------
+
 -- | Shave off delimiters, compute offsets.
 getIdentifier :: AlexPosn -> String -> (Int, String, Int)
-getIdentifier (AlexPn off0 _ _) s0 =
+getIdentifier off0 s0 =
     (off1, s1, off1 + length s1)
   where
     off1 = succ off0
