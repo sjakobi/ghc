@@ -68,11 +68,11 @@ type AlexPosn = Int
 alexStartPos :: AlexPosn
 alexStartPos = 0
 
-alexGetByte :: AlexInput -> Maybe (Word8,AlexInput)
+alexGetByte :: AlexInput -> Maybe (Word8, AlexInput)
 alexGetByte (AlexInput p (b:bs) s    ) = Just (b, AlexInput p bs s)
-alexGetByte (AlexInput p []     ""   ) = Nothing
 alexGetByte (AlexInput p []     (c:s)) = let (b:bs) = utf8Encode c
                                          in Just (b, AlexInput (succ p) bs s)
+alexGetByte (AlexInput p []     ""   ) = Nothing
 
 -- | Encode a Haskell 'Char' to a list of 'Word8' values, in UTF8 format.
 
@@ -107,12 +107,11 @@ alexScanTokens :: String -> [(Int, String, Int)]
 alexScanTokens str0 = go (AlexInput alexStartPos [] str0)
   where go inp@(AlexInput pos _ str) =
           case alexScan inp 0 of
-                AlexEOF -> []
-                AlexError (AlexInput off _ _) -> error $
-                                                   "lexical error at offset "
-                                                   ++ show off
-                AlexSkip  inp' _ln -> go inp'
-                AlexToken inp' len act -> act pos len str : go inp'
+                AlexSkip  inp' _ln            -> go inp'
+                AlexToken inp' len act        -> act pos len str : go inp'
+                AlexEOF                       -> []
+                AlexError (AlexInput off _ _) ->
+                  error $ "lexical error at offset " ++ show off
 
 --------------------------------------------------------------------------------
 
