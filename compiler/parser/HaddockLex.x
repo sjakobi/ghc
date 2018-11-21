@@ -112,17 +112,18 @@ alexScanTokens str0 = go (AlexInput alexStartPos [] str0)
                                                    "lexical error at offset "
                                                    ++ show off
                 AlexSkip  inp' _ln -> go inp'
-                -- TODO: Make use of len directly
-                AlexToken inp' len act -> act pos (take len str) : go inp'
+                -- TODO: Pass the full 'str' to 'act' and 'take' there?
+                AlexToken inp' len act -> act pos len (take len str) : go inp'
 
 --------------------------------------------------------------------------------
 
 -- | Shave off delimiters, compute offsets.
-getIdentifier :: AlexPosn -> String -> (Int, String, Int)
-getIdentifier off0 s0 =
-    (off1, s1, off1 + length s1)
+getIdentifier :: AlexPosn -> Int -> String -> (Int, String, Int)
+getIdentifier off0 len0 s0 =
+    (off1, s1, off1 + len1)
   where
     off1 = succ off0
+    len1 = len0 - 2
     s1 = init (tail s0)
 
 -- | Lex identifiers from a docstring.
