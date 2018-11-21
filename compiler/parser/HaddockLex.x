@@ -72,7 +72,7 @@ alexGetByte :: AlexInput -> Maybe (Word8, AlexInput)
 alexGetByte (AlexInput p (b:bs) s    ) = Just (b, AlexInput p bs s)
 alexGetByte (AlexInput p []     (c:s)) = let (b:bs) = utf8Encode c
                                          in Just (b, AlexInput (succ p) bs s)
-alexGetByte (AlexInput p []     ""   ) = Nothing
+alexGetByte (AlexInput _ []     ""   ) = Nothing
 
 -- | Encode a Haskell 'Char' to a list of 'Word8' values, in UTF8 format.
 
