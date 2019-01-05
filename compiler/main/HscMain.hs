@@ -85,7 +85,6 @@ module HscMain
 import GhcPrelude
 
 import Data.Data hiding (Fixity, TyCon)
-import Data.Maybe       ( fromJust )
 import Id
 import GHCi             ( addSptEntry )
 import GHCi.RemoteTypes ( ForeignHValue )
@@ -408,8 +407,7 @@ extract_renamed_stuff mod_summary tc_result = do
 
     -- Create HIE files
     when (gopt Opt_WriteHie dflags) $ do
-        hieFile <- mkHieFile mod_summary (tcg_binds tc_result)
-                                         (fromJust rn_info)
+        hieFile <- mkHieFile mod_summary (tcg_binds tc_result) rn_info
         let out_file = ml_hie_file $ ms_location mod_summary
         liftIO $ writeHieFile out_file hieFile
 
@@ -440,23 +438,21 @@ extract_renamed_stuff mod_summary tc_result = do
 hscTypecheckRename :: HscEnv -> ModSummary -> HsParsedModule
                    -> IO (TcGblEnv, RenamedStuff)
 hscTypecheckRename hsc_env mod_summary rdr_module = runHsc hsc_env $ do
-    tc_result <- hsc_typecheck True mod_summary (Just rdr_module)
+    tc_result <- hsc_typecheck mod_summary (Just rdr_module)
     rn_info <- extract_renamed_stuff mod_summary tc_result
     return (tc_result, rn_info)
 
 -- | Rename and typecheck a module, but don't return the renamed syntax
-hscTypecheck :: Bool -- ^ Keep renamed source?
-             -> ModSummary -> Maybe HsParsedModule
+hscTypecheck :: ModSummary -> Maybe HsParsedModule
              -> Hsc TcGblEnv
-hscTypecheck keep_rn mod_summary mb_rdr_module = do
-    tc_result <- hsc_typecheck keep_rn mod_summary mb_rdr_module
+hscTypecheck mod_summary mb_rdr_module = do
+    tc_result <- hsc_typecheck mod_summary mb_rdr_module
     _ <- extract_renamed_stuff mod_summary tc_result
     return tc_result
 
-hsc_typecheck :: Bool -- ^ Keep renamed source?
-              -> ModSummary -> Maybe HsParsedModule
+hsc_typecheck :: ModSummary -> Maybe HsParsedModule
               -> Hsc TcGblEnv
-hsc_typecheck keep_rn mod_summary mb_rdr_module = do
+hsc_typecheck mod_summary mb_rdr_module = do
     hsc_env <- getHscEnv
     let hsc_src = ms_hsc_src mod_summary
         dflags = hsc_dflags hsc_env
@@ -466,7 +462,6 @@ hsc_typecheck keep_rn mod_summary mb_rdr_module = do
         inner_mod = canonicalizeHomeModule dflags mod_name
         src_filename  = ms_hspp_file mod_summary
         real_loc = realSrcLocSpan $ mkRealSrcLoc (mkFastString src_filename) 1 1
-        keep_rn' = gopt Opt_WriteHie dflags || keep_rn
     MASSERT( moduleUnitId outer_mod == thisPackage dflags )
     if hsc_src == HsigFile && not (isHoleModule inner_mod)
         then ioMsgMaybe $ tcRnInstantiateSignature hsc_env outer_mod' real_loc
@@ -474,7 +469,7 @@ hsc_typecheck keep_rn mod_summary mb_rdr_module = do
          do hpm <- case mb_rdr_module of
                     Just hpm -> return hpm
                     Nothing -> hscParse' mod_summary
-            tc_result0 <- tcRnModule' mod_summary keep_rn' hpm
+            tc_result0 <- tcRnModule' mod_summary hpm
             if hsc_src == HsigFile
                 then do (iface, _, _) <- liftIO $ hscSimpleIface hsc_env tc_result0 Nothing
                         ioMsgMaybe $
@@ -482,16 +477,15 @@ hsc_typecheck keep_rn mod_summary mb_rdr_module = do
                 else return tc_result0
 
 -- wrapper around tcRnModule to handle safe haskell extras
-tcRnModule' :: ModSummary -> Bool -> HsParsedModule
+tcRnModule' :: ModSummary -> HsParsedModule
             -> Hsc TcGblEnv
-tcRnModule' sum save_rn_syntax mod = do
+tcRnModule' sum mod = do
     hsc_env <- getHscEnv
     dflags   <- getDynFlags
 
     tcg_res <- {-# SCC "Typecheck-Rename" #-}
                ioMsgMaybe $
-                   tcRnModule hsc_env sum
-                     save_rn_syntax mod
+                   tcRnModule hsc_env sum mod
 
     -- See Note [Safe Haskell Overlapping Instances Implementation]
     -- although this is used for more than just that failure case.
@@ -865,7 +859,7 @@ batchMsg hsc_env mod_index recomp mod_summary =
 -- | Given a 'ModSummary', parses and typechecks it, returning the
 -- 'TcGblEnv' resulting from type-checking.
 hscFileFrontEnd :: ModSummary -> Hsc TcGblEnv
-hscFileFrontEnd mod_summary = hscTypecheck False mod_summary Nothing
+hscFileFrontEnd mod_summary = hscTypecheck mod_summary Nothing
 
 --------------------------------------------------------------
 -- Safe Haskell

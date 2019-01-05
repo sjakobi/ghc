@@ -792,7 +792,7 @@ class ParsedMod m where
   parsedSource :: m -> ParsedSource
 
 class ParsedMod m => TypecheckedMod m where
-  renamedSource     :: m -> Maybe RenamedSource
+  renamedSource     :: m -> RenamedSource
   typecheckedSource :: m -> TypecheckedSource
   moduleInfo        :: m -> ModuleInfo
   tm_internals      :: m -> (TcGblEnv, ModDetails)
@@ -821,7 +821,7 @@ instance ParsedMod ParsedModule where
 --   result.
 data TypecheckedModule =
   TypecheckedModule { tm_parsed_module       :: ParsedModule
-                    , tm_renamed_source      :: Maybe RenamedSource
+                    , tm_renamed_source      :: RenamedSource
                     , tm_typechecked_source  :: TypecheckedSource
                     , tm_checked_module_info :: ModuleInfo
                     , tm_internals_          :: (TcGblEnv, ModDetails)

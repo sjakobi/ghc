@@ -334,7 +334,6 @@ tcRnCheckUnitId hsc_env uid =
               (const ()) $
    initTc hsc_env
           HsigFile -- bogus
-          False
           mAIN -- bogus
           (realSrcLocSpan (mkRealSrcLoc (fsLit loc_str) 0 0)) -- bogus
     $ checkUnitId uid
@@ -352,7 +351,7 @@ tcRnMergeSignatures hsc_env hpm orig_tcg_env iface =
   withTiming (pure dflags)
              (text "Signature merging" <+> brackets (ppr this_mod))
              (const ()) $
-  initTc hsc_env HsigFile False this_mod real_loc $
+  initTc hsc_env HsigFile this_mod real_loc $
     mergeSignatures hpm orig_tcg_env iface
  where
   dflags   = hsc_dflags hsc_env
@@ -881,7 +880,7 @@ tcRnInstantiateSignature hsc_env this_mod real_loc =
    withTiming (pure dflags)
               (text "Signature instantiation"<+>brackets (ppr this_mod))
               (const ()) $
-   initTc hsc_env HsigFile False this_mod real_loc $ instantiateSignature
+   initTc hsc_env HsigFile this_mod real_loc $ instantiateSignature
   where
    dflags = hsc_dflags hsc_env
 

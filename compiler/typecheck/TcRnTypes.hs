@@ -619,9 +619,7 @@ data TcGblEnv
                 -- Keep the renamed imports regardless.  They are not
                 -- voluminous and are needed if you want to report unused imports
 
-        tcg_rn_decls :: Maybe (HsGroup GhcRn),
-          -- ^ Renamed decls, maybe.  @Nothing@ <=> Don't retain renamed
-          -- decls.
+        tcg_rn_decls :: HsGroup GhcRn,  -- ^ Renamed decls.
 
         tcg_dependent_files :: TcRef [FilePath], -- ^ dependencies from addDependentFile
 

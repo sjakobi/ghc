@@ -12,6 +12,7 @@ https://ghc.haskell.org/trac/ghc/wiki/Commentary/Compiler/TypeChecker
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NondecreasingIndentation #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -154,17 +155,16 @@ import Control.Monad
 -- | Top level entry point for typechecker and renamer
 tcRnModule :: HscEnv
            -> ModSummary
-           -> Bool              -- True <=> save renamed syntax
            -> HsParsedModule
            -> IO (Messages, Maybe TcGblEnv)
 
-tcRnModule hsc_env mod_sum save_rn_syntax
+tcRnModule hsc_env mod_sum
    parsedModule@HsParsedModule {hpm_module= (dL->L loc this_module)}
  | RealSrcSpan real_loc <- loc
  = withTiming (pure dflags)
               (text "Renamer/typechecker"<+>brackets (ppr this_mod))
               (const ()) $
-   initTc hsc_env hsc_src save_rn_syntax this_mod real_loc $
+   initTc hsc_env hsc_src this_mod real_loc $
           withTcPlugins hsc_env $
 
           tcRnModuleTcRnM hsc_env mod_sum parsedModule pair
@@ -1340,12 +1340,8 @@ rnTopSrcDecls group
         (tcg_env, rn_decls) <- runRenamerPlugin tcg_env rn_decls ;
         traceRn "rn13-plugin" empty ;
 
-        -- save the renamed syntax, if we want it
-        let { tcg_env'
-                | Just grp <- tcg_rn_decls tcg_env
-                  = tcg_env{ tcg_rn_decls = Just (appendGroups grp rn_decls) }
-                | otherwise
-                   = tcg_env };
+        let { rn_decls' = appendGroups (tcg_rn_decls tcg_env) rn_decls ;
+              tcg_env' = tcg_env{ tcg_rn_decls = rn_decls' } };
 
                 -- Dump trace of renaming part
         rnDump rn_decls ;
@@ -2857,15 +2853,13 @@ runRenamerPlugin gbl_env hs_group = do
 -- can become a Nothing and decide whether this should instead throw an
 -- exception/signal an error.
 type RenamedStuff =
-        (Maybe (HsGroup GhcRn, [LImportDecl GhcRn], Maybe [(LIE GhcRn, Avails)],
-                Maybe LHsDocString))
+        (HsGroup GhcRn, [LImportDecl GhcRn], Maybe [(LIE GhcRn, Avails)],
+         Maybe LHsDocString)
 
 -- | Extract the renamed information from TcGblEnv.
 getRenamedStuff :: TcGblEnv -> RenamedStuff
-getRenamedStuff tc_result
-  = fmap (\decls -> ( decls, tcg_rn_imports tc_result
-                    , tcg_rn_exports tc_result, tcg_doc_hdr tc_result ) )
-         (tcg_rn_decls tc_result)
+getRenamedStuff TcGblEnv{..}
+  = (tcg_rn_decls, tcg_rn_imports, tcg_rn_exports, tcg_doc_hdr)
 
 runTypecheckerPlugin :: ModSummary -> HscEnv -> TcGblEnv -> TcM TcGblEnv
 runTypecheckerPlugin sum hsc_env gbl_env = do

@@ -201,7 +201,6 @@ import qualified Data.Map as Map
 -- | Setup the initial typechecking environment
 initTc :: HscEnv
        -> HscSource
-       -> Bool          -- True <=> retain renamed syntax trees
        -> Module
        -> RealSrcSpan
        -> TcM r
@@ -209,7 +208,7 @@ initTc :: HscEnv
                 -- Nothing => error thrown by the thing inside
                 -- (error messages should have been printed already)
 
-initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
+initTc hsc_env hsc_src mod loc do_this
  = do { keep_var     <- newIORef emptyNameSet ;
         used_gre_var <- newIORef [] ;
         th_var       <- newIORef False ;
@@ -233,20 +232,6 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
         th_remote_state_var  <- newIORef Nothing ;
         let {
              dflags = hsc_dflags hsc_env ;
-
-             maybe_rn_syntax :: forall a. a -> Maybe a ;
-             maybe_rn_syntax empty_val
-                | dopt Opt_D_dump_rn_ast dflags = Just empty_val
-
-                | gopt Opt_WriteHie dflags       = Just empty_val
-
-                  -- We want to serialize the documentation in the .hi-files,
-                  -- and need to extract it from the renamed syntax first.
-                  -- See 'ExtractDocs.extractDocs'.
-                | gopt Opt_Haddock dflags       = Just empty_val
-
-                | keep_rn_syntax                = Just empty_val
-                | otherwise                     = Just empty_val ;
 
              gbl_env = TcGblEnv {
                 tcg_th_topdecls      = th_topdecls_var,
@@ -282,13 +267,11 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
                 tcg_dus            = emptyDUs,
 
                 tcg_rn_imports     = [],
-                tcg_rn_exports     =
-                    if hsc_src == HsigFile
+                tcg_rn_exports     = Just [],
                         -- Always retain renamed syntax, so that we can give
                         -- better errors.  (TODO: how?)
-                        then Just []
-                        else maybe_rn_syntax [],
-                tcg_rn_decls       = maybe_rn_syntax emptyRnGroup,
+
+                tcg_rn_decls       = emptyRnGroup,
                 tcg_tr_module      = Nothing,
                 tcg_binds          = emptyLHsBinds,
                 tcg_imp_specs      = [],
@@ -376,7 +359,7 @@ initTcWithGbl hsc_env gbl_env loc do_this
 initTcInteractive :: HscEnv -> TcM a -> IO (Messages, Maybe a)
 -- Initialise the type checker monad for use in GHCi
 initTcInteractive hsc_env thing_inside
-  = initTc hsc_env HsSrcFile False
+  = initTc hsc_env HsSrcFile
            (icInteractiveModule (hsc_IC hsc_env))
            (realSrcLocSpan interactive_src_loc)
            thing_inside

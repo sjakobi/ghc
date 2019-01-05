@@ -29,7 +29,7 @@ module Plugins (
       -- - access to the Template Haskell splices with 'spliceRunAction'
       -- - access to loaded interface files with 'interfaceLoadAction'
       --
-    , keepRenamedSource
+      -- TODO: Now where should I move the above comment?
 
       -- * Internal
     , PluginWithArgs(..), plugins, pluginRecompile'
@@ -42,7 +42,7 @@ import GhcPrelude
 
 import {-# SOURCE #-} CoreMonad ( CoreToDo, CoreM )
 import qualified TcRnTypes
-import TcRnTypes ( TcGblEnv, IfM, TcM, tcg_rn_decls, tcg_rn_exports )
+import TcRnTypes ( TcGblEnv, IfM, TcM )
 import HsSyn
 import DynFlags
 import HscTypes
@@ -191,22 +191,6 @@ defaultPlugin = Plugin {
       , spliceRunAction       = \_ -> return
       , interfaceLoadAction   = \_ -> return
     }
-
-
--- | A renamer plugin which mades the renamed source available in
--- a typechecker plugin.
-keepRenamedSource :: [CommandLineOption] -> TcGblEnv
-                  -> HsGroup GhcRn -> TcM (TcGblEnv, HsGroup GhcRn)
-keepRenamedSource _ gbl_env group =
-  return (gbl_env { tcg_rn_decls = update (tcg_rn_decls gbl_env)
-                  , tcg_rn_exports = update_exports (tcg_rn_exports gbl_env) }, group)
-  where
-    update_exports Nothing = Just []
-    update_exports m = m
-
-    update Nothing = Just emptyRnGroup
-    update m       = m
-
 
 type PluginOperation m a = Plugin -> [CommandLineOption] -> a -> m a
 type ConstPluginOperation m a = Plugin -> [CommandLineOption] -> a -> m ()

@@ -235,10 +235,8 @@ graphData mss handles = do
                      mod <- loadModule =<< typecheckModule =<< parseModule ms
                      case mod of
                        _ | isBootSummary ms -> return ()
-                       _ | Just s <- renamedSource mod ->
-                         liftIO (writeTagsData handles =<< fileData filename modname s)
                        _otherwise ->
-                         liftIO $ exitWith (ExitFailure 1)
+                         liftIO (writeTagsData handles =<< fileData filename modname (renamedSource mod))
 
 fileData :: FileName -> ModuleName -> RenamedSource -> IO FileData
 fileData filename modname (group, _imports, _lie, _doc) = do

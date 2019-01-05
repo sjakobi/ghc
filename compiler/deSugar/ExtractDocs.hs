@@ -34,17 +34,14 @@ extractDocs :: TcGblEnv
             -- 2. Docs on top level declarations
             -- 3. Docs on arguments
 extractDocs TcGblEnv { tcg_semantic_mod = mod
-                     , tcg_rn_decls = mb_rn_decls
+                     , tcg_rn_decls = rn_decls
                      , tcg_insts = insts
                      , tcg_fam_insts = fam_insts
                      , tcg_doc_hdr = mb_doc_hdr
                      } =
     (unLoc <$> mb_doc_hdr, DeclDocMap doc_map, ArgDocMap arg_map)
   where
-    (doc_map, arg_map) = maybe (M.empty, M.empty)
-                               (mkMaps local_insts)
-                               mb_decls_with_docs
-    mb_decls_with_docs = topDecls <$> mb_rn_decls
+    (doc_map, arg_map) = mkMaps local_insts (topDecls rn_decls)
     local_insts = filter (nameIsLocalOrFrom mod)
                          $ map getName insts ++ map getName fam_insts
 

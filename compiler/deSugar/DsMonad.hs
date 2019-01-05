@@ -260,7 +260,7 @@ initTcDsForSolver thing_inside
 
              DsLclEnv { dsl_loc = loc }                  = lcl
 
-       ; liftIO $ initTc hsc_env HsSrcFile False mod loc $
+       ; liftIO $ initTc hsc_env HsSrcFile mod loc $
          updGblEnv (\tc_gbl -> tc_gbl { tcg_fam_inst_env = fam_inst_env }) $
          thing_inside }
 
