@@ -246,7 +246,7 @@ initTc hsc_env hsc_src keep_rn_syntax mod loc do_this
                 | gopt Opt_Haddock dflags       = Just empty_val
 
                 | keep_rn_syntax                = Just empty_val
-                | otherwise                     = Nothing ;
+                | otherwise                     = Just empty_val ;
 
              gbl_env = TcGblEnv {
                 tcg_th_topdecls      = th_topdecls_var,
