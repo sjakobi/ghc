@@ -60,6 +60,7 @@ extractDocs' dflags
          , docs_decls = doc_map
          , docs_args = arg_map
          , docs_structure = doc_structure
+         , docs_instance_locs = instance_locs
          , docs_named_chunks = named_chunks
          , docs_haddock_opts = haddockOptions dflags
          , docs_language = language_
@@ -69,7 +70,7 @@ extractDocs' dflags
     exts = extensionFlags dflags
     language_ = language dflags
 
-    (doc_map, arg_map) = mkMaps local_insts decls_with_docs
+    (doc_map, arg_map, instance_locs) = mkMaps local_insts decls_with_docs
     decls_with_docs = topDecls rn_decls
     local_insts = filter (nameIsLocalOrFrom semantic_mdl)
                          $ map getName insts ++ map getName fam_insts
@@ -192,14 +193,17 @@ getNamedChunks False _ = M.empty
 
 -- | Create decl and arg doc-maps by looping through the declarations.
 -- For each declaration, find its names, its subordinates, and its doc strings.
+-- Also return the locations of class and family instances.
 mkMaps :: [Name]
        -> [(LHsDecl GhcRn, [HsDoc Name])]
        -> ( Map Name (HsDoc Name)
           , Map Name (Map Int (HsDoc Name))
+          , Map SrcSpan Name
           )
 mkMaps instances decls =
     ( listsToMapWith appendHsDoc (map (nubByName fst) decls')
     , listsToMapWith (<>) (filterMapping (not . M.null) args)
+    , instanceMap
     )
   where
     (decls', args) = unzip (map mappings decls)

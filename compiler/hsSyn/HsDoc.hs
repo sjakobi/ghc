@@ -322,13 +322,15 @@ type DocStructure = [DocStructureItem]
 
 -- TODO: Maybe combine the various @(Map Name X)@s to a single map.
 data Docs = Docs
-  { docs_mod_hdr      :: Maybe (HsDoc Name)
+  { docs_mod_hdr :: Maybe (HsDoc Name)
     -- ^ Module header.
-  , docs_decls        :: Map Name (HsDoc Name)
+  , docs_decls :: Map Name (HsDoc Name)
     -- ^ Docs for declarations: functions, data types, instances, methods etc.
-  , docs_args         :: Map Name (Map Int (HsDoc Name))
+  , docs_args :: Map Name (Map Int (HsDoc Name))
     -- ^ Docs for arguments. E.g. function arguments, method arguments.
-  , docs_structure    :: DocStructure
+  , docs_structure :: DocStructure
+  , docs_instance_locs :: Map SrcSpan Name
+    -- ^ Locations of class and family instances.
   , docs_named_chunks :: Map String (HsDoc Name)
     -- ^ Map from chunk name to content.
     --
@@ -336,9 +338,9 @@ data Docs = Docs
     -- we can reference the chunks.
   , docs_haddock_opts :: Maybe String
     -- ^ Haddock options from @OPTIONS_HADDOCK@ or from @-haddock-opts@.
-  , docs_language     :: Maybe Language
+  , docs_language :: Maybe Language
     -- ^ The 'Language' used in the module, for example 'Haskell2010'.
-  , docs_extensions   :: EnumSet Extension
+  , docs_extensions :: EnumSet Extension
     -- ^ The full set of language extensions used in the module.
   }
 
@@ -348,6 +350,7 @@ instance Binary Docs where
     put_ bh (docs_decls docs)
     put_ bh (docs_args docs)
     put_ bh (docs_structure docs)
+    put_ bh (docs_instance_locs docs)
     put_ bh (docs_named_chunks docs)
     put_ bh (docs_haddock_opts docs)
     put_ bh (docs_language docs)
@@ -357,6 +360,7 @@ instance Binary Docs where
     decls <- get bh
     args <- get bh
     structure <- get bh
+    inst_locs <- get bh
     named_chunks <- get bh
     haddock_opts <- get bh
     language <- get bh
@@ -365,6 +369,7 @@ instance Binary Docs where
               , docs_decls =  decls
               , docs_args = args
               , docs_structure = structure
+              , docs_instance_locs = inst_locs
               , docs_named_chunks = named_chunks
               , docs_haddock_opts = haddock_opts
               , docs_language = language
@@ -403,6 +408,7 @@ emptyDocs = Docs
   , docs_decls = Map.empty
   , docs_args = Map.empty
   , docs_structure = []
+  , docs_instance_locs = Map.empty
   , docs_named_chunks = Map.empty
   , docs_haddock_opts = Nothing
   , docs_language = Nothing
