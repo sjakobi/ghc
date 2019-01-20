@@ -26,6 +26,8 @@ import Data.Char
 import Data.Int
 import Data.Maybe
 import Data.Word
+
+import qualified GHC.LanguageExtensions as LangExt
 }
 
 -- The character sets marked "TODO" are mostly overly inclusive
@@ -46,7 +48,7 @@ $symbol = $interesting # [$digit $asciialpha \'] -- TODO
 $idchar = [$alpha $digit \']
 $delim = [\'\`]
 
-@id = $alpha $idchar* | $symbol+
+@id = $alpha $idchar* \#* | $symbol+
 @modname = $upper $idchar*
 @qualid = (@modname \.)* @id
 
@@ -134,8 +136,13 @@ lexHsDoc identParser s =
 
 validateIdentWith :: P RdrName -> String -> Maybe RdrName
 validateIdentWith identParser str0 =
-  let pflags = mkParserFlags' EnumSet.empty EnumSet.empty (stringToUnitId "")
-                              False False False False
+  let -- These ParserFlags should be as "inclusive" as possible, allowing
+      -- identifiers defined with any language extension.
+      pflags = mkParserFlags'
+                 EnumSet.empty
+                 (EnumSet.fromList [LangExt.MagicHash])
+                 (stringToUnitId "")
+                 False False False False
       buffer = stringToStringBuffer str0
       realSrcLc = mkRealSrcLoc (mkFastString "") 0 0
       pstate = mkPStatePure pflags buffer realSrcLc
