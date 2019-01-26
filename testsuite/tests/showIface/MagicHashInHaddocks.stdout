@@ -10,9 +10,7 @@ docs:
        arg docs:
        documentation structure:
          avails:
-           [foo#]
-         avails:
-           [Bar##{Bar##;}]
+           [foo#, Bar##{Bar##;}]
        named chunks:
        haddock options:
        language:

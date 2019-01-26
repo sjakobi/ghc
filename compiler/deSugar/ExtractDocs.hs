@@ -95,7 +95,6 @@ mkDocStructure _ _ Nothing rn_decls all_exports =
 
 -- TODO:
 -- * Maybe remove items that export nothing?
--- * Combine sequences of DsiExports?
 -- * Check the ordering of avails in DsiModExport
 mkDocStructureFromExportList
   :: Module                         -- ^ The current module
@@ -103,7 +102,7 @@ mkDocStructureFromExportList
   -> [(Located (IE GhcRn), Avails)] -- ^ Explicit export list
   -> DocStructure
 mkDocStructureFromExportList mdl import_avails export_list =
-    toDocStructure . first unLoc <$> export_list
+    combineSubsequentDsiExports (toDocStructure . first unLoc <$> export_list)
   where
     toDocStructure :: (IE GhcRn, Avails) -> DocStructureItem
     toDocStructure = \case
@@ -147,7 +146,7 @@ mkDocStructureFromDecls :: [AvailInfo] -- ^ All exports, unordered
                         -> HsGroup GhcRn
                         -> DocStructure
 mkDocStructureFromDecls all_exports decls =
-    map unLoc (sortByLoc (docs ++ avails))
+    combineSubsequentDsiExports (map unLoc (sortByLoc (docs ++ avails)))
   where
     avails :: [Located DocStructureItem]
     avails = flip fmap all_exports $ \avail ->
@@ -176,6 +175,12 @@ mkDocStructureFromDecls all_exports decls =
 
     name_locs = M.fromList (concatMap ldeclNames (ungroup decls))
     ldeclNames (L loc d) = zip (getMainDeclBinder d) (repeat loc)
+
+combineSubsequentDsiExports :: DocStructure -> DocStructure
+combineSubsequentDsiExports = foldr f []
+  where
+    f (DsiExports av0) (DsiExports av1 : xs) = DsiExports (av0 ++ av1) : xs
+    f dsi xs = dsi : xs
 
 -- | Extract named documentation chunks from the renamed declarations.
 --

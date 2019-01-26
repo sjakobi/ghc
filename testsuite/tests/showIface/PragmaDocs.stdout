@@ -10,11 +10,7 @@ docs:
        arg docs:
        documentation structure:
          avails:
-           [contains]
-         avails:
-           [x]
-         avails:
-           [y]
+           [contains, x, y]
        named chunks:
        haddock options:
        language:

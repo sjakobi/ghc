@@ -83,17 +83,14 @@ docs:
            [elem]
          reference to named chunk: namedchunk
          avails:
-           [D{D, D0, D1;}]
-         avails:
-           [add]
+           [D{D, D0, D1;}, add]
          section heading, level 1:
            text:
              " Another section heading"
            identifiers:
          avails:
-           [P{P, p;}]
-         avails:
-           [GHC.Show.Show{GHC.Show.Show, GHC.Show.show, GHC.Show.showList,
+           [P{P, p;},
+            GHC.Show.Show{GHC.Show.Show, GHC.Show.show, GHC.Show.showList,
                           GHC.Show.showsPrec;}]
        named chunks:
          "namedchunk":
